@@ -25,6 +25,7 @@ const corpo = fixture('corpo-tower');
 const factory = fixture('factory');
 const bridged = fixture('bridged-tower');
 const sliver = fixture('sliver-parcel');
+const shallow = fixture('shallow-tower');
 
 async function code(req: unknown): Promise<string> {
   try {
@@ -167,6 +168,23 @@ describe('blueprint invariants', () => {
           expect(o.offset + o.width).toBeLessThanOrEqual(edgeLen(floor.outline, o.edge) + 1e-6);
           expect(o.sill + o.height).toBeLessThanOrEqual(floor.height + 1e-6);
         }
+      }
+    }
+  });
+
+  it('keeps a core plate on every floor: 8 m behind the wall across the core axis, or no setback (p0 class)', async () => {
+    // p0 of city-urbe-small: a 10.35 m deep plate cannot afford a setback and stays a box to the roof.
+    const tower = await generate(shallow, KEYS);
+    const ground = tower.blueprint.floors.find((f) => f.index === 0)!.outline;
+    expect(tower.blueprint.floors.length).toBe(17);
+    for (const floor of tower.blueprint.floors) expect(floor.outline).toEqual(ground);
+    // A deep plate still steps back, and every terrace keeps the core depth.
+    for (const shape of ['setback', 'pyramid']) {
+      const { blueprint } = await generate({ ...corpo, options: { shape } }, KEYS);
+      const plates = new Set(blueprint.floors.map((f) => JSON.stringify(f.outline)));
+      expect(plates.size, shape).toBeGreaterThan(1);
+      for (const floor of blueprint.floors) {
+        expect(plateDepthBehindWall(blueprint, floor), `${shape} floor ${floor.index}`).toBeGreaterThanOrEqual(8);
       }
     }
   });
@@ -1142,6 +1160,18 @@ describe('errors', () => {
     })).toBe('E_SIGNAGE_TEXT_TOO_LONG');
   });
 });
+
+/** Depth of a floor plate across the longest ground edge, behind the wall depth and a 0.25 m lining. */
+function plateDepthBehindWall(blueprint: Blueprint, floor: Floor): number {
+  const ground = blueprint.floors.find((f) => f.index === 0)!.outline;
+  let longest = 0;
+  for (let e = 1; e < ground.length; e++) if (edgeLen(ground, e) > edgeLen(ground, longest)) longest = e;
+  const [ax, az] = ground[longest]!, [bx, bz] = ground[(longest + 1) % ground.length]!;
+  const len = edgeLen(ground, longest);
+  const nx = -(bz - az) / len, nz = (bx - ax) / len;
+  const v = floor.outline.map(([x, z]) => x * nx + z * nz);
+  return Math.max(...v) - Math.min(...v) - 2 * (blueprint.facade.wallDepth + 0.25);
+}
 
 /** Unit outward normal of an outline edge, probed against the ring so winding cannot flip it. */
 function outwardNormal(outline: [number, number][], edge: number): [number, number] {

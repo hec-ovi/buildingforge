@@ -3,12 +3,13 @@
 
 import { validateRequest } from './core/validate.ts';
 import { FAMILY } from './rules/families.ts';
-import { FACADE } from './rules/tables.ts';
+import { CORE_PLATE, FACADE } from './rules/tables.ts';
 import {
   PROPORTIONS, clearHeight, isStorefrontFloor, minEntranceHeight, minWindowHeight, proportionsOf,
 } from './rules/proportions.ts';
 import { buildStyle } from './layout/style.ts';
 import { buildMassing } from './layout/massing.ts';
+import { coreAxis, plateDepth } from './layout/plate.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
 import { buildFacades } from './layout/facades.ts';
 import { buildRelief } from './layout/relief.ts';
@@ -20,7 +21,7 @@ import { writeGlb } from './glb/writer.ts';
 import { buildBlueprint } from './blueprint/builder.ts';
 import { edgeLength, pointSegmentDistance, type P2 } from './core/polygon.ts';
 import { ExteriorError } from './core/errors.ts';
-import type { Layout } from './layout/model.ts';
+import type { FloorLayout, Layout } from './layout/model.ts';
 import type { GenerateOptions, GenerateResult, P3 } from './types.ts';
 
 export async function generate(raw: unknown, options: GenerateOptions = {}): Promise<GenerateResult> {
@@ -46,8 +47,9 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   checkInvariants(layout, obstacles);
 
   const mb = buildMesh(layout);
-  const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   const blueprint = buildBlueprint(layout, mb);
+  checkPlateDepth(layout.floors, blueprint.facade.wallDepth);
+  const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   return { glb, blueprint, textures };
 }
 
@@ -95,6 +97,24 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
       }
     }
     checkEdgeRuns(floor);
+  }
+}
+
+/**
+ * Every plate holds a core: a setback or terrace keeps the core depth behind
+ * the wall across the core's axis, read once the wall depth is measured on the
+ * built units; a plate that is the ground outline is the parcel's own depth.
+ */
+function checkPlateDepth(floors: FloorLayout[], wallDepth: number): void {
+  const ground = floors.find((f) => f.index === 0)!.outline;
+  const axis = coreAxis(ground);
+  for (const floor of floors) {
+    if (floor.outline === ground) continue;
+    const depth = plateDepth(floor.outline, axis) - 2 * (wallDepth + CORE_PLATE.lining);
+    if (depth < CORE_PLATE.minDepth - 1e-6) {
+      throw new ExteriorError('E_INVARIANT',
+        `floor ${floor.index} keeps ${depth.toFixed(2)} m of plate behind the wall across the core axis, under the ${CORE_PLATE.minDepth} m a core needs; exterior bug, report with the request`);
+    }
   }
 }
 

@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.22, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.23, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -69,6 +69,7 @@ Thrown as `ExteriorError { code, message, details? }`:
 
 ## Invariants
 - Face i is the vertical quad over parcel footprint segment i -> i+1 (connections convention). Every face carrying an aperture keeps its wall exactly on that segment; shape variation (octagon, cylinder, pyramid, inset) applies to aperture-free buildings, setbacks only above the topmost aperture.
+- Every floor plate holds a core. The core's axis is the longest ground-outline edge; a plate's depth is its extent across that axis behind the wall (the outline inset by `facade.wallDepth` plus a 0.25 m lining allowance). A setback or terrace keeps at least 8 m of it, or the massing takes no setback there and the plate is the ground outline (machine-checked, `E_INVARIANT`).
 - Every bridge, ac-tube and tunnel aperture yields exactly one `aperture` opening carving exactly the given cut, with a floor walking surface at exactly its base; that floor is tall enough to contain the aperture's full vertical extent. A wire anchor cuts no hole: the GLB carries node `anchor:<id>` with its origin at the attach point and the mount under it, a plate sized to the cut (0.3 to 0.6 m square, 3 cm thick) plus the lug the wire hangs from, in the `window-frame` material, standing proud of whatever the face carries there. A punched facade keeps the plate's footprint clear of openings; a curtain wall glazes straight across it, so the mullion grid runs whole. The per-floor elevation table in the blueprint is final; interior consumes it.
 - Floor elevations are contiguous: `elevation[i+1] = elevation[i] + height[i]`; ground floor at 0.
 - One opening owns one stretch of an edge: two openings on the same floor and edge never share any of it, whatever their heights, so a consumer reads each facade as a run of exclusive intervals. Min 0.3 m pier between openings. Every opening lies entirely inside its edge with non-negative offset and inside its floor's height (machine-checked before output).

@@ -1,7 +1,9 @@
 // Massing: the per-floor outline function. Shapes beyond the parcel box are
 // generated parametrically inside the parcel's oriented bounding box; any face
 // carrying an aperture forces the parcel footprint verbatim so face indexes and
-// planes stay exact (connections convention).
+// planes stay exact (connections convention). Every plate above the ground
+// keeps the depth a core needs across the core's axis, or the massing takes no
+// setback there.
 
 import { Rng } from '../core/rng.ts';
 import {
@@ -9,6 +11,8 @@ import {
 } from '../core/polygon.ts';
 import type { BuildingRequest } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
+import { CORE_PLATE } from '../rules/tables.ts';
+import { MIN_PLATE_DEPTH, coreAxis, plateDepth } from './plate.ts';
 
 // 16-gon unit ring, precomputed so no trig runs at generation time.
 const RING16: P2[] = [
@@ -47,12 +51,11 @@ export function buildMassing(req: BuildingRequest, family: Family, tier: Tier, b
   const base = baseOutline(shape, parcel, rng, needInset ? balconyInset + 0.1 : 0);
 
   if (shape === 'setback' && floors >= 8) {
+    const axis = coreAxis(base);
     const t1 = Math.max(2, Math.round(floors * rng.range(0.3, 0.45)));
     const t2 = Math.max(t1 + 2, Math.round(floors * rng.range(0.65, 0.8)));
-    const d1 = quant(rng.range(2, 4));
-    const d2 = quant(rng.range(2, 4));
-    const mid = isConvex(base) ? insetConvex(base, d1) : null;
-    const top = mid && isConvex(mid) ? insetConvex(mid, d2) : null;
+    const mid = stepIn(base, axis, rng);
+    const top = mid ? stepIn(mid, axis, rng) : null;
     if (mid) {
       return {
         groundOutline: base,
@@ -62,14 +65,16 @@ export function buildMassing(req: BuildingRequest, family: Family, tier: Tier, b
   }
 
   if (shape === 'pyramid' && floors >= 4) {
-    // Ziggurat: the outline steps inward every floor, vertical walls, terrace rings.
+    // Ziggurat: the outline steps inward every floor, vertical walls, terrace
+    // rings, and stops stepping where the next plate would lose its core.
+    const axis = coreAxis(base);
     const steps: P2[][] = [base];
     let current = base;
-    const totalInset = Math.min(minHalfWidth(base) * 0.8, floors * 1.2);
+    const totalInset = Math.min(minHalfWidth(base) * 0.8, floors * 1.2, coreRoom(base, axis));
     const per = quant(Math.max(0.4, totalInset / floors));
     for (let f = 1; f < floors; f++) {
       const next = isConvex(current) ? insetConvex(current, per) : null;
-      if (!next) break;
+      if (!next || plateDepth(next, axis) < MIN_PLATE_DEPTH - 1e-9) break;
       steps.push(next);
       current = next;
     }
@@ -80,6 +85,20 @@ export function buildMassing(req: BuildingRequest, family: Family, tier: Tier, b
   }
 
   return { groundOutline: base, outlineOf: () => base };
+}
+
+/** The inset a plate can take and still hold a core behind its walls. */
+function coreRoom(ring: P2[], axis: P2): number {
+  return (plateDepth(ring, axis) - MIN_PLATE_DEPTH) / 2;
+}
+
+/** One setback in from a convex plate, capped by its core room, or none. */
+function stepIn(ring: P2[], axis: P2, rng: Rng): P2[] | null {
+  if (!isConvex(ring)) return null;
+  const [min, max] = CORE_PLATE.setback;
+  const cap = Math.floor(Math.min(max, coreRoom(ring, axis)) * 20) / 20;
+  if (cap < min) return null;
+  return insetConvex(ring, quant(rng.range(min, cap)));
 }
 
 function pickShape(rng: Rng, family: Family, tier: Tier, floors: number): Shape {

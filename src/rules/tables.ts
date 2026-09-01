@@ -196,6 +196,22 @@ export const GLAZING = {
 
 export const OPENING = { minPier: 0.3, cornerMargin: 0.6 };
 
+/**
+ * Core plate. An interior runs its corridor along the longest ground edge and
+ * needs a shaft row, the corridor and one room strip across it on every floor,
+ * the core standing identical top to bottom. Depth is read behind the wall:
+ * the outline inset by the wall depth plus the lining an interior fits against
+ * it. A setback or terrace that cannot keep it is not taken.
+ */
+export const CORE_PLATE = {
+  minDepth: 8,
+  lining: 0.25,
+  /** the deepest wall any facade style builds, reserved by the massing before the units are measured */
+  maxWallDepth: 0.5,
+  /** how far one setback steps in from the plate below */
+  setback: [2, 4] as [number, number],
+};
+
 /** Wire anchor mount: a plate sized to the cut, the lug the wire hangs from on its face. */
 export const ANCHOR_MOUNT = {
   plate: [0.3, 0.6] as [number, number],
