@@ -1,6 +1,9 @@
-// Fixture picker, seed override, generate trigger.
+// Fixture picker, seed field, generate trigger. The seed field always shows the
+// seed the building was built from, so any run can be reproduced; with none
+// given, one is rolled and shown.
 
 import { el, field } from '../components/dom.ts';
+import { randomSeed } from '../../core/seed.ts';
 
 export interface RequestPanelEvents {
   onGenerate(request: unknown): void;
@@ -20,8 +23,9 @@ export class RequestPanel {
     for (const name of Object.keys(fixtures).sort()) {
       this.select.append(el('option', { value: name }, name));
     }
-    this.seedInput = el('input', { type: 'text', placeholder: 'seed override (optional)' });
+    this.seedInput = el('input', { type: 'text', placeholder: 'seed' });
     const generateBtn = el('button', {}, 'generate');
+    const randomBtn = el('button', {}, 'random seed');
     this.errorBox = el('div', { class: 'error' });
 
     const fire = () => {
@@ -33,22 +37,32 @@ export class RequestPanel {
       }
     };
     generateBtn.addEventListener('click', fire);
-    this.select.addEventListener('change', fire);
+    randomBtn.addEventListener('click', () => {
+      this.seedInput.value = randomSeed();
+      fire();
+    });
+    // A new fixture brings its own seed back into the field.
+    this.select.addEventListener('change', () => {
+      this.seedInput.value = '';
+      fire();
+    });
 
     this.root = el('div', { class: 'panel-section' },
       el('h2', {}, 'request'),
       field('fixture', this.select),
       field('seed', this.seedInput),
       generateBtn,
+      randomBtn,
       this.errorBox,
     );
   }
 
   currentRequest(): unknown {
-    const base = this.fixtures[this.select.value];
-    const req = structuredClone(base) as { seed?: string };
-    const seed = this.seedInput.value.trim();
-    if (seed) req.seed = seed;
+    const req = structuredClone(this.fixtures[this.select.value]) as { seed?: string };
+    const typed = this.seedInput.value.trim();
+    const seed = typed || (typeof req.seed === 'string' && req.seed ? req.seed : randomSeed());
+    this.seedInput.value = seed;
+    req.seed = seed;
     return req;
   }
 

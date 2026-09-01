@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -40,5 +40,22 @@ describe('cli', () => {
     const { out, dir } = run(['--keys-only']);
     expect(out).toContain('textures: keys');
     expect(glbJson(join(dir, 'p101.glb')).images).toBeUndefined();
+  });
+
+  it('prints the seed it used, and rolls one when the request carries none', () => {
+    const withSeed = run(['--keys-only']);
+    expect(withSeed.out).toContain('seed urbe-res-001\n');
+
+    const seedless = mkdtempSync(join(tmpdir(), 'exterior-'));
+    const request = JSON.parse(readFileSync(join(cwd, 'fixtures/residential-mid.request.json'), 'utf8'));
+    delete request.seed;
+    const requestPath = join(seedless, 'request.json');
+    writeFileSync(requestPath, JSON.stringify(request));
+    const out = execFileSync(process.execPath, [
+      '--experimental-strip-types', 'src/cli.ts', requestPath, seedless, '--keys-only',
+    ], { cwd, encoding: 'utf8' });
+    const rolled = /seed ([0-9a-f]{12}) \(generated\)/.exec(out)?.[1];
+    expect(rolled).toBeDefined();
+    expect(JSON.parse(readFileSync(join(seedless, 'p101.blueprint.json'), 'utf8')).seed).toBe(rolled);
   });
 });

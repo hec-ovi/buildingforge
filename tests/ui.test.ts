@@ -28,9 +28,29 @@ describe('RequestPanel', () => {
     await user.selectOptions(select, 'beta');
     expect(onGenerate).toHaveBeenCalledWith({ seed: 'b', buildingId: 'y' });
 
-    await user.type(panel.root.querySelector('input')!, 'custom');
+    const seedInput = panel.root.querySelector('input')!;
+    expect(seedInput.value).toBe('b'); // the seed in use is always on screen
+    await user.clear(seedInput);
+    await user.type(seedInput, 'custom');
     await user.click(getByText(panel.root, 'generate'));
     expect(onGenerate).toHaveBeenLastCalledWith({ seed: 'custom', buildingId: 'y' });
+  });
+
+  it('rolls a seed and shows it when none is given', async () => {
+    const onGenerate = vi.fn();
+    const panel = new RequestPanel({ alpha: { buildingId: 'x' } }, { onGenerate });
+    document.body.appendChild(panel.root);
+
+    const rolled = (panel.currentRequest() as { seed: string }).seed;
+    expect(rolled).toMatch(/^[0-9a-f]{12}$/);
+    expect(panel.root.querySelector('input')!.value).toBe(rolled);
+    // Shown means reproducible: the same field regenerates the same building.
+    expect((panel.currentRequest() as { seed: string }).seed).toBe(rolled);
+
+    await userEvent.setup().click(getByText(panel.root, 'random seed'));
+    const next = (onGenerate.mock.calls.at(-1)![0] as { seed: string }).seed;
+    expect(next).toMatch(/^[0-9a-f]{12}$/);
+    expect(next).not.toBe(rolled);
   });
 });
 

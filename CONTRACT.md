@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.10.0, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.11.0, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -16,7 +16,9 @@ Request: [schemas/building-request.schema.json](schemas/building-request.schema.
 
 `options.textures`: `{ mode?: "external" | "embed" | "keys", dir?, baseUrl?, source? }`. `dir` is the materials box root (defaults to `URBE_MATERIALS_DIR`, else the sibling `materials` box), `baseUrl` is the URI prefix written into the GLB before `themes/<theme>/assets/...`, and `source` is a preloaded materials source for callers with no filesystem (the browser preview) or `null` to force the keys fallback.
 
-CLI: `npm run generate -- <request.json> <outDir> [--embed | --keys-only] [--materials DIR] [--materials-base URI]` writes `<buildingId>.glb` and `<buildingId>.blueprint.json`; external map URIs are written relative to the output directory by default.
+CLI: `npm run generate -- <request.json> <outDir> [--seed S] [--embed | --keys-only] [--materials DIR] [--materials-base URI]` writes `<buildingId>.glb` and `<buildingId>.blueprint.json`; external map URIs are written relative to the output directory by default.
+
+Seeds: `generate` needs one, so a request with no seed (and no `--seed`) gets a random one rolled at the edge. The CLI prints the seed it used on every run and the preview keeps it in the seed field, so any building can be regenerated exactly.
 
 Feasibility: [schemas/floor-constants.json](schemas/floor-constants.json) carries the per-type constants the generator enforces (type-to-family map, min and max floor height, min footprint area) plus the recipe for pre-computing a guaranteed-feasible floor count, with or without apertures.
 

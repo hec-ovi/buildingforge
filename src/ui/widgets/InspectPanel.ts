@@ -32,6 +32,7 @@ export class InspectPanel {
     const openings = bp.floors.reduce((n, f) => n + f.openings.length, 0);
     const lines = [
       `building ${bp.buildingId}`,
+      `seed ${bp.seed}`,
       `floors ${bp.floors.length} (top ${bp.bounds.height.toFixed(1)} m)`,
       `openings ${openings}`,
       `anchors ${bp.anchors.length}  lights ${bp.lights.length}`,
