@@ -1,0 +1,190 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urbe/exterior/blueprint",
+  "title": "Blueprint",
+  "description": "Exterior shell blueprint, the canonical schema (interior consumes the floors core). Units: meters. Same coordinate frame as the request footprint, right-handed, +Y up, floor outlines on the XZ plane, CCW winding, first point not repeated.",
+  "type": "object",
+  "required": ["buildingId", "seed", "bounds", "floors", "roof", "materials"],
+  "additionalProperties": false,
+  "properties": {
+    "buildingId": { "type": "string" },
+    "seed": { "type": "string" },
+    "bounds": {
+      "type": "object",
+      "required": ["footprint", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "footprint": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "$ref": "#/$defs/point2" },
+          "description": "ground-floor outline actually built (within the parcel footprint)"
+        },
+        "height": { "type": "number", "exclusiveMinimum": 0, "description": "top of parapet above Y=0" }
+      }
+    },
+    "floors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["index", "kind", "elevation", "height", "outline", "openings"],
+        "additionalProperties": false,
+        "properties": {
+          "index": { "type": "integer", "description": "0 = ground floor, contiguous; negative = basement" },
+          "kind": { "type": "string", "description": "slot label slug: lobby, residential, office, restaurant, basement..." },
+          "elevation": { "type": "number", "description": "Y of this floor's walking surface" },
+          "height": { "type": "number", "minimum": 2.2, "maximum": 12, "description": "floor-to-floor distance" },
+          "outline": {
+            "type": "array",
+            "minItems": 3,
+            "items": { "$ref": "#/$defs/point2" },
+            "description": "CCW simple polygon of the floor plate, [x, z]"
+          },
+          "openings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "kind", "edge", "offset", "width", "height", "sill"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string" },
+                "kind": { "enum": ["door", "window", "balconyDoor", "aperture"] },
+                "edge": { "type": "integer", "minimum": 0, "description": "outline edge index (vertex i to i+1)" },
+                "offset": { "type": "number", "minimum": 0, "description": "meters along the edge to the opening's start" },
+                "width": { "type": "number", "exclusiveMinimum": 0 },
+                "height": { "type": "number", "exclusiveMinimum": 0 },
+                "sill": { "type": "number", "minimum": 0, "description": "bottom of opening above floor surface" },
+                "apertureKind": { "enum": ["bridge", "ac-tube", "tunnel"], "description": "present when kind = aperture; id echoes the request aperture id" },
+                "state": { "enum": ["open", "half", "closed80"], "description": "vertical curtain state, windows and balcony doors only" },
+                "balcony": {
+                  "type": "object",
+                  "required": ["depth", "width"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "depth": { "type": "number", "minimum": 0, "description": "0 = juliet railing" },
+                    "width": { "type": "number", "exclusiveMinimum": 0 }
+                  },
+                  "description": "present exactly when kind = balconyDoor; slab centered on the opening"
+                },
+                "material": { "type": "string", "description": "theme/kind/tier key of the fill (glass, door leaf)" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "signage": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["mode", "center", "width", "height", "normal"],
+        "additionalProperties": false,
+        "properties": {
+          "mode": { "enum": ["marquee", "logo"] },
+          "text": { "type": "string", "description": "marquee only" },
+          "ratio": { "enum": ["1:1", "3:2", "16:9"], "description": "logo only" },
+          "letterHeight": { "type": "number", "description": "marquee only" },
+          "center": { "$ref": "#/$defs/point3" },
+          "width": { "type": "number", "exclusiveMinimum": 0 },
+          "height": { "type": "number", "exclusiveMinimum": 0 },
+          "normal": { "$ref": "#/$defs/point2", "description": "[x, z] outward normal of the carrying face" }
+        }
+      }
+    },
+    "screens": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["center", "width", "height", "normal"],
+        "additionalProperties": false,
+        "properties": {
+          "center": { "$ref": "#/$defs/point3" },
+          "width": { "type": "number", "exclusiveMinimum": 0 },
+          "height": { "type": "number", "exclusiveMinimum": 0 },
+          "normal": { "$ref": "#/$defs/point2" }
+        }
+      }
+    },
+    "lights": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["kind", "position", "normal"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "enum": ["entrance", "accent"] },
+          "position": { "$ref": "#/$defs/point3" },
+          "normal": { "$ref": "#/$defs/point2" }
+        }
+      }
+    },
+    "fireEscape": {
+      "type": ["object", "null"],
+      "default": null,
+      "required": ["edge", "fromFloor", "toFloor"],
+      "additionalProperties": false,
+      "properties": {
+        "edge": { "type": "integer", "minimum": 0, "description": "ground outline edge it hangs on" },
+        "fromFloor": { "type": "integer" },
+        "toFloor": { "type": "integer" }
+      }
+    },
+    "roof": {
+      "type": "object",
+      "required": ["elevation", "outline", "parapetHeight", "artifacts"],
+      "additionalProperties": false,
+      "properties": {
+        "elevation": { "type": "number" },
+        "outline": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "$ref": "#/$defs/point2" }
+        },
+        "parapetHeight": { "type": "number", "minimum": 0 },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "center", "size", "rotationDeg"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["water-tank", "bulkhead", "hvac", "cooling-tower", "antenna", "dish", "solar", "helipad", "vent", "stack", "penthouse-screen", "pool", "bar"] },
+              "center": { "$ref": "#/$defs/point2" },
+              "size": {
+                "type": "array",
+                "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "[width, depth, height]"
+              },
+              "rotationDeg": { "type": "number", "description": "about +Y" }
+            }
+          }
+        }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "every theme/kind/tier key used in the GLB, deduplicated, sorted"
+    }
+  },
+  "$defs": {
+    "point2": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "point3": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}

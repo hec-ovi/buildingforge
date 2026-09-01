@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urbe/exterior/building-request",
+  "title": "BuildingRequest",
+  "description": "Input to the exterior generator. Units: meters. Building-local space, right-handed, +Y up, XZ floor plane, CCW polygons. Outputs share the footprint's coordinate frame, ground at Y=0.",
+  "type": "object",
+  "required": ["seed", "buildingId", "parcel", "building", "theme"],
+  "additionalProperties": false,
+  "properties": {
+    "seed": { "type": "string", "minLength": 1 },
+    "buildingId": { "type": "string", "minLength": 1 },
+    "parcel": {
+      "type": "object",
+      "required": ["footprint", "accessPoint", "maxHeight"],
+      "additionalProperties": false,
+      "properties": {
+        "footprint": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "$ref": "#/$defs/point2" },
+          "description": "CCW simple polygon [x, z], first point not repeated; the buildable boundary, structure never exceeds it"
+        },
+        "accessPoint": {
+          "$ref": "#/$defs/point2",
+          "description": "street access point from atlas; the main entrance lands on the facade nearest it"
+        },
+        "maxHeight": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "building": {
+      "type": "object",
+      "required": ["type", "tier", "floors"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["residential", "hotel", "offices", "corpo", "hospital", "clinic", "police", "military", "factory", "commerce", "mall", "restaurant", "coffee_shop"], "description": "atlas parcel types, consumed verbatim" },
+        "tier": { "enum": ["poor", "mid", "rich", "high_rich"], "description": "atlas tiers, consumed verbatim" },
+        "floors": { "type": "integer", "minimum": 1 },
+        "basements": { "type": "integer", "minimum": 0, "default": 0 },
+        "floorKinds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "optional slot label per above-ground floor, length must equal floors (e.g. lobby, office, restaurant); synthesized when absent"
+        }
+      }
+    },
+    "theme": { "type": "string", "minLength": 1, "description": "lowercase slug; material keys are theme/kind/tier" },
+    "apertures": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "face", "baseY", "cut"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["bridge", "ac-tube", "tunnel"] },
+          "face": {
+            "type": "object",
+            "required": ["origin", "normal"],
+            "additionalProperties": false,
+            "properties": {
+              "origin": { "$ref": "#/$defs/point2", "description": "[x, z] point the vertical wall plane passes through" },
+              "normal": { "$ref": "#/$defs/point2", "description": "[x, z] unit outward normal of the wall plane" }
+            }
+          },
+          "baseY": { "type": "number", "description": "absolute Y of the aperture's walk surface; negative for tunnels. A floor plate lands exactly here." },
+          "cut": {
+            "type": "array",
+            "minItems": 3,
+            "items": { "$ref": "#/$defs/point2" },
+            "description": "CCW polygon in face-plane coords [u, v]: u along the face tangent (normal rotated +90 deg about Y), v up from baseY, origin at (face.origin, baseY)"
+          }
+        }
+      }
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "shape": { "enum": ["auto", "box", "octagon", "cylinder", "pyramid", "setback"], "default": "auto" },
+        "balconies": { "enum": ["auto", "on", "off"], "default": "auto" },
+        "fireEscape": { "type": "boolean", "default": false },
+        "windows": { "enum": ["auto", "none"], "default": "auto" },
+        "signage": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["mode", "text"],
+              "additionalProperties": false,
+              "properties": {
+                "mode": { "const": "marquee" },
+                "text": { "type": "string", "minLength": 1, "maxLength": 40 }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["mode", "ratio"],
+              "additionalProperties": false,
+              "properties": {
+                "mode": { "const": "logo" },
+                "ratio": { "enum": ["1:1", "3:2", "16:9"] }
+              }
+            }
+          ],
+          "default": null
+        },
+        "adScreens": { "enum": ["auto", "on", "off"], "default": "auto" },
+        "roofArtifacts": { "enum": ["auto", "off"], "default": "auto" },
+        "curtains": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "profile": { "enum": ["day", "night"], "default": "day" },
+            "sunAzimuthDeg": { "type": "number", "minimum": 0, "exclusiveMaximum": 360, "default": 180, "description": "facades facing this azimuth bias closed" }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "point2": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "minItems": 2,
+      "maxItems": 2
+    }
+  }
+}
