@@ -57,6 +57,11 @@
                 "sill": { "type": "number", "minimum": 0, "description": "bottom of opening above floor surface" },
                 "apertureKind": { "enum": ["bridge", "ac-tube", "tunnel"], "description": "present when kind = aperture; id echoes the request aperture id" },
                 "state": { "enum": ["open", "half", "closed80"], "description": "vertical curtain state, windows and balcony doors only" },
+                "spandrel": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "curtain-wall bay only: opaque band at the bottom of the opening covering the slab edge; vision glass runs from sill + spandrel to the top of the opening"
+                },
                 "panes": {
                   "type": "object",
                   "required": ["cols", "rows"],
@@ -163,8 +168,8 @@
       "additionalProperties": false,
       "properties": {
         "style": {
-          "enum": ["megablock", "panel", "glass"],
-          "description": "tier facade style: megablock (poor), panel (mid), glass (rich, high_rich)"
+          "enum": ["megablock", "panel", "glass", "curtain-wall"],
+          "description": "facade style: megablock (poor), panel (mid), glass (rich, high_rich), curtain-wall (offices and corpo at rich and high_rich)"
         },
         "panelModule": {
           "type": "number",

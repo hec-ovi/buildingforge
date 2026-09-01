@@ -1,7 +1,7 @@
 // One frozen style per building: dimensions vary between buildings, never within one.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, TIER_WWR_SHIFT, BALCONY, FACADE, FACADE_STYLE, GLAZING, PARAPET, STRUCTURE } from '../rules/tables.ts';
+import { RULES, TIER_WWR_SHIFT, BALCONY, FACADE, facadeStyleFor, GLAZING, PARAPET, STRUCTURE } from '../rules/tables.ts';
 import { PROPORTIONS, proportionsOf } from '../rules/proportions.ts';
 import { quant } from '../core/polygon.ts';
 import type { Family, Tier } from '../rules/families.ts';
@@ -19,10 +19,10 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
   const wwrMid = r.windowToWall[0] + wwrSpan / 2;
   const wwr = Math.min(r.windowToWall[1], Math.max(r.windowToWall[0], wwrMid + TIER_WWR_SHIFT[tier] * wwrSpan / 2));
 
-  const curtainWall = r.curtainWall && (tier === 'rich' || tier === 'high_rich' || rng.chance(0.5));
+  const facade = buildFacade(seed, family, tier);
 
   // Concrete shows fat perimeter columns; steel or curtain wall reads thin (docs/RESEARCH.md structure rules).
-  const concrete = floors <= STRUCTURE.concreteMaxFloors && !curtainWall;
+  const concrete = floors <= STRUCTURE.concreteMaxFloors && facade.kind !== 'curtain-wall';
   const columnWidth = quant(concrete ? rng.range(...r.columnWidth) : r.columnWidth[0] * 0.8);
 
   const depthRange = BALCONY.depth[tier];
@@ -39,7 +39,6 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
     entrancePick: rng.next(),
     bayModule: quant(rng.range(...r.bayModule)),
     wwr,
-    curtainWall,
     columnSpacing: quant(rng.range(...r.columnGrid)),
     columnWidth,
     showColumns: concrete,
@@ -47,14 +46,14 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
     balconyWidth: quant(rng.range(2.4, 4.0)),
     juliet: tier === 'poor',
     parapetHeight: quant(rng.range(...PARAPET)),
-    facade: buildFacade(seed, tier),
+    facade,
     glazing: buildGlazing(seed, tier),
   };
 }
 
 /** One facade style per building, its relief drawn once so every face agrees. */
-function buildFacade(seed: string, tier: Tier): Style['facade'] {
-  const kind = FACADE_STYLE[tier];
+function buildFacade(seed: string, family: Family, tier: Tier): Style['facade'] {
+  const kind = facadeStyleFor(family, tier);
   const s = FACADE.styles[kind];
   const rng = new Rng(seed, 'facade');
   return {
@@ -66,6 +65,7 @@ function buildFacade(seed: string, tier: Tier): Style['facade'] {
     bandProud: quant(rng.range(...s.bandProud)),
     windowRecess: quant(rng.range(...s.windowRecess)),
     utilityChance: s.utilityChance,
+    spandrelHeight: kind === 'curtain-wall' ? quant(rng.range(...FACADE.curtainWall.spandrelHeight)) : 0,
   };
 }
 

@@ -140,7 +140,9 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
 /**
  * A window unit: a frame profile standing proud of the wall with real reveal
  * depth, a mullion grid splitting the opening into panes no larger than the
- * tier's structural limit, and the glass recessed behind the profile.
+ * tier's structural limit, and the glass recessed behind the profile. A
+ * curtain-wall bay carries the spandrel panel that hides its slab edge at the
+ * bottom, and its vision glass starts above that band.
  */
 function windowUnit(
   sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
@@ -149,7 +151,9 @@ function windowUnit(
   const g = style.glazing;
   const fw = Math.min(g.frameWidth, (u1 - u0) / 4, (yt - yb) / 4);
   const depth = g.frameProud + g.glassInset;
-  const g0 = u0 + fw, g1 = u1 - fw, gb = yb + fw, gt = yt - fw;
+  const spandrel = o.spandrel ?? 0;
+  const g0 = u0 + fw, g1 = u1 - fw, gt = yt - fw;
+  const gb = spandrel > 0 ? yb + spandrel + fw : yb + fw;
   const frameMat = mat('window-frame');
 
   // The wall is cut at the opening; the reveal ring lines it back to the unit,
@@ -162,11 +166,17 @@ function windowUnit(
   const proud = g.frameProud + z;
 
   member(sink, fr, u0, u1, yt - fw, yt, proud, depth, frameMat, { bottom: true });
-  member(sink, fr, u0, u1, yb, yb + fw, proud, depth, frameMat, { top: true });
+  if (spandrel > 0) {
+    // Spandrel panel filling the band, then the transom the glass sits on.
+    strip(sink, fr, u0, u1, yb, yb + spandrel, proud, frameMat);
+    member(sink, fr, u0, u1, yb + spandrel, gb, proud, depth, frameMat, { top: true });
+  } else {
+    member(sink, fr, u0, u1, yb, yb + fw, proud, depth, frameMat, { top: true });
+  }
   member(sink, fr, u0, g0, gb, gt, proud, depth, frameMat, { right: true });
   member(sink, fr, g1, u1, gb, gt, proud, depth, frameMat, { left: true });
 
-  const { cols, rows } = o.panes ?? paneGrid(u1 - u0, yt - yb, g);
+  const { cols, rows } = o.panes ?? paneGrid(u1 - u0, gt - gb, g);
   const mw = Math.min(g.mullionWidth, (g1 - g0) / (cols * 2), (gt - gb) / (rows * 2));
   const mProud = g.frameProud * 0.7 + z;
   const mDepth = g.frameProud * 0.7 + g.glassInset;

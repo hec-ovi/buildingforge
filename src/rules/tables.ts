@@ -14,7 +14,6 @@ interface StyleRules {
   bayModule: [number, number];
   columnGrid: [number, number];
   columnWidth: [number, number];
-  curtainWall: boolean;
   balconies: boolean;
   entranceGlass: boolean;
 }
@@ -25,42 +24,42 @@ const STYLE_RULES: Record<Family, StyleRules> = {
   residential: {
     floorHeight: [2.9, 3.2], groundFloorFactor: [1.3, 1.6],
     windowToWall: [0.15, 0.4], bayModule: [3.0, 4.5], columnGrid: [3.0, 4.5],
-    columnWidth: [0.3, 0.45], curtainWall: false, balconies: true, entranceGlass: true,
+    columnWidth: [0.3, 0.45], balconies: true, entranceGlass: true,
   },
   hotel: {
     floorHeight: [3.1, 3.4], groundFloorFactor: [1.5, 2.0],
     windowToWall: [0.3, 0.5], bayModule: [3.6, 4.5], columnGrid: [3.6, 4.5],
-    columnWidth: [0.35, 0.5], curtainWall: false, balconies: true, entranceGlass: true,
+    columnWidth: [0.35, 0.5], balconies: true, entranceGlass: true,
   },
   office: {
     floorHeight: [3.66, 4.0], groundFloorFactor: [1.3, 1.6],
     windowToWall: [0.3, 0.8], bayModule: [1.8, 2.6], columnGrid: [6.0, 9.0],
-    columnWidth: [0.3, 0.6], curtainWall: true, balconies: false, entranceGlass: true,
+    columnWidth: [0.3, 0.6], balconies: false, entranceGlass: true,
   },
   corpo: {
     floorHeight: [3.9, 4.27], groundFloorFactor: [1.5, 2.0],
     windowToWall: [0.7, 0.95], bayModule: [1.8, 2.4], columnGrid: [7.5, 9.0],
-    columnWidth: [0.4, 0.7], curtainWall: true, balconies: false, entranceGlass: true,
+    columnWidth: [0.4, 0.7], balconies: false, entranceGlass: true,
   },
   hospital: {
     floorHeight: [4.2, 4.5], groundFloorFactor: [1.2, 1.4],
     windowToWall: [0.2, 0.35], bayModule: [3.6, 4.8], columnGrid: [6.0, 7.5],
-    columnWidth: [0.4, 0.6], curtainWall: false, balconies: false, entranceGlass: true,
+    columnWidth: [0.4, 0.6], balconies: false, entranceGlass: true,
   },
   security: {
     floorHeight: [3.2, 3.6], groundFloorFactor: [1.2, 1.5],
     windowToWall: [0.1, 0.2], bayModule: [3.0, 4.0], columnGrid: [4.5, 6.0],
-    columnWidth: [0.4, 0.6], curtainWall: false, balconies: false, entranceGlass: false,
+    columnWidth: [0.4, 0.6], balconies: false, entranceGlass: false,
   },
   industrial: {
     floorHeight: [6.0, 9.0], groundFloorFactor: [1.0, 1.0],
     windowToWall: [0.05, 0.15], bayModule: [6.0, 9.0], columnGrid: [8.0, 12.0],
-    columnWidth: [0.4, 0.6], curtainWall: false, balconies: false, entranceGlass: false,
+    columnWidth: [0.4, 0.6], balconies: false, entranceGlass: false,
   },
   commerce: {
     floorHeight: [3.4, 4.0], groundFloorFactor: [1.2, 1.5],
     windowToWall: [0.4, 0.7], bayModule: [2.4, 3.6], columnGrid: [7.5, 9.0],
-    columnWidth: [0.3, 0.5], curtainWall: false, balconies: false, entranceGlass: true,
+    columnWidth: [0.3, 0.5], balconies: false, entranceGlass: true,
   },
 };
 
@@ -99,6 +98,8 @@ export const STRUCTURE = { concreteMaxFloors: 40 };
  *   scattered inside the cells, surface-mounted utility boxes.
  * - panel (mid): the same grid read thin, moderate reveals, few boxes.
  * - glass (rich, high_rich): clean mullioned glazing on flush panels.
+ * - curtain-wall (offices and corpo at rich and high_rich): one continuous glazed
+ *   skin per face, thin mullions, a spandrel band at every slab edge.
  */
 export const FACADE = {
   panelModule: 3.0,
@@ -127,6 +128,27 @@ export const FACADE = {
       windowRecess: [0, 0.03] as [number, number], // glazing sits nearly flush, mullions read proud
       utilityChance: 0,
     },
+    'curtain-wall': {
+      ribWidth: [0, 0] as [number, number],
+      ribDepth: [0, 0] as [number, number],
+      bandHeight: [0, 0] as [number, number],
+      bandProud: [0, 0] as [number, number],
+      windowRecess: [0, 0] as [number, number], // the wall is gone: the glazing is the skin
+      utilityChance: 0,
+    },
+  },
+  /**
+   * Curtain wall: one continuous glazed skin per face, hung outside the slabs,
+   * so a floor band is a spandrel panel and everything above it is vision glass
+   * on a thin mullion grid.
+   */
+  curtainWall: {
+    /** opaque band at each slab edge: structural slab plus the raised floor zone */
+    spandrelHeight: [0.75, 1.05] as [number, number],
+    /** the glazing stops short of the corner so two faces never intersect */
+    cornerInset: 0.12,
+    /** a strip narrower than this is a pier, not a bay */
+    minBay: 1.2,
   },
   /** megablock cells: the proportion table's small deep openings, semi-irregular inside the panel grid */
   megablockWindow: {
@@ -142,9 +164,17 @@ export const FACADE = {
   },
 };
 
-export const FACADE_STYLE: Record<Tier, keyof typeof FACADE.styles> = {
+export type FacadeStyle = keyof typeof FACADE.styles;
+
+const TIER_STYLE: Record<Tier, FacadeStyle> = {
   poor: 'megablock', mid: 'panel', rich: 'glass', high_rich: 'glass',
 };
+
+/** Offices and corpo at the top tiers wear a curtain wall; everyone else reads by tier. */
+export function facadeStyleFor(family: Family, tier: Tier): FacadeStyle {
+  const towerGlass = (family === 'office' || family === 'corpo') && (tier === 'rich' || tier === 'high_rich');
+  return towerGlass ? 'curtain-wall' : TIER_STYLE[tier];
+}
 
 /**
  * Window units. A pane is limited by what the glass thickness and the tier's
@@ -279,6 +309,12 @@ export const CURTAINS = {
   day: { sunFacing: { open: 0.25, half: 0.35, closed80: 0.4 }, shaded: { open: 0.45, half: 0.3, closed80: 0.25 } },
   night: { sunFacing: { open: 0.35, half: 0.25, closed80: 0.4 }, shaded: { open: 0.4, half: 0.25, closed80: 0.35 } },
 } as Record<'day' | 'night', { sunFacing: CurtainDist; shaded: CurtainDist }>;
+
+/** A curtain wall is meant to be seen through: most bays stay open whatever the hour. */
+export const CURTAINS_VISION: { sunFacing: CurtainDist; shaded: CurtainDist } = {
+  sunFacing: { open: 0.6, half: 0.2, closed80: 0.2 },
+  shaded: { open: 0.75, half: 0.15, closed80: 0.1 },
+};
 
 export const AD_SCREEN = {
   families: ['corpo', 'office', 'hotel', 'commerce'] as string[],

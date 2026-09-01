@@ -17,7 +17,6 @@ export interface Style {
   entrancePick: number;
   bayModule: number;
   wwr: number;
-  curtainWall: boolean;
   columnSpacing: number;
   columnWidth: number;
   showColumns: boolean;
@@ -27,7 +26,7 @@ export interface Style {
   parapetHeight: number;
   /** facade relief and window placement style, frozen per building */
   facade: {
-    kind: 'megablock' | 'panel' | 'glass';
+    kind: 'megablock' | 'panel' | 'glass' | 'curtain-wall';
     panelModule: number;
     ribWidth: number;
     ribDepth: number;
@@ -35,6 +34,8 @@ export interface Style {
     bandProud: number;
     windowRecess: number;
     utilityChance: number;
+    /** curtain wall only: the opaque band at each slab edge */
+    spandrelHeight: number;
   };
   /** window unit profile, frozen per building */
   glazing: {

@@ -69,6 +69,8 @@ export interface Opening {
   state?: CurtainState;
   /** mullion grid of a glazed opening: cols x rows panes, each within the tier's pane limit */
   panes?: { cols: number; rows: number };
+  /** curtain-wall bay: opaque spandrel band at the bottom of the opening; vision glass starts above it */
+  spandrel?: number;
   balcony?: { depth: number; width: number };
   material?: string;
 }
@@ -134,7 +136,7 @@ export interface Blueprint {
   }[];
   screens: { center: P3; width: number; height: number; normal: P2 }[];
   lights: { kind: 'entrance' | 'accent'; position: P3; normal: P2 }[];
-  facade: { style: 'megablock' | 'panel' | 'glass'; panelModule: number };
+  facade: { style: 'megablock' | 'panel' | 'glass' | 'curtain-wall'; panelModule: number };
   facadeArtifacts: FacadeArtifact[];
   fireEscape: { edge: number; fromFloor: number; toFloor: number } | null;
   roof: {

@@ -640,11 +640,14 @@ describe('facade styles', () => {
   it('gives each tier its own style, with the panel grid published', async () => {
     const poor = (await generate(factory, KEYS)).blueprint;
     const mid = (await generate(residential, KEYS)).blueprint;
-    const rich = (await generate(corpo, KEYS)).blueprint;
+    const richHotel = { ...residential, seed: 'style-rich', building: { ...(residential.building as object), type: 'hotel', tier: 'rich' } };
+    const rich = (await generate(richHotel, KEYS)).blueprint;
+    const tower = (await generate(corpo, KEYS)).blueprint;
     expect(poor.facade.style).toBe('megablock');
     expect(mid.facade.style).toBe('panel');
     expect(rich.facade.style).toBe('glass');
-    for (const bp of [poor, mid, rich]) expect(bp.facade.panelModule).toBeGreaterThan(0);
+    expect(tower.facade.style).toBe('curtain-wall');
+    for (const bp of [poor, mid, rich, tower]) expect(bp.facade.panelModule).toBeGreaterThan(0);
   });
 
   it('scatters small windows on the megablock panel grid and mounts utility boxes clear of them', async () => {
@@ -669,6 +672,49 @@ describe('facade styles', () => {
         expect(clear, `utility box overlaps ${o.id}`).toBe(true);
       }
     }
+  });
+
+  it('glazes a curtain-wall face slab to slab, spandrel at every floor line, mullions across', async () => {
+    const { glb, blueprint } = await generate(corpo, KEYS);
+    expect(blueprint.facade.style).toBe('curtain-wall');
+    const doc = await new NodeIO().readBinary(glb);
+
+    for (const floor of blueprint.floors.filter((f) => f.index > 0)) {
+      const bays = floor.openings.filter((o) => o.kind === 'window');
+      expect(bays.length).toBeGreaterThan(0);
+      const glazed = new Map<number, number>();
+      for (const b of bays) {
+        // Every bay hangs slab to slab, its spandrel covering the floor line.
+        expect(b.sill + b.height).toBeCloseTo(floor.height, 6);
+        expect(b.spandrel).toBeGreaterThan(0);
+        expect(b.panes!.cols).toBeGreaterThan(1);
+        glazed.set(b.edge, (glazed.get(b.edge) ?? 0) + b.width);
+
+        // The vision glass really starts above the spandrel band.
+        const node = doc.getRoot().listNodes().find((n) => n.getName() === `window:${b.id}`)!;
+        const glass = node.getMesh()!.listPrimitives()
+          .find((p) => p.getMaterial()!.getName().includes('window-glass'))!;
+        const pos = glass.getAttribute('POSITION')!.getArray() as Float32Array;
+        let lowest = Infinity;
+        for (let i = 1; i < pos.length; i += 3) lowest = Math.min(lowest, pos[i]!);
+        expect(lowest).toBeGreaterThanOrEqual(floor.elevation + b.sill + b.spandrel! - 1e-6);
+      }
+      // The skin runs corner to corner, not as scattered punched holes.
+      for (const [edge, width] of glazed) {
+        expect(width / edgeLen(floor.outline, edge)).toBeGreaterThan(0.9);
+      }
+    }
+  });
+
+  it('runs the curtain wall over the entrance as a transom light', async () => {
+    const { blueprint } = await generate(corpo, KEYS);
+    const ground = blueprint.floors.find((f) => f.index === 0)!;
+    const entrance = ground.openings.find((o) => o.id === 'entrance')!;
+    const over = ground.openings.find((o) => o.kind === 'window' && o.edge === entrance.edge
+      && o.sill >= entrance.sill + entrance.height);
+    expect(over, 'glazing continues above the door').toBeDefined();
+    expect(over!.sill + over!.height).toBeCloseTo(ground.height, 6);
+    expect(over!.spandrel).toBe(0); // no slab edge to hide over a door head
   });
 
   it('leaves glass facades free of ribs and utility boxes', async () => {

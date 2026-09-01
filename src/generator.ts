@@ -3,6 +3,7 @@
 
 import { validateRequest } from './core/validate.ts';
 import { FAMILY } from './rules/families.ts';
+import { FACADE } from './rules/tables.ts';
 import {
   PROPORTIONS, clearHeight, isStorefrontFloor, minWindowHeight, proportionsOf,
 } from './rules/proportions.ts';
@@ -96,6 +97,7 @@ function checkInvariants(layout: Layout): void {
 function checkProportions(layout: Layout): void {
   const prop = proportionsOf(layout.family);
   const megablock = layout.style.facade.kind === 'megablock';
+  const curtainWall = layout.style.facade.kind === 'curtain-wall';
   if (megablock && layout.tier !== PROPORTIONS.megablock.tier) {
     throw new ExteriorError('E_INVARIANT',
       `megablock windows on tier ${layout.tier}; the small deep window is the ${PROPORTIONS.megablock.tier} tier's alone`);
@@ -115,7 +117,19 @@ function checkProportions(layout: Layout): void {
         }
         continue;
       }
-      if (o.kind !== 'window' || megablock) continue;
+      if (o.kind !== 'window') continue;
+      if (curtainWall) {
+        // A curtain-wall bay hangs slab to slab: an opaque spandrel at the bottom
+        // when it starts on the slab, vision glass the rest of the way up.
+        if (Math.abs(o.sill + o.height - floor.height) > 1e-6) {
+          fail(`curtain-wall bay ${o.id} spans ${(o.sill + o.height).toFixed(2)} m of a ${floor.height.toFixed(2)} m floor instead of reaching the slab above`);
+        }
+        if (o.height - (o.spandrel ?? 0) < FACADE.curtainWall.minBay - 1e-6) {
+          fail(`curtain-wall bay ${o.id} carries ${(o.height - (o.spandrel ?? 0)).toFixed(2)} m of glass, under the ${FACADE.curtainWall.minBay} m minimum`);
+        }
+        continue;
+      }
+      if (megablock) continue;
       const storefront = floor.index === 0 && isStorefrontFloor(layout.family, floor.kind);
       const spec = storefront
         ? { ...prop, sill: PROPORTIONS.storefront.sill, windowHeight: PROPORTIONS.storefront.windowHeight }

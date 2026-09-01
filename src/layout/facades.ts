@@ -2,7 +2,7 @@
 // street face, aperture cuts reserved first, openings never overlapping.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, DOORS, FACADE, OPENING, CURTAINS, type CurtainDist } from '../rules/tables.ts';
+import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist } from '../rules/tables.ts';
 import {
   PROPORTIONS, clearHeight, entranceHeight, fitWindow, isStorefrontFloor, proportionsOf,
 } from '../rules/proportions.ts';
@@ -21,6 +21,9 @@ const COMPASS: P2[] = [
 ];
 
 interface Taken { start: number; end: number }
+
+/** Wall left between a door or aperture head and the transom light above it. */
+const CURTAIN_TRANSOM_GAP = 0.15;
 
 export interface FacadeResult {
   floors: FloorLayout[];
@@ -132,9 +135,17 @@ export function buildFacades(
       if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
     }
 
-    // 3. Windows and balcony doors: megablock scatters small openings inside the
-    // panel grid, every other style fills bays.
-    if (!noWindows && style.facade.kind === 'megablock') {
+    // 3. Windows and balcony doors: a curtain wall glazes each face whole,
+    // megablock scatters small openings inside the panel grid, every other style
+    // fills bays.
+    if (!noWindows && style.facade.kind === 'curtain-wall') {
+      for (let e = 0; e < outline.length; e++) {
+        const normal = edgeNormal(outline, e);
+        const sunFacing = normal[0] * sun[0] + normal[1] * sun[1] > 0;
+        placeCurtainWallBays(seed, req.theme, tier, style, outline, e, level, openings, takenByEdge,
+          CURTAINS_VISION[sunFacing ? 'sunFacing' : 'shaded']);
+      }
+    } else if (!noWindows && style.facade.kind === 'megablock') {
       for (let e = 0; e < outline.length; e++) {
         const normal = edgeNormal(outline, e);
         const sunFacing = normal[0] * sun[0] + normal[1] * sun[1] > 0;
@@ -179,29 +190,20 @@ export function buildFacades(
           // Window bay. Curtain-wall styles glaze every bay wide; punched windows
           // roll density. Sizes come from the proportion table, fitted to this
           // floor's clear height.
-          let w: number, h: number, sill: number, always: boolean;
           const clear = clearHeight(level.height);
-          if (style.curtainWall && !isGround) {
-            w = quant(Math.max(0.6, bayW - 0.15));
-            h = quant(Math.max(1.2, level.height - 0.45));
-            sill = 0.25;
-            always = true;
-          } else {
-            const storefront = isGround && isStorefrontFloor(family, level.kind);
-            const fit = fitWindow(
-              storefront ? { ...prop, sill: PROPORTIONS.storefront.sill, windowHeight: PROPORTIONS.storefront.windowHeight } : prop,
-              storefront ? style.storefrontFraction : style.windowFraction,
-              storefront ? style.storefrontSill : style.sill,
-              clear,
-            );
-            if (!fit) continue;
-            w = Math.min(style.windowWidth, bayW - OPENING.minPier);
-            h = fit.height;
-            sill = fit.sill;
-            always = false;
-          }
+          const storefront = isGround && isStorefrontFloor(family, level.kind);
+          const fit = fitWindow(
+            storefront ? { ...prop, sill: PROPORTIONS.storefront.sill, windowHeight: PROPORTIONS.storefront.windowHeight } : prop,
+            storefront ? style.storefrontFraction : style.windowFraction,
+            storefront ? style.storefrontSill : style.sill,
+            clear,
+          );
+          if (!fit) continue;
+          const w = Math.min(style.windowWidth, bayW - OPENING.minPier);
+          const h = fit.height;
+          const sill = fit.sill;
           if (w < 0.4 || h < 0.5) continue;
-          const p = always ? 1 : Math.min(1, Math.max(0.05, (style.wwr * bayW * level.height) / (w * h)));
+          const p = Math.min(1, Math.max(0.05, (style.wwr * bayW * level.height) / (w * h)));
           const rng = new Rng(seed, `win:${level.index}:${e}:${b}`);
           if (!rng.chance(p)) continue;
           if (!fits(takenByEdge, e, bayCenter - w / 2, bayCenter + w / 2)) continue;
@@ -287,6 +289,73 @@ function placeMegablockCells(
       material: `${theme}/window-glass/${tier}`,
     });
   }
+}
+
+/**
+ * Curtain wall: the face is glazed corner to corner in whatever strips the
+ * entrance and the apertures leave free, each strip one bay running the full
+ * floor height. The bottom of the bay is the spandrel band that hides the slab
+ * edge; everything above it is vision glass on a mullion grid, so the glazing
+ * reads continuous from floor to floor and the interior shows through.
+ */
+function placeCurtainWallBays(
+  seed: string, theme: string, tier: Tier, style: Style, outline: P2[], e: number,
+  level: { index: number; elevation: number; height: number },
+  openings: Opening[], taken: Map<number, Taken[]>, dist: CurtainDist,
+): void {
+  const cw = FACADE.curtainWall;
+  const L = edgeLength(outline, e);
+  const spandrel = quant(Math.min(style.facade.spandrelHeight, level.height * 0.35));
+  // The bay spans its floor exactly: quantizing here would leave a wall sliver
+  // under every slab and break the continuity a curtain wall reads by.
+  const height = level.height;
+  if (height - spandrel < 1.2) return;
+
+  const blocks = blockedSpans(taken.get(e) ?? [], openings, e).sort((a, b) => a.start - b.start);
+  let u = cw.cornerInset;
+  const bays: { start: number; end: number; sill: number }[] = [];
+  for (const b of blocks) {
+    const stop = Math.min(b.start - OPENING.minPier, L - cw.cornerInset);
+    if (stop - u >= cw.minBay) bays.push({ start: u, end: stop, sill: 0 });
+    // The skin runs over a door or an aperture as a transom light, so the
+    // entrance never punches a blank panel through the glass.
+    const sill = b.top + CURTAIN_TRANSOM_GAP;
+    if (height - sill >= cw.minBay && b.end - b.start >= cw.minBay) {
+      bays.push({ start: b.start, end: b.end, sill });
+    }
+    u = Math.max(u, b.end + OPENING.minPier);
+  }
+  if (L - cw.cornerInset - u >= cw.minBay) bays.push({ start: u, end: L - cw.cornerInset, sill: 0 });
+
+  bays.forEach(({ start, end, sill }, i) => {
+    const width = quant(end - start);
+    if (width < cw.minBay) return;
+    // The sill rounds up to the grid, the height follows it, so the bay still
+    // ends exactly on the slab above.
+    const base = Math.ceil(sill * 20) / 20;
+    const bandHeight = height - base;
+    const band = base === 0 ? spandrel : 0;
+    take(taken, e, start, start + width);
+    openings.push({
+      id: `w:${level.index}:${e}:${i}`, kind: 'window', edge: e,
+      offset: quantOff(start), width, height: bandHeight, sill: base, spandrel: band,
+      state: curtainState(seed, level.index, e, i, dist),
+      panes: paneGrid(width, bandHeight - band, style.glazing),
+      material: `${theme}/window-glass/${tier}`,
+    });
+  });
+}
+
+/** Reserved u-ranges with the height of whatever reserved them, Infinity when it runs the whole band. */
+function blockedSpans(taken: Taken[], openings: Opening[], e: number): { start: number; end: number; top: number }[] {
+  return taken.map((t) => {
+    let top = -Infinity;
+    for (const o of openings) {
+      if (o.edge !== e) continue;
+      if (o.offset < t.end && o.offset + o.width > t.start) top = Math.max(top, o.sill + o.height);
+    }
+    return { start: t.start, end: t.end, top: top === -Infinity ? Infinity : top };
+  });
 }
 
 function take(map: Map<number, Taken[]>, edge: number, start: number, end: number): void {
