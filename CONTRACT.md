@@ -40,15 +40,16 @@ Thrown as `ExteriorError { code, message, details? }`:
 - `E_APERTURE_INVALID`: cut polygon off its face plane or inconsistent with u/width/height.
 - `E_APERTURE_OVERLAP`: two aperture cuts overlap on the same face.
 - `E_SIGNAGE_TEXT_TOO_LONG`: marquee text exceeds the facade's computed capacity.
+- `E_INVARIANT`: post-generation coherence check failed; exterior bug, report with the request.
 
 ## Invariants
 - Face i is the vertical quad over parcel footprint segment i -> i+1 (connections convention). Every face carrying an aperture keeps its wall exactly on that segment; shape variation (octagon, cylinder, pyramid, inset) applies to aperture-free buildings, setbacks only above the topmost aperture.
 - Every bridge, ac-tube and tunnel aperture yields exactly one `aperture` opening carving exactly the given cut, with a floor walking surface at exactly its base. Wire anchors cut no hole: the region stays clear of openings and the GLB carries node `anchor:<id>`. The per-floor elevation table in the blueprint is final; interior consumes it.
 - Floor elevations are contiguous: `elevation[i+1] = elevation[i] + height[i]`; ground floor at 0.
-- Openings on one floor never overlap; min 0.3 m pier between openings.
+- Openings on one floor never overlap; min 0.3 m pier between openings. Every opening lies entirely inside its edge with non-negative offset (machine-checked before output).
+- The entrance goes to a street-facing edge at least 3 m long when one exists (true point-to-segment distance from the access point, never a corner-touching sliver), and its zone is reserved before any window fill.
 - Every balconyDoor carries balcony dimensions; balconies protrude beyond the outline but stay inside the parcel footprint.
 - The structure never exceeds the parcel footprint; it need not fill it.
-- The main entrance lands on the facade nearest the parcel access point.
 - Blueprint floors match GLB geometry exactly (same outlines, same opening rectangles).
 
 ## Preview

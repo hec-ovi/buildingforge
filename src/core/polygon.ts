@@ -187,6 +187,16 @@ export function orientedBoundingBox(poly: P2[]): { center: P2; axisU: P2; axisV:
   return { center, axisU, axisV, halfU, halfV };
 }
 
+/** Distance from a point to the segment a-b (not the line, not the midpoint). */
+export function pointSegmentDistance(p: P2, a: P2, b: P2): number {
+  const abx = b[0] - a[0], abz = b[1] - a[1];
+  const len2 = abx * abx + abz * abz;
+  const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, ((p[0] - a[0]) * abx + (p[1] - a[1]) * abz) / len2));
+  const dx = p[0] - (a[0] + abx * t);
+  const dz = p[1] - (a[1] + abz * t);
+  return Math.sqrt(dx * dx + dz * dz);
+}
+
 /** Quantize to the layout grid (0.05 m) with exactly representable arithmetic. */
 export function quant(v: number): number {
   return Math.round(v * 20) / 20;

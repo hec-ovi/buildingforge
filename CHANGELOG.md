@@ -1,5 +1,6 @@
 # Changelog
 
+- 0.7: entrance facade chosen by true point-to-segment distance with a 3 m minimum edge (sliver edges never win), entrance zone reserved before window fill with a position scan around reservations, and a machine-checked opening-fits-edge invariant (new closed error E_INVARIANT); p1640 repro added as the sliver-parcel fixture.
 - 0.6: floor solver searches legal splits between aperture bases (bounded count allocation, feasible range named in E_APERTURE_UNREACHABLE); envelope scaling rounds down so quantization cannot overflow maxHeight; feasibility constants published at schemas/floor-constants.json (type map, min/max floor height, min footprint area) for assemblers.
 - 0.5: GLB output mode option: named (canonical, node per part) or merged (one mesh per material key for runtime scale), identical blueprint in both.
 - 0.4: generator implemented end to end: split-grammar facades, aperture carving with floor elevations pinned to each base, balconies, signage, lights, fire escapes, roof artifacts, curtain states, GLB shell with named nodes and theme/kind/tier materials, blueprint JSON, orbit preview with clip and highlight inspection, contract test suite.

@@ -7,7 +7,8 @@ export type ErrorCode =
   | 'E_APERTURE_UNREACHABLE'
   | 'E_APERTURE_INVALID'
   | 'E_APERTURE_OVERLAP'
-  | 'E_SIGNAGE_TEXT_TOO_LONG';
+  | 'E_SIGNAGE_TEXT_TOO_LONG'
+  | 'E_INVARIANT';
 
 export class ExteriorError extends Error {
   readonly code: ErrorCode;

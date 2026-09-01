@@ -26,8 +26,9 @@ export interface FacadeResult {
 
 export function buildFacades(
   req: BuildingRequest, family: Family, tier: Tier, style: Style,
-  massing: Massing, stack: Stack, streetEdge: number,
+  massing: Massing, stack: Stack, streetEdges: number[],
 ): FacadeResult {
+  const streetEdge = streetEdges[0] as number;
   const seed = req.seed;
   const rules = RULES[family];
   const noWindows = req.options?.windows === 'none';
@@ -119,9 +120,10 @@ export function buildFacades(
 
     if (isBasement) { floors.push({ index: level.index, kind: level.kind, elevation: level.elevation, height: level.height, outline, openings }); continue; }
 
-    // 2. Entrance and service doors on the ground floor (doors exist even window-less).
+    // 2. Entrance and service doors on the ground floor (doors exist even window-less),
+    // reserved before any window fill so the facade always keeps its entrance zone.
     if (isGround) {
-      placeEntrance(req, family, tier, style, outline, streetEdge, level.height, openings, takenByEdge);
+      placeEntrance(req, family, tier, outline, streetEdges, level.height, openings, takenByEdge);
       if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
     }
 
@@ -214,42 +216,53 @@ function fits(map: Map<number, Taken[]>, edge: number, start: number, end: numbe
 }
 
 function placeEntrance(
-  req: BuildingRequest, family: Family, tier: Tier, style: Style,
-  outline: P2[], streetEdge: number, groundHeight: number,
+  req: BuildingRequest, family: Family, tier: Tier,
+  outline: P2[], candidates: number[], groundHeight: number,
   openings: Opening[], taken: Map<number, Taken[]>,
 ): void {
   const rng = new Rng(req.seed, 'entrance');
-  const e = streetEdge < outline.length ? streetEdge : 0;
-  const L = edgeLength(outline, e);
   const rules = RULES[family];
 
-  let w: number, h: number;
+  let wWant: number, h: number;
   const grand = (family === 'corpo' || family === 'hotel') && (tier === 'rich' || tier === 'high_rich');
   if (grand) {
-    w = quant(rng.range(...DOORS.grandPortal.width));
+    wWant = quant(rng.range(...DOORS.grandPortal.width));
     h = quant(rng.range(...DOORS.grandPortal.height));
   } else if (family === 'residential' && tier === 'poor') {
-    w = DOORS.single.width; h = DOORS.single.height;
+    wWant = DOORS.single.width; h = DOORS.single.height;
   } else {
-    w = DOORS.double.width; h = DOORS.double.height;
+    wWant = DOORS.double.width; h = DOORS.double.height;
   }
   h = Math.min(h, groundHeight - 0.3);
-  w = Math.min(w, L - 2 * OPENING.cornerMargin);
-  if (w < DOORS.single.width) { w = DOORS.single.width; }
 
-  // Center the door on the projection of the parcel access point onto the street edge.
-  const [vx, vz] = outline[e] as P2;
-  const d = edgeDir(outline, e);
-  const [ax, az] = req.parcel.accessPoint;
-  let t = (ax - vx) * d[0] + (az - vz) * d[1];
-  t = Math.min(Math.max(t, OPENING.cornerMargin + w / 2), L - OPENING.cornerMargin - w / 2);
+  for (const e of candidates) {
+    if (e >= outline.length) continue;
+    const L = edgeLength(outline, e);
+    const w = Math.min(wWant, L - 0.3);
+    if (w < 0.6) continue; // too small even for a narrow door, try the next edge
+    const margin = Math.min(OPENING.cornerMargin, (L - w) / 2);
+    const tMin = margin + w / 2;
+    const tMax = L - margin - w / 2;
 
-  take(taken, e, t - w / 2, t + w / 2);
-  openings.push({
-    id: 'entrance', kind: 'door', edge: e, offset: quantOff(t - w / 2),
-    width: w, height: quant(h), sill: 0,
-    material: `${req.theme}/${rules.entranceGlass ? 'door-glass' : 'door'}/${tier}`,
-  });
+    // Preferred position: the access point projected onto the edge; scan outward from it.
+    const [vx, vz] = outline[e] as P2;
+    const d = edgeDir(outline, e);
+    const [ax, az] = req.parcel.accessPoint;
+    const t0 = Math.min(Math.max((ax - vx) * d[0] + (az - vz) * d[1], tMin), tMax);
+    for (let step = 0; step * 0.5 <= L; step++) {
+      const t = step % 2 === 0 ? t0 + (step / 2) * 0.5 : t0 - ((step + 1) / 2) * 0.5;
+      if (t < tMin - 1e-9 || t > tMax + 1e-9) continue;
+      if (!fits(taken, e, t - w / 2, t + w / 2)) continue;
+      take(taken, e, t - w / 2, t + w / 2);
+      openings.push({
+        id: 'entrance', kind: 'door', edge: e, offset: quantOff(t - w / 2),
+        width: quant(w), height: quant(h), sill: 0,
+        material: `${req.theme}/${rules.entranceGlass ? 'door-glass' : 'door'}/${tier}`,
+      });
+      return;
+    }
+  }
+  // No edge can host a door (degenerate parcel): better no entrance than a broken one.
 }
 
 function placeLoadingDoors(

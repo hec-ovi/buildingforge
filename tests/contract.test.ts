@@ -14,6 +14,7 @@ const residential = fixture('residential-mid');
 const corpo = fixture('corpo-tower');
 const factory = fixture('factory');
 const bridged = fixture('bridged-tower');
+const sliver = fixture('sliver-parcel');
 
 async function code(req: unknown): Promise<string> {
   try {
@@ -104,6 +105,24 @@ describe('blueprint invariants', () => {
       const { blueprint } = await generate(req);
       const ground = blueprint.floors.find((f) => f.index === 0)!;
       expect(ground.openings.some((o) => o.id === 'entrance' && o.kind === 'door')).toBe(true);
+    }
+  });
+
+  it('entrance avoids sliver edges and every opening fits its edge (p1640 class)', async () => {
+    const { blueprint } = await generate(sliver);
+    const ground = blueprint.floors.find((f) => f.index === 0)!;
+    const entrance = ground.openings.find((o) => o.id === 'entrance')!;
+    expect(entrance).toBeDefined();
+    const entranceEdgeLen = edgeLen(ground.outline, entrance.edge);
+    expect(entranceEdgeLen).toBeGreaterThanOrEqual(3);
+    for (const req of [residential, corpo, factory, bridged, sliver]) {
+      const bp = (await generate(req)).blueprint;
+      for (const floor of bp.floors) {
+        for (const o of floor.openings) {
+          expect(o.offset).toBeGreaterThanOrEqual(-1e-6);
+          expect(o.offset + o.width).toBeLessThanOrEqual(edgeLen(floor.outline, o.edge) + 1e-6);
+        }
+      }
     }
   });
 
@@ -345,6 +364,12 @@ describe('errors', () => {
     })).toBe('E_SIGNAGE_TEXT_TOO_LONG');
   });
 });
+
+function edgeLen(outline: [number, number][], e: number): number {
+  const [x1, z1] = outline[e]!;
+  const [x2, z2] = outline[(e + 1) % outline.length]!;
+  return Math.hypot(x2 - x1, z2 - z1);
+}
 
 function pointInPoly(poly: [number, number][], p: [number, number]): boolean {
   let inside = false;
