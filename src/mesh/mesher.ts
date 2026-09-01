@@ -463,12 +463,13 @@ function meshSign(sink: PartSink, s: Blueprint['signage'][number], mat: (k: stri
     for (const side of [1, -1]) {
       const outward = scale(right, side);
       const at3 = add(add(center, scale(up, cy)), scale(right, side * (half + 0.01)));
-      glyphQuad(sink, glyph, at3, scale(n, -1), up, size, outward, char);
+      // The far face reads from the opposite side, so its text axis flips with it.
+      glyphQuad(sink, glyph, at3, scale(n, -side), up, size, outward, char);
     }
   }
 }
 
-/** One letter cell: a quad facing `outward`, UV-picked from the letter atlas when there is one. */
+/** One letter cell: a quad facing `outward`, UV-picked out of the letter atlas. */
 function glyphQuad(
   sink: PartSink, material: string, center: V3, right: V3, up: V3, size: number, outward: V3, char: string,
 ): void {

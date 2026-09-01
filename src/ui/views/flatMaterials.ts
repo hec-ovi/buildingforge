@@ -19,6 +19,7 @@ const KIND_COLORS: Record<string, { color: number; opacity?: number }> = {
   'floor-slab': { color: 0x63636d },
   'parapet': { color: 0x77777f },
   'signage': { color: 0xffcf5a },
+  'letter-atlas': { color: 0xfff3c4 },
   'ad-screen': { color: 0x64e0ff },
   'light-fixture': { color: 0xfff0c0 },
   'fire-escape': { color: 0x40342c },

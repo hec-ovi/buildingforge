@@ -189,6 +189,48 @@ describe('blueprint invariants', () => {
     expect(tris).toBe(10 + letters * 2); // 5 plate quads + one quad per letter
   });
 
+  it('each glyph cell picks its character out of the letter atlas', async () => {
+    // Grid ../materials publishes for cyberpunk/letter-atlas/<tier>: 8 x 6, row-major.
+    const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.,'!?:/&+ ";
+    const cellRect = (char: string): [number, number, number, number] => {
+      const i = charset.indexOf(char);
+      const col = i % 8;
+      const row = Math.floor(i / 8);
+      return [col / 8, row / 6, (col + 1) / 8, (row + 1) / 6];
+    };
+
+    const { glb, blueprint } = await generate(factory, KEYS);
+    const key = 'cyberpunk/letter-atlas/poor';
+    expect(blueprint.materials).toContain(key);
+    const letters = [...blueprint.signage[0]!.text!].filter((c) => c !== ' ');
+
+    const doc = await new NodeIO().readBinary(glb);
+    const cells = doc.getRoot().listNodes().find((n) => n.getName() === 'signage:0')!
+      .getMesh()!.listPrimitives().find((p) => p.getMaterial()!.getName() === key)!;
+    const uv = cells.getAttribute('TEXCOORD_0')!;
+    const pos = cells.getAttribute('POSITION')!;
+    expect(uv.getCount()).toBe(letters.length * 4);
+
+    for (let q = 0; q < letters.length; q++) {
+      const us: number[] = [];
+      const vs: number[] = [];
+      const ys: number[] = [];
+      for (let k = 0; k < 4; k++) {
+        const [u, v] = uv.getElement(q * 4 + k, [0, 0]) as [number, number];
+        us.push(u);
+        vs.push(v);
+        ys.push((pos.getElement(q * 4 + k, [0, 0, 0]) as number[])[1]!);
+      }
+      const [u0, v0, u1, v1] = cellRect(letters[q] as string);
+      expect(Math.min(...us)).toBeCloseTo(u0, 6);
+      expect(Math.min(...vs)).toBeCloseTo(v0, 6);
+      expect(Math.max(...us)).toBeCloseTo(u1, 6);
+      expect(Math.max(...vs)).toBeCloseTo(v1, 6);
+      // glTF V runs down the image, so the bottom of the quad carries the cell's larger V.
+      expect(vs[ys.indexOf(Math.min(...ys))]).toBeCloseTo(v1, 6);
+    }
+  });
+
   it('stacks the same text into a protruding blade sign on a narrow facade', async () => {
     const request = {
       seed: 'urbe-hotel-1', buildingId: 'p700',

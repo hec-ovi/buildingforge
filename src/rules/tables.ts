@@ -197,12 +197,17 @@ export const SIGNAGE = {
   maxChars: 40,
   logoRatios: { '1:1': 1, '3:2': 3 / 2, '16:9': 16 / 9 } as Record<string, number>,
   /**
-   * Letter atlas hookup. While this is null the glyph quads carry full 0..1 UVs
-   * of the emissive `signage` material (a lit placeholder cell per letter). When
-   * ../materials publishes a letter atlas, set kind, grid and charset here and
-   * every glyph picks its cell out of the sheet; nothing else changes.
+   * Letter atlas from ../materials: `<theme>/letter-atlas/<tier>` is one exact
+   * sheet of lit glyph cells, row-major over the charset. A glyph quad shows the
+   * cell of its character; the trailing space is the blank cell everything off
+   * the charset falls back to. 47 characters in 48 cells.
    */
-  letterAtlas: null as null | { kind: string; cols: number; rows: number; charset: string },
+  letterAtlas: {
+    kind: 'letter-atlas',
+    cols: 8,
+    rows: 6,
+    charset: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-.,'!?:/&+ ",
+  },
 };
 
 export const PARAPET: [number, number] = [0.9, 1.1];

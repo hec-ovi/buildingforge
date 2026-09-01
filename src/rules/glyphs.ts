@@ -1,26 +1,35 @@
 // Glyph cells for modular signage: which material a letter quad wears and which
-// part of it the quad shows. With no letter atlas published the quad takes the
-// whole emissive signage map, which reads as a lit letter cell.
+// cell of the letter atlas it shows.
 
 import { SIGNAGE } from './tables.ts';
 
+const ATLAS = SIGNAGE.letterAtlas;
+const BLANK = ATLAS.charset.indexOf(' ');
+
 /** Material kind a glyph quad uses. */
 export function glyphKind(): string {
-  return SIGNAGE.letterAtlas?.kind ?? 'signage';
+  return ATLAS.kind;
 }
 
-/** [u0, v0, u1, v1] of one character in the atlas, or the full quad without one. */
+/** Cell index of a character, uppercased; anything off the charset is the blank cell. */
+function glyphIndex(char: string): number {
+  const index = ATLAS.charset.indexOf(char.toUpperCase());
+  return index < 0 ? BLANK : index;
+}
+
+/**
+ * [u0, v0, u1, v1] of a character's cell. V follows the glTF convention the
+ * meshes already use: row 0 sits at v = 0 and rows run downwards, so v0 is the
+ * top edge of the cell and the glyph stands upright on the quad.
+ */
 export function glyphUv(char: string): [number, number, number, number] {
-  const atlas = SIGNAGE.letterAtlas;
-  if (!atlas) return [0, 0, 1, 1];
-  const index = atlas.charset.indexOf(char.toUpperCase());
-  if (index < 0) return [0, 0, 1, 1];
-  const col = index % atlas.cols;
-  const row = Math.floor(index / atlas.cols);
-  return [col / atlas.cols, row / atlas.rows, (col + 1) / atlas.cols, (row + 1) / atlas.rows];
+  const index = glyphIndex(char);
+  const col = index % ATLAS.cols;
+  const row = Math.floor(index / ATLAS.cols);
+  return [col / ATLAS.cols, row / ATLAS.rows, (col + 1) / ATLAS.cols, (row + 1) / ATLAS.rows];
 }
 
-/** A space reserves its cell but carries no glyph. */
+/** A blank cell reserves its width in the text but carries no glyph, so it gets no quad. */
 export function isBlank(char: string): boolean {
-  return char.trim().length === 0;
+  return glyphIndex(char) === BLANK;
 }
