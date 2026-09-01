@@ -1,12 +1,11 @@
 // Numeric rule tables from docs/RESEARCH.md (sourced real-world ranges).
 // Every range is [min, max] in meters unless noted.
 
-import type { Family, Tier } from './families.ts';
+import { FEASIBILITY, type FeasibilityConstants, type Family, type Tier } from './families.ts';
 
-export interface FamilyRules {
+interface StyleRules {
   floorHeight: [number, number];
   groundFloorFactor: [number, number];
-  minFloorHeight: number;
   windowToWall: [number, number];
   windowWidth: [number, number];
   windowHeight: [number, number];
@@ -17,67 +16,64 @@ export interface FamilyRules {
   curtainWall: boolean;
   balconies: boolean;
   entranceGlass: boolean;
-  minFootprintArea: number;
 }
 
-export const RULES: Record<Family, FamilyRules> = {
+export interface FamilyRules extends StyleRules, FeasibilityConstants {}
+
+const STYLE_RULES: Record<Family, StyleRules> = {
   residential: {
-    floorHeight: [2.75, 3.05], groundFloorFactor: [1.3, 1.6], minFloorHeight: 2.6,
+    floorHeight: [2.75, 3.05], groundFloorFactor: [1.3, 1.6],
     windowToWall: [0.15, 0.4], windowWidth: [0.6, 1.2], windowHeight: [0.9, 1.8],
     sill: [0.75, 0.9], bayModule: [3.0, 4.5], columnGrid: [3.0, 4.5],
     columnWidth: [0.3, 0.45], curtainWall: false, balconies: true, entranceGlass: true,
-    minFootprintArea: 40,
   },
   hotel: {
-    floorHeight: [3.0, 3.3], groundFloorFactor: [1.5, 2.0], minFloorHeight: 2.8,
+    floorHeight: [3.0, 3.3], groundFloorFactor: [1.5, 2.0],
     windowToWall: [0.3, 0.5], windowWidth: [1.2, 1.8], windowHeight: [1.2, 1.8],
     sill: [0.6, 0.9], bayModule: [3.6, 4.5], columnGrid: [3.6, 4.5],
     columnWidth: [0.35, 0.5], curtainWall: false, balconies: true, entranceGlass: true,
-    minFootprintArea: 120,
   },
   office: {
-    floorHeight: [3.66, 4.0], groundFloorFactor: [1.3, 1.6], minFloorHeight: 3.4,
+    floorHeight: [3.66, 4.0], groundFloorFactor: [1.3, 1.6],
     windowToWall: [0.3, 0.8], windowWidth: [1.5, 2.5], windowHeight: [1.5, 2.0],
     sill: [0.7, 0.9], bayModule: [1.2, 1.8], columnGrid: [6.0, 9.0],
     columnWidth: [0.3, 0.6], curtainWall: true, balconies: false, entranceGlass: true,
-    minFootprintArea: 100,
   },
   corpo: {
-    floorHeight: [3.9, 4.27], groundFloorFactor: [1.5, 2.0], minFloorHeight: 3.6,
+    floorHeight: [3.9, 4.27], groundFloorFactor: [1.5, 2.0],
     windowToWall: [0.7, 0.95], windowWidth: [1.5, 1.8], windowHeight: [2.4, 3.0],
     sill: [0.0, 0.4], bayModule: [1.5, 1.8], columnGrid: [7.5, 9.0],
     columnWidth: [0.4, 0.7], curtainWall: true, balconies: false, entranceGlass: true,
-    minFootprintArea: 200,
   },
   hospital: {
-    floorHeight: [4.2, 4.5], groundFloorFactor: [1.2, 1.4], minFloorHeight: 3.8,
+    floorHeight: [4.2, 4.5], groundFloorFactor: [1.2, 1.4],
     windowToWall: [0.2, 0.35], windowWidth: [1.2, 1.8], windowHeight: [1.2, 1.6],
     sill: [0.7, 0.91], bayModule: [3.6, 4.8], columnGrid: [6.0, 7.5],
     columnWidth: [0.4, 0.6], curtainWall: false, balconies: false, entranceGlass: true,
-    minFootprintArea: 250,
   },
   security: {
-    floorHeight: [3.2, 3.6], groundFloorFactor: [1.2, 1.5], minFloorHeight: 3.0,
+    floorHeight: [3.2, 3.6], groundFloorFactor: [1.2, 1.5],
     windowToWall: [0.1, 0.2], windowWidth: [0.6, 0.9], windowHeight: [0.9, 1.2],
     sill: [1.5, 2.0], bayModule: [3.0, 4.0], columnGrid: [4.5, 6.0],
     columnWidth: [0.4, 0.6], curtainWall: false, balconies: false, entranceGlass: false,
-    minFootprintArea: 120,
   },
   industrial: {
-    floorHeight: [6.0, 9.0], groundFloorFactor: [1.0, 1.0], minFloorHeight: 4.5,
+    floorHeight: [6.0, 9.0], groundFloorFactor: [1.0, 1.0],
     windowToWall: [0.05, 0.15], windowWidth: [1.8, 3.0], windowHeight: [0.9, 1.5],
     sill: [2.5, 4.0], bayModule: [6.0, 9.0], columnGrid: [8.0, 12.0],
     columnWidth: [0.4, 0.6], curtainWall: false, balconies: false, entranceGlass: false,
-    minFootprintArea: 200,
   },
   commerce: {
-    floorHeight: [3.4, 4.0], groundFloorFactor: [1.2, 1.5], minFloorHeight: 3.0,
+    floorHeight: [3.4, 4.0], groundFloorFactor: [1.2, 1.5],
     windowToWall: [0.4, 0.7], windowWidth: [1.5, 2.4], windowHeight: [1.5, 2.1],
     sill: [0.4, 0.8], bayModule: [2.4, 3.6], columnGrid: [7.5, 9.0],
     columnWidth: [0.3, 0.5], curtainWall: false, balconies: false, entranceGlass: true,
-    minFootprintArea: 30,
   },
 };
+
+export const RULES = Object.fromEntries(
+  (Object.keys(STYLE_RULES) as Family[]).map((f) => [f, { ...STYLE_RULES[f], ...FEASIBILITY[f] }]),
+) as Record<Family, FamilyRules>;
 
 export const TIER_WWR_SHIFT: Record<Tier, number> = { poor: -0.35, mid: 0, rich: 0.35, high_rich: 0.7 };
 

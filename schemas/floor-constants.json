@@ -1,0 +1,29 @@
+{
+  "$id": "urbe/exterior/floor-constants",
+  "description": "Feasibility constants, the same values the generator enforces. An assembler pre-computes a legal floor count N for a parcel as: N * minFloorHeight <= parcel maxHeight. With apertures, sort the distinct walkable bases 0 < b1 < ... < bk; each gap g (from 0 to b1, then between consecutive bases) must admit between ceil(g / maxFloorHeight) and floor(g / minFloorHeight) floors, the top base needs at least minFloorHeight of room below maxHeight, and N must fall inside the summed range (E_APERTURE_UNREACHABLE names it exactly). Units meters.",
+  "families": {
+    "residential": "residential",
+    "hotel": "hotel",
+    "offices": "office",
+    "corpo": "corpo",
+    "hospital": "hospital",
+    "clinic": "hospital",
+    "police": "security",
+    "military": "security",
+    "factory": "industrial",
+    "commerce": "commerce",
+    "mall": "commerce",
+    "restaurant": "commerce",
+    "coffee_shop": "commerce"
+  },
+  "constants": {
+    "residential": { "minFloorHeight": 2.6, "maxFloorHeight": 4.5, "minFootprintArea": 40 },
+    "hotel": { "minFloorHeight": 2.8, "maxFloorHeight": 5.0, "minFootprintArea": 120 },
+    "office": { "minFloorHeight": 3.4, "maxFloorHeight": 6.0, "minFootprintArea": 100 },
+    "corpo": { "minFloorHeight": 3.6, "maxFloorHeight": 6.5, "minFootprintArea": 200 },
+    "hospital": { "minFloorHeight": 3.8, "maxFloorHeight": 6.0, "minFootprintArea": 250 },
+    "security": { "minFloorHeight": 3.0, "maxFloorHeight": 5.0, "minFootprintArea": 120 },
+    "industrial": { "minFloorHeight": 4.5, "maxFloorHeight": 12.0, "minFootprintArea": 200 },
+    "commerce": { "minFloorHeight": 3.0, "maxFloorHeight": 6.0, "minFootprintArea": 30 }
+  }
+}

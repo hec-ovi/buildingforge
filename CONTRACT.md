@@ -16,6 +16,8 @@ Request: [schemas/building-request.schema.json](schemas/building-request.schema.
 
 CLI: `npm run generate -- <request.json> <outDir>` writes `<buildingId>.glb` and `<buildingId>.blueprint.json`.
 
+Feasibility: [schemas/floor-constants.json](schemas/floor-constants.json) carries the per-type constants the generator enforces (type-to-family map, min and max floor height, min footprint area) plus the recipe for pre-computing a guaranteed-feasible floor count, with or without apertures.
+
 ## Out
 Blueprint: [schemas/blueprint.schema.json](schemas/blueprint.schema.json). Per floor (basements included): index, kind, elevation, height, CCW outline, openings (door | window | balconyDoor | aperture) positioned by outline edge + offset + sill, with curtain state, balcony dimensions, material key. Plus signage, screens, lights, fire escape, roof artifacts, and the deduplicated material key list.
 
@@ -32,9 +34,9 @@ Thrown as `ExteriorError { code, message, details? }`:
 - `E_SCHEMA`: request fails schema validation; message names the path.
 - `E_FOOTPRINT_INVALID`: footprint self-intersects, has under 3 points, or zero area.
 - `E_FOOTPRINT_TOO_SMALL`: usable area below the type's minimum.
-- `E_ENVELOPE_TOO_LOW`: floor count at the type's minimum floor height exceeds maxHeight.
+- `E_ENVELOPE_TOO_LOW`: floors x the type's minimum floor height exceeds maxHeight; the message carries the exact numbers.
 - `E_FLOORKINDS_MISMATCH`: floorKinds length differs from floors.
-- `E_APERTURE_UNREACHABLE`: face index outside the footprint, or base outside the vertical range.
+- `E_APERTURE_UNREACHABLE`: face index outside the footprint, base outside the vertical range, or no legal floor split exists for the requested floor count; the message names the feasible count range.
 - `E_APERTURE_INVALID`: cut polygon off its face plane or inconsistent with u/width/height.
 - `E_APERTURE_OVERLAP`: two aperture cuts overlap on the same face.
 - `E_SIGNAGE_TEXT_TOO_LONG`: marquee text exceeds the facade's computed capacity.

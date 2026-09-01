@@ -116,6 +116,33 @@ describe('blueprint invariants', () => {
     expect(s.letterHeight).toBeGreaterThan(0);
   });
 
+  it('fits envelope-legal floor counts that quantization used to reject (p241 class)', async () => {
+    // 7 hotel floors in 22.4 m: nominal heights overflow, scaling must round down.
+    const { blueprint } = await generate({
+      seed: 'urbe:p241', buildingId: 'p241',
+      parcel: { footprint: [[0, 0], [24, 0], [24, 18], [0, 18]], accessPoint: [12, -1], maxHeight: 22.4 },
+      building: { type: 'hotel', tier: 'mid', floors: 7 },
+      theme: 'cyberpunk',
+    });
+    expect(blueprint.floors).toHaveLength(7);
+    const top = blueprint.floors[6]!.elevation + blueprint.floors[6]!.height;
+    expect(top).toBeLessThanOrEqual(22.4 + 1e-9);
+    for (const f of blueprint.floors) expect(f.height).toBeGreaterThanOrEqual(2.8 - 1e-9);
+  });
+
+  it('publishes feasibility constants that match the enforced rules', async () => {
+    const constants = JSON.parse(readFileSync(new URL('../schemas/floor-constants.json', import.meta.url), 'utf8'));
+    const { RULES } = await import('../src/rules/tables.ts');
+    const { FAMILY } = await import('../src/rules/families.ts');
+    expect(constants.families).toEqual(FAMILY);
+    for (const [family, c] of Object.entries(constants.constants)) {
+      const r = RULES[family as keyof typeof RULES];
+      expect(r.minFloorHeight).toBe((c as { minFloorHeight: number }).minFloorHeight);
+      expect(r.maxFloorHeight).toBe((c as { maxFloorHeight: number }).maxFloorHeight);
+      expect(r.minFootprintArea).toBe((c as { minFootprintArea: number }).minFootprintArea);
+    }
+  });
+
   it('windows:none produces doors but no windows', async () => {
     const { blueprint } = await generate({
       ...residential,
@@ -156,6 +183,63 @@ describe('apertures', () => {
     expect(anchor.position[1]).toBeCloseTo(30.25, 6);
     const all = bp.floors.flatMap((f) => f.openings);
     expect(all.some((o) => o.id === 'ap-wire-4')).toBe(false);
+  });
+
+  it('finds a legal floor split when naive nearest-floor packing would fail (p1590 class)', async () => {
+    // Two bridges 6 m apart force exactly one 6 m floor between them; a nominal
+    // stack puts two floors there, so a solver that cannot search counts fails.
+    const req = {
+      seed: 'urbe:p1590', buildingId: 'p1590',
+      parcel: { footprint: [[0, 0], [30, 0], [30, 20], [0, 20]], accessPoint: [15, -2], maxHeight: 80 },
+      building: { type: 'offices', tier: 'mid', floors: 15 },
+      theme: 'cyberpunk',
+      apertures: [
+        {
+          id: 'b1', buildingId: 'p1590', floor: 10, face: 1, kind: 'bridge',
+          u: 10, base: 40, width: 3, height: 3, shape: 'rect',
+          cut: { polygon: [[30, 40, 8.5], [30, 40, 11.5], [30, 43, 11.5], [30, 43, 8.5]], axisDir: [1, 0, 0] },
+          linkId: 'L1',
+        },
+        {
+          id: 'b2', buildingId: 'p1590', floor: 12, face: 3, kind: 'bridge',
+          u: 10, base: 46, width: 3, height: 3, shape: 'rect',
+          cut: { polygon: [[0, 46, 11.5], [0, 46, 8.5], [0, 49, 8.5], [0, 49, 11.5]], axisDir: [-1, 0, 0] },
+          linkId: 'L2',
+        },
+      ],
+    };
+    const { blueprint } = await generate(req);
+    const elevations = blueprint.floors.map((f) => f.elevation);
+    expect(elevations).toContain(40);
+    expect(elevations).toContain(46);
+    expect(blueprint.floors).toHaveLength(15);
+    for (const f of blueprint.floors) {
+      expect(f.height).toBeGreaterThanOrEqual(3.4 - 1e-9);
+      expect(f.height).toBeLessThanOrEqual(6.0 + 1e-9);
+    }
+  });
+
+  it('reports the feasible floor-count range when no split exists', async () => {
+    const req = {
+      seed: 'urbe:p1590', buildingId: 'p1590',
+      parcel: { footprint: [[0, 0], [30, 0], [30, 20], [0, 20]], accessPoint: [15, -2], maxHeight: 48 },
+      building: { type: 'offices', tier: 'mid', floors: 3 },
+      theme: 'cyberpunk',
+      apertures: [{
+        id: 'b1', buildingId: 'p1590', floor: 10, face: 1, kind: 'bridge',
+        u: 10, base: 40, width: 3, height: 3, shape: 'rect',
+        cut: { polygon: [[30, 40, 8.5], [30, 40, 11.5], [30, 43, 11.5], [30, 43, 8.5]], axisDir: [1, 0, 0] },
+        linkId: 'L1',
+      }],
+    };
+    try {
+      await generate(req);
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      expect(err).toBeInstanceOf(ExteriorError);
+      expect((err as ExteriorError).code).toBe('E_APERTURE_UNREACHABLE');
+      expect((err as ExteriorError).message).toMatch(/feasible counts are \d+\.\.\d+/);
+    }
   });
 
   it('keeps other openings clear of the aperture cuts', () => {

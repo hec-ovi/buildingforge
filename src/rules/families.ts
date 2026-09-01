@@ -1,4 +1,8 @@
 // Atlas parcel types map onto template families that share facade logic.
+// The map and the feasibility constants live in schemas/floor-constants.json,
+// the contract surface assemblers read; this module types the same data.
+
+import constants from '../../schemas/floor-constants.json' with { type: 'json' };
 
 export type AtlasType =
   | 'residential' | 'hotel' | 'offices' | 'corpo' | 'hospital' | 'clinic'
@@ -10,18 +14,12 @@ export type Family =
   | 'residential' | 'hotel' | 'office' | 'corpo' | 'hospital'
   | 'security' | 'industrial' | 'commerce';
 
-export const FAMILY: Record<AtlasType, Family> = {
-  residential: 'residential',
-  hotel: 'hotel',
-  offices: 'office',
-  corpo: 'corpo',
-  hospital: 'hospital',
-  clinic: 'hospital',
-  police: 'security',
-  military: 'security',
-  factory: 'industrial',
-  commerce: 'commerce',
-  mall: 'commerce',
-  restaurant: 'commerce',
-  coffee_shop: 'commerce',
-};
+export const FAMILY = constants.families as Record<AtlasType, Family>;
+
+export interface FeasibilityConstants {
+  minFloorHeight: number;
+  maxFloorHeight: number;
+  minFootprintArea: number;
+}
+
+export const FEASIBILITY = constants.constants as Record<Family, FeasibilityConstants>;
