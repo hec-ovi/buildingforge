@@ -1,7 +1,7 @@
 // One frozen style per building: dimensions vary between buildings, never within one.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, TIER_WWR_SHIFT, BALCONY, GLAZING, PARAPET, STRUCTURE } from '../rules/tables.ts';
+import { RULES, TIER_WWR_SHIFT, BALCONY, FACADE, FACADE_STYLE, GLAZING, PARAPET, STRUCTURE } from '../rules/tables.ts';
 import { quant } from '../core/polygon.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Style } from './model.ts';
@@ -42,7 +42,25 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
     balconyWidth: quant(rng.range(2.4, 4.0)),
     juliet: tier === 'poor',
     parapetHeight: quant(rng.range(...PARAPET)),
+    facade: buildFacade(seed, tier),
     glazing: buildGlazing(seed, tier),
+  };
+}
+
+/** One facade style per building, its relief drawn once so every face agrees. */
+function buildFacade(seed: string, tier: Tier): Style['facade'] {
+  const kind = FACADE_STYLE[tier];
+  const s = FACADE.styles[kind];
+  const rng = new Rng(seed, 'facade');
+  return {
+    kind,
+    panelModule: FACADE.panelModule,
+    ribWidth: quant(rng.range(...s.ribWidth)),
+    ribDepth: quant(rng.range(...s.ribDepth)),
+    bandHeight: quant(rng.range(...s.bandHeight)),
+    bandProud: quant(rng.range(...s.bandProud)),
+    windowRecess: quant(rng.range(...s.windowRecess)),
+    utilityChance: s.utilityChance,
   };
 }
 

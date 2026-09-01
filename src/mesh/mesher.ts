@@ -80,8 +80,10 @@ export function buildMesh(layout: Layout): MeshBuilder {
       [fr.n[0] * 0.075, 0, fr.n[1] * 0.075]);
   }
 
+  meshFacadeRelief(mb, layout, above, top, mat);
   meshColumns(mb, layout, above, top, mat);
   meshRoofArtifacts(mb, layout, top, mat);
+  meshFacadeArtifacts(mb, layout, mat);
   meshFeatures(mb, layout, mat);
   meshFireEscape(mb, layout, above, mat);
 
@@ -146,15 +148,23 @@ function windowUnit(
   const g0 = u0 + fw, g1 = u1 - fw, gb = yb + fw, gt = yt - fw;
   const frameMat = mat('window-frame');
 
-  member(sink, fr, u0, u1, yt - fw, yt, g.frameProud, depth, frameMat, { bottom: true });
-  member(sink, fr, u0, u1, yb, yb + fw, g.frameProud, depth, frameMat, { top: true });
-  member(sink, fr, u0, g0, gb, gt, g.frameProud, depth, frameMat, { right: true });
-  member(sink, fr, g1, u1, gb, gt, g.frameProud, depth, frameMat, { left: true });
+  // Deep-set styles sink the whole unit into the wall behind a reveal ring.
+  const recess = style.facade.windowRecess;
+  const z = -recess;
+  if (recess > 0.02) {
+    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], recess, true, mat('wall-trim'));
+  }
+  const proud = g.frameProud + z;
+
+  member(sink, fr, u0, u1, yt - fw, yt, proud, depth, frameMat, { bottom: true });
+  member(sink, fr, u0, u1, yb, yb + fw, proud, depth, frameMat, { top: true });
+  member(sink, fr, u0, g0, gb, gt, proud, depth, frameMat, { right: true });
+  member(sink, fr, g1, u1, gb, gt, proud, depth, frameMat, { left: true });
 
   const { cols, rows } = o.panes ?? paneGrid(u1 - u0, yt - yb, g);
   const mw = Math.min(g.mullionWidth, (g1 - g0) / (cols * 2), (gt - gb) / (rows * 2));
-  const mProud = g.frameProud * 0.7;
-  const mDepth = mProud + g.glassInset;
+  const mProud = g.frameProud * 0.7 + z;
+  const mDepth = g.frameProud * 0.7 + g.glassInset;
   for (let c = 1; c < cols; c++) {
     const u = g0 + ((g1 - g0) * c) / cols;
     member(sink, fr, u - mw / 2, u + mw / 2, gb, gt, mProud, mDepth, frameMat, { left: true, right: true });
@@ -165,7 +175,7 @@ function windowUnit(
   }
 
   // Glass recessed behind the wall face, exact 0..1 UVs over the pane field.
-  const glassZ = -g.glassInset;
+  const glassZ = z - g.glassInset;
   sink.quadFacing(o.material ?? mat('window-glass'),
     at(fr, [g0, gb], glassZ), at(fr, [g1, gb], glassZ), at(fr, [g1, gt], glassZ), at(fr, [g0, gt], glassZ),
     n3(fr), [[0, 1], [1, 1], [1, 0], [0, 0]]);
@@ -275,6 +285,60 @@ function meshBalcony(sink: PartSink, fr: Frame, o: Opening, elevation: number, m
   // Side rails.
   for (const s of [-1, 1]) {
     sink.box(mat('balcony-rail'), at(fr, [uc + s * (width / 2 - railT / 2), railY], depth / 2), [fr.dir[0] * railT / 2, 0, fr.dir[1] * railT / 2], [0, railH / 2, 0], [fr.n[0] * depth / 2, 0, fr.n[1] * depth / 2]);
+  }
+}
+
+/**
+ * Panel relief: vertical ribs on the whole-tile grid the wall material tiles on,
+ * and a band at each floor line. The megablock tier reads heavy, the panel tier
+ * thin, glass facades get none.
+ */
+function meshFacadeRelief(mb: MeshBuilder, layout: Layout, above: FloorLayout[], top: number, mat: (k: string) => string): void {
+  const f = layout.style.facade;
+  if (f.ribWidth <= 0 || above.length === 0) return;
+  const sink = mb.part('facade-relief');
+  const material = mat('wall-trim');
+  const ground = above[0]!;
+  const constantOutline = above.every((fl) => fl.outline === ground.outline);
+
+  if (constantOutline) {
+    for (let e = 0; e < ground.outline.length; e++) {
+      const fr = frame(ground.outline, e);
+      for (let u = f.panelModule; u < fr.len - f.ribWidth / 2; u += f.panelModule) {
+        sink.box(material, at(fr, [u, top / 2], f.ribDepth / 2),
+          [fr.dir[0] * f.ribWidth / 2, 0, fr.dir[1] * f.ribWidth / 2],
+          [0, top / 2, 0],
+          [fr.n[0] * f.ribDepth / 2, 0, fr.n[1] * f.ribDepth / 2]);
+      }
+    }
+  }
+
+  for (const fl of above) {
+    if (fl.index === 0) continue; // the ground band would sit on the pavement
+    for (let e = 0; e < fl.outline.length; e++) {
+      const fr = frame(fl.outline, e);
+      sink.box(material, at(fr, [fr.len / 2, fl.elevation], f.bandProud / 2),
+        [fr.dir[0] * fr.len / 2, 0, fr.dir[1] * fr.len / 2],
+        [0, f.bandHeight / 2, 0],
+        [fr.n[0] * f.bandProud / 2, 0, fr.n[1] * f.bandProud / 2]);
+    }
+  }
+}
+
+/** Surface-mounted utility boxes, published in the blueprint and collidable. */
+function meshFacadeArtifacts(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {
+  if (layout.facadeArtifacts.length === 0) return;
+  const sink = mb.part('facade-artifacts');
+  const byFloor = new Map(layout.floors.map((f) => [f.index, f]));
+  for (const a of layout.facadeArtifacts) {
+    const floor = byFloor.get(a.floor);
+    if (!floor) continue;
+    const fr = frame(floor.outline, a.edge);
+    const [w, h, d] = a.size;
+    sink.box(mat('roof-artifact'), at(fr, [a.offset + w / 2, floor.elevation + a.sill + h / 2], d / 2),
+      [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2],
+      [0, h / 2, 0],
+      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2]);
   }
 }
 

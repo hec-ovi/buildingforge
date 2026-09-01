@@ -2,7 +2,7 @@
 
 import { ExteriorError } from '../core/errors.ts';
 import { Rng } from '../core/rng.ts';
-import { SIGNAGE, AD_SCREEN, LIGHTING, FIRE_ESCAPE, ROOF_ARTIFACTS, OPENING } from '../rules/tables.ts';
+import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, ROOF_ARTIFACTS, OPENING } from '../rules/tables.ts';
 import { edgeLength, edgeDir, edgeNormal, pointInPolygon, centroid, quant, type P2 } from '../core/polygon.ts';
 import type { Blueprint, BuildingRequest, P3, RoofArtifact } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
@@ -13,6 +13,7 @@ export interface Features {
   signage: Blueprint['signage'];
   screens: Blueprint['screens'];
   lights: Blueprint['lights'];
+  facadeArtifacts: Blueprint['facadeArtifacts'];
   fireEscape: Blueprint['fireEscape'];
   roof: Blueprint['roof'];
 }
@@ -32,10 +33,46 @@ export function buildFeatures(
   placeSignage(req, ground, streetEdge, groundFloor.height, top, signage, blockedU);
   placeScreens(req, family, tier, ground, streetEdge, groundFloor.height, top, signage.length > 0, screens, blockedU);
   placeLights(req, family, ground, streetEdge, groundFloor, lights);
+  const facadeArtifacts = placeFacadeArtifacts(req, style, floors);
   const fireEscape = placeFireEscape(req, family, tier, massing, floors, streetEdge);
   const roof = buildRoof(req, family, massing, top, style, floors);
 
-  return { signage, screens, lights, fireEscape, roof };
+  return { signage, screens, lights, facadeArtifacts, fireEscape, roof };
+}
+
+/**
+ * Surface-mounted utility boxes: one roll per panel cell of each above-ground
+ * floor, placed on wall clear of every opening. Dense on the megablock tier,
+ * sparse on the panel tier, absent on glass.
+ */
+function placeFacadeArtifacts(req: BuildingRequest, style: Style, floors: FloorLayout[]): Blueprint['facadeArtifacts'] {
+  const out: Blueprint['facadeArtifacts'] = [];
+  if (style.facade.utilityChance <= 0) return out;
+  const module = style.facade.panelModule;
+  const box = FACADE.utilityBox;
+
+  for (const floor of floors) {
+    if (floor.index < 1) continue; // the ground floor belongs to the street
+    for (let e = 0; e < floor.outline.length; e++) {
+      const L = edgeLength(floor.outline, e);
+      const onEdge = floor.openings.filter((o) => o.edge === e);
+      for (let c = 0; c < Math.floor(L / module); c++) {
+        const rng = new Rng(req.seed, `utility:${floor.index}:${e}:${c}`);
+        if (!rng.chance(style.facade.utilityChance)) continue;
+        const w = quant(rng.range(...box.width));
+        const h = quant(rng.range(...box.height));
+        const d = quant(rng.range(...box.depth));
+        const offset = quant(c * module + 0.2 + rng.next() * Math.max(0, module - 0.4 - w));
+        const sill = quant(0.6 + rng.next() * Math.max(0, floor.height - h - 1.2));
+        if (offset + w > L - 0.2) continue;
+        const clear = onEdge.every((o) => offset + w <= o.offset - 0.15 || offset >= o.offset + o.width + 0.15
+          || sill + h <= o.sill - 0.15 || sill >= o.sill + o.height + 0.15);
+        if (!clear) continue;
+        out.push({ kind: 'utility-box', floor: floor.index, edge: e, offset, sill, size: [w, h, d] });
+      }
+    }
+  }
+  return out;
 }
 
 /** u-intervals per parcel face that apertures demand kept clear (whole building height matters for overlays). */

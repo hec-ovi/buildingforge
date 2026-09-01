@@ -2,7 +2,7 @@
 // street face, aperture cuts reserved first, openings never overlapping.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, DOORS, OPENING, CURTAINS, type CurtainDist } from '../rules/tables.ts';
+import { RULES, DOORS, FACADE, OPENING, CURTAINS, type CurtainDist } from '../rules/tables.ts';
 import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
 import { paneGrid } from './glazing.ts';
 import type { Aperture, BuildingRequest, CurtainState, Opening } from '../types.ts';
@@ -128,8 +128,17 @@ export function buildFacades(
       if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
     }
 
-    // 3. Windows and balcony doors per bay.
-    if (!noWindows) {
+    // 3. Windows and balcony doors: megablock scatters small openings inside the
+    // panel grid, every other style fills bays.
+    if (!noWindows && style.facade.kind === 'megablock') {
+      for (let e = 0; e < outline.length; e++) {
+        const normal = edgeNormal(outline, e);
+        const sunFacing = normal[0] * sun[0] + normal[1] * sun[1] > 0;
+        const dist = (CURTAINS[profile] as { sunFacing: CurtainDist; shaded: CurtainDist })[sunFacing ? 'sunFacing' : 'shaded'];
+        const stacked = balconiesOn && !isGround && outline === massing.groundOutline;
+        placeMegablockCells(seed, req.theme, tier, style, outline, e, level, openings, takenByEdge, dist, stacked);
+      }
+    } else if (!noWindows) {
       for (let e = 0; e < outline.length; e++) {
         const L = edgeLength(outline, e);
         const usable = L - 2 * OPENING.cornerMargin;
@@ -203,6 +212,66 @@ export function buildFacades(
 
 function quantOff(v: number): number {
   return Math.round(v * 1000) / 1000;
+}
+
+/**
+ * Megablock facade: the panel grid runs from the face origin in whole modules,
+ * the same grid the wall material tiles on. Each cell rolls for a small window,
+ * placed with a seeded jitter inside the cell so the field reads scattered
+ * rather than a regular office lattice.
+ */
+function placeMegablockCells(
+  seed: string, theme: string, tier: Tier, style: Style, outline: P2[], e: number,
+  level: { index: number; elevation: number; height: number },
+  openings: Opening[], taken: Map<number, Taken[]>, dist: CurtainDist, balconies: boolean,
+): void {
+  const L = edgeLength(outline, e);
+  const module = style.facade.panelModule;
+  const inset = style.facade.ribWidth / 2 + 0.2;
+  const cells = Math.floor(L / module);
+  const w = FACADE.megablockWindow.width;
+  const h = FACADE.megablockWindow.height;
+
+  for (let c = 0; c < cells; c++) {
+    const start = c * module + inset;
+    const end = (c + 1) * module - inset;
+    if (start < OPENING.cornerMargin || end > L - OPENING.cornerMargin || end - start < w[0]) continue;
+
+    // Balcony cells are chosen per stack, not per floor, so they line up vertically.
+    if (balconies && new Rng(seed, `mega-balcony:${e}:${c}`).chance(0.35)) {
+      const doorW = 0.95;
+      const doorH = quant(Math.min(2.05, level.height - 0.5));
+      const uc = (start + end) / 2;
+      if (doorH >= 1.8 && fits(taken, e, uc - doorW / 2, uc + doorW / 2)) {
+        take(taken, e, uc - doorW / 2, uc + doorW / 2);
+        openings.push({
+          id: `bd:${level.index}:${e}:${c}`, kind: 'balconyDoor', edge: e,
+          offset: quantOff(uc - doorW / 2), width: doorW, height: doorH, sill: 0,
+          state: curtainState(seed, level.index, e, c, dist),
+          balcony: { depth: style.balconyDepth, width: quant(Math.max(doorW + 0.4, Math.min(module - 0.4, style.balconyWidth))) },
+          material: `${theme}/door-glass/${tier}`,
+        });
+        continue;
+      }
+    }
+
+    const rng = new Rng(seed, `mega:${level.index}:${e}:${c}`);
+    if (!rng.chance(FACADE.megablockWindow.density)) continue;
+    const width = quant(Math.min(rng.range(...w), end - start));
+    const height = quant(Math.min(rng.range(...h), level.height - 1.1));
+    if (width < 0.4 || height < 0.4) continue;
+    const u = quantOff(start + rng.next() * (end - start - width));
+    const sill = quant(0.8 + rng.next() * Math.max(0, level.height - height - 1.4));
+    if (!fits(taken, e, u, u + width)) continue;
+    take(taken, e, u, u + width);
+    openings.push({
+      id: `w:${level.index}:${e}:${c}`, kind: 'window', edge: e,
+      offset: u, width, height, sill,
+      state: curtainState(seed, level.index, e, c, dist),
+      panes: paneGrid(width, height, style.glazing),
+      material: `${theme}/window-glass/${tier}`,
+    });
+  }
 }
 
 function take(map: Map<number, Taken[]>, edge: number, start: number, end: number): void {

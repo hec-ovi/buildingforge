@@ -25,6 +25,8 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     signage: layout.signage,
     screens: layout.screens,
     lights: layout.lights,
+    facade: { style: layout.style.facade.kind, panelModule: layout.style.facade.panelModule },
+    facadeArtifacts: layout.facadeArtifacts,
     fireEscape: layout.fireEscape,
     roof: layout.roof,
     materials: mb.materialKeys(),

@@ -147,6 +147,40 @@
         }
       }
     },
+    "facade": {
+      "type": "object",
+      "required": ["style", "panelModule"],
+      "additionalProperties": false,
+      "properties": {
+        "style": {
+          "enum": ["megablock", "panel", "glass"],
+          "description": "tier facade style: megablock (poor), panel (mid), glass (rich, high_rich)"
+        },
+        "panelModule": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "concrete panel width in meters; equals the wall material's tile size, so map joints land on the geometry grid"
+        }
+      }
+    },
+    "facadeArtifacts": {
+      "type": "array",
+      "default": [],
+      "description": "surface-mounted equipment, positioned like an opening",
+      "items": {
+        "type": "object",
+        "required": ["kind", "floor", "edge", "offset", "sill", "size"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "type": "string", "description": "utility-box" },
+          "floor": { "type": "integer" },
+          "edge": { "type": "integer", "minimum": 0 },
+          "offset": { "type": "number", "minimum": 0 },
+          "sill": { "type": "number", "minimum": 0 },
+          "size": { "$ref": "#/$defs/point3", "description": "[width, height, depth] in meters" }
+        }
+      }
+    },
     "fireEscape": {
       "type": ["object", "null"],
       "default": null,

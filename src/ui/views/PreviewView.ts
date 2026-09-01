@@ -52,7 +52,9 @@ export class PreviewView {
     const fill = new DirectionalLight(0x8090b0, 1.1);
     fill.position.set(-70, 25, -60);
     this.scene.add(fill);
+    // Ground reference, kept just below Y=0 so it never fights the building's bottom cap.
     const grid = new GridHelper(200, 40, 0x2a2a34, 0x1c1c24);
+    grid.position.y = -0.05;
     this.scene.add(grid);
 
     const resize = () => {

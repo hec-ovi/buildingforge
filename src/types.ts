@@ -84,6 +84,16 @@ export interface Floor {
 
 export interface RoofArtifact { kind: string; center: P2; size: P3; rotationDeg: number }
 
+/** Surface-mounted equipment on a facade: positioned like an opening, sized [w, h, depth]. */
+export interface FacadeArtifact {
+  kind: string;
+  floor: number;
+  edge: number;
+  offset: number;
+  sill: number;
+  size: P3;
+}
+
 export interface Blueprint {
   buildingId: string;
   seed: string;
@@ -102,6 +112,8 @@ export interface Blueprint {
   }[];
   screens: { center: P3; width: number; height: number; normal: P2 }[];
   lights: { kind: 'entrance' | 'accent'; position: P3; normal: P2 }[];
+  facade: { style: 'megablock' | 'panel' | 'glass'; panelModule: number };
+  facadeArtifacts: FacadeArtifact[];
   fireEscape: { edge: number; fromFloor: number; toFloor: number } | null;
   roof: { elevation: number; outline: P2[]; parapetHeight: number; artifacts: RoofArtifact[] };
   materials: string[];

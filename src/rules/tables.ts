@@ -95,6 +95,60 @@ export const BALCONY = {
 export const STRUCTURE = { concreteMaxFloors: 40 };
 
 /**
+ * Facade styles across the tier spectrum. `panelModule` is the concrete panel
+ * width and the wall material's tile size at once, so the joints painted in the
+ * map land exactly on the geometry that sits on the same grid.
+ * - megablock (poor): heavy ribbed panel grid, many small deep-set windows
+ *   scattered inside the cells, surface-mounted utility boxes.
+ * - panel (mid): the same grid read thin, moderate reveals, few boxes.
+ * - glass (rich, high_rich): clean mullioned glazing on flush panels.
+ */
+export const FACADE = {
+  panelModule: 3.0,
+  styles: {
+    megablock: {
+      ribWidth: [0.35, 0.5] as [number, number],
+      ribDepth: [0.2, 0.35] as [number, number],
+      bandHeight: [0.25, 0.4] as [number, number],
+      bandProud: [0.1, 0.18] as [number, number],
+      windowRecess: [0.25, 0.4] as [number, number],
+      utilityChance: 0.14,
+    },
+    panel: {
+      ribWidth: [0.18, 0.28] as [number, number],
+      ribDepth: [0.07, 0.13] as [number, number],
+      bandHeight: [0.16, 0.26] as [number, number],
+      bandProud: [0.04, 0.09] as [number, number],
+      windowRecess: [0.1, 0.18] as [number, number],
+      utilityChance: 0.04,
+    },
+    glass: {
+      ribWidth: [0, 0] as [number, number],
+      ribDepth: [0, 0] as [number, number],
+      bandHeight: [0, 0] as [number, number],
+      bandProud: [0, 0] as [number, number],
+      windowRecess: [0, 0.03] as [number, number], // glazing sits nearly flush, mullions read proud
+      utilityChance: 0,
+    },
+  },
+  /** megablock cells: small openings, semi-irregular inside the panel grid */
+  megablockWindow: {
+    width: [0.55, 0.95] as [number, number],
+    height: [0.6, 1.05] as [number, number],
+    density: 0.55,
+  },
+  utilityBox: {
+    width: [0.35, 0.6] as [number, number],
+    height: [0.25, 0.45] as [number, number],
+    depth: [0.14, 0.26] as [number, number],
+  },
+};
+
+export const FACADE_STYLE: Record<Tier, keyof typeof FACADE.styles> = {
+  poor: 'megablock', mid: 'panel', rich: 'glass', high_rich: 'glass',
+};
+
+/**
  * Window units. A pane is limited by what the glass thickness and the tier's
  * budget carry, so wider or taller openings get a mullion grid instead of one
  * sheet. Profile dimensions are the aluminium sections real curtain walls use.

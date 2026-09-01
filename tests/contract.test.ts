@@ -131,29 +131,17 @@ describe('blueprint invariants', () => {
     expect(tall.some((w) => (w.panes!.cols * w.panes!.rows) > 1)).toBe(true);
   });
 
-  it('stands the window frame proud of the wall and sets the glass back behind it', async () => {
-    const { glb, blueprint } = await generate(residential, KEYS);
-    const doc = await new NodeIO().readBinary(glb);
-    const ground = blueprint.floors.find((f) => f.index === 1)!;
-    const window = ground.openings.find((o) => o.kind === 'window')!;
-    const [vx, vz] = ground.outline[window.edge]!;
-    const next = ground.outline[(window.edge + 1) % ground.outline.length]!;
-    const len = Math.hypot(next[0] - vx, next[1] - vz);
-    const nx = -(next[1] - vz) / len, nz = (next[0] - vx) / len;
-    const sign = pointInPoly(ground.outline, [vx + nx * 0.01 + (next[0] - vx) / 2, vz + nz * 0.01 + (next[1] - vz) / 2]) ? -1 : 1;
-
-    const node = doc.getRoot().listNodes().find((n) => n.getName() === `window:${window.id}`)!;
-    let min = Infinity, max = -Infinity;
-    for (const prim of node.getMesh()!.listPrimitives()) {
-      const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
-      for (let i = 0; i < pos.length; i += 3) {
-        const d = ((pos[i]! - vx) * nx + (pos[i + 2]! - vz) * nz) * sign;
-        min = Math.min(min, d);
-        max = Math.max(max, d);
-      }
-    }
-    expect(max).toBeGreaterThan(0.03); // frame profile stands out
-    expect(min).toBeLessThan(-0.02); // glass sits back
+  it('builds windows with depth, deeper set as the tier drops', async () => {
+    // glass tier: mullions proud of a near-flush glazing line.
+    const rich = await windowDepth(corpo);
+    expect(rich.max).toBeGreaterThan(0.02);
+    expect(rich.min).toBeLessThan(-0.03);
+    // panel tier: the whole unit sits back behind a reveal.
+    const mid = await windowDepth(residential);
+    expect(mid.min).toBeLessThan(-0.12);
+    // megablock tier: small windows, deep set.
+    const poor = await windowDepth(factory);
+    expect(poor.min).toBeLessThan(mid.min);
   });
 
   it('the ground floor has an entrance door on the street face', async () => {
@@ -495,6 +483,47 @@ describe('GLB shell', () => {
   });
 });
 
+describe('facade styles', () => {
+  it('gives each tier its own style, with the panel grid published', async () => {
+    const poor = (await generate(factory, KEYS)).blueprint;
+    const mid = (await generate(residential, KEYS)).blueprint;
+    const rich = (await generate(corpo, KEYS)).blueprint;
+    expect(poor.facade.style).toBe('megablock');
+    expect(mid.facade.style).toBe('panel');
+    expect(rich.facade.style).toBe('glass');
+    for (const bp of [poor, mid, rich]) expect(bp.facade.panelModule).toBeGreaterThan(0);
+  });
+
+  it('scatters small windows on the megablock panel grid and mounts utility boxes clear of them', async () => {
+    const { blueprint } = await generate(factory, KEYS);
+    const module = blueprint.facade.panelModule;
+    const windows = blueprint.floors.flatMap((f: Floor) => f.openings.filter((o) => o.kind === 'window'));
+    expect(windows.length).toBeGreaterThan(0);
+    for (const w of windows) {
+      expect(w.width).toBeLessThanOrEqual(1); // small relative to the wall
+      expect(w.height).toBeLessThanOrEqual(1.1);
+    }
+    // Semi-irregular: openings do not all share one offset inside their cell.
+    const inCell = new Set(windows.map((w) => Math.round(((w.offset % module) + module) % module * 100)));
+    expect(inCell.size).toBeGreaterThan(1);
+
+    expect(blueprint.facadeArtifacts.length).toBeGreaterThan(0);
+    for (const a of blueprint.facadeArtifacts) {
+      const floor = blueprint.floors.find((f) => f.index === a.floor)!;
+      for (const o of floor.openings.filter((o) => o.edge === a.edge)) {
+        const clear = a.offset + a.size[0] <= o.offset || a.offset >= o.offset + o.width
+          || a.sill + a.size[1] <= o.sill || a.sill >= o.sill + o.height;
+        expect(clear, `utility box overlaps ${o.id}`).toBe(true);
+      }
+    }
+  });
+
+  it('leaves glass facades free of ribs and utility boxes', async () => {
+    const { blueprint } = await generate(corpo, KEYS);
+    expect(blueprint.facadeArtifacts).toHaveLength(0);
+  });
+});
+
 describe('textured export', () => {
   it('defaults to a textured GLB with external map URIs against the materials base path', async () => {
     const { glb, textures } = await generate(residential, { textures: { baseUrl: '../materials/' } });
@@ -594,6 +623,35 @@ describe('errors', () => {
     })).toBe('E_SIGNAGE_TEXT_TOO_LONG');
   });
 });
+
+/** How far a building's window units reach out of and back into the wall plane. */
+async function windowDepth(req: unknown): Promise<{ min: number; max: number }> {
+  const { glb, blueprint } = await generate(req, KEYS);
+  const doc = await new NodeIO().readBinary(glb);
+  let min = Infinity, max = -Infinity;
+  for (const floor of blueprint.floors) {
+    for (const o of floor.openings) {
+      if (o.kind !== 'window') continue;
+      const [vx, vz] = floor.outline[o.edge]!;
+      const next = floor.outline[(o.edge + 1) % floor.outline.length]!;
+      const len = Math.hypot(next[0] - vx, next[1] - vz);
+      const nx = -(next[1] - vz) / len, nz = (next[0] - vx) / len;
+      const mid: [number, number] = [(vx + next[0]) / 2, (vz + next[1]) / 2];
+      const sign = pointInPoly(floor.outline, [mid[0] + nx * 0.01, mid[1] + nz * 0.01]) ? -1 : 1;
+      const node = doc.getRoot().listNodes().find((n) => n.getName() === `window:${o.id}`)!;
+      for (const prim of node.getMesh()!.listPrimitives()) {
+        const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
+        for (let i = 0; i < pos.length; i += 3) {
+          const d = ((pos[i]! - vx) * nx + (pos[i + 2]! - vz) * nz) * sign;
+          min = Math.min(min, d);
+          max = Math.max(max, d);
+        }
+      }
+      return { min, max };
+    }
+  }
+  throw new Error('no window to measure');
+}
 
 function edgeLen(outline: [number, number][], e: number): number {
   const [x1, z1] = outline[e]!;

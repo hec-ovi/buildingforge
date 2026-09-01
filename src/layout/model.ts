@@ -19,6 +19,17 @@ export interface Style {
   balconyWidth: number;
   juliet: boolean;
   parapetHeight: number;
+  /** facade relief and window placement style, frozen per building */
+  facade: {
+    kind: 'megablock' | 'panel' | 'glass';
+    panelModule: number;
+    ribWidth: number;
+    ribDepth: number;
+    bandHeight: number;
+    bandProud: number;
+    windowRecess: number;
+    utilityChance: number;
+  };
   /** window unit profile, frozen per building */
   glazing: {
     frameWidth: number;
@@ -57,6 +68,7 @@ export interface Layout {
   signage: Blueprint['signage'];
   screens: Blueprint['screens'];
   lights: Blueprint['lights'];
+  facadeArtifacts: Blueprint['facadeArtifacts'];
   fireEscape: Blueprint['fireEscape'];
   roof: { elevation: number; outline: P2[]; parapetHeight: number; artifacts: RoofArtifact[] };
 }
