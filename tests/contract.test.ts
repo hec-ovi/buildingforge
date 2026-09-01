@@ -187,6 +187,18 @@ describe('GLB shell', () => {
     }
   });
 
+  it('glb:merged gives one mesh per material key, anchors kept, blueprint unchanged', async () => {
+    const named = await generate(bridged);
+    const merged = await generate({ ...bridged, options: { glb: 'merged' } });
+    expect(JSON.stringify(merged.blueprint)).toBe(JSON.stringify(named.blueprint));
+    const doc = await new NodeIO().readBinary(merged.glb);
+    const meshNodes = doc.getRoot().listNodes().filter((n) => n.getMesh());
+    expect(meshNodes.map((n) => n.getName()).sort()).toEqual(named.blueprint.materials.map((m) => `merged:${m}`));
+    for (const n of meshNodes) expect(n.getMesh()!.listPrimitives().length).toBe(1);
+    expect(doc.getRoot().listNodes().some((n) => n.getName() === 'anchor:ap-wire-4')).toBe(true);
+    expect(merged.glb.byteLength).toBeLessThan(named.glb.byteLength);
+  });
+
   it('faces every ground wall triangle outward', async () => {
     const { glb, blueprint } = await generate(bridged);
     const doc = await new NodeIO().readBinary(glb);

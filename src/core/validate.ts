@@ -143,6 +143,7 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   };
   const out: NonNullable<BuildingRequest['options']> = {};
   out.shape = oneOf(o.shape, ['auto', 'box', 'octagon', 'cylinder', 'pyramid', 'setback'], 'options.shape') as never;
+  out.glb = oneOf(o.glb, ['named', 'merged'], 'options.glb') as never;
   out.balconies = oneOf(o.balconies, ['auto', 'on', 'off'], 'options.balconies') as never;
   out.windows = oneOf(o.windows, ['auto', 'none'], 'options.windows') as never;
   out.adScreens = oneOf(o.adScreens, ['auto', 'on', 'off'], 'options.adScreens') as never;

@@ -42,6 +42,7 @@ export interface BuildingRequest {
   apertures?: Aperture[];
   options?: {
     shape?: 'auto' | 'box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
+    glb?: 'named' | 'merged';
     balconies?: 'auto' | 'on' | 'off';
     fireEscape?: boolean;
     windows?: 'auto' | 'none';

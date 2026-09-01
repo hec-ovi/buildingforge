@@ -21,6 +21,7 @@ Blueprint: [schemas/blueprint.schema.json](schemas/blueprint.schema.json). Per f
 
 GLB shell:
 - Binary glTF 2.0, one scene, named nodes: `floor:<index>/slab`, `wall:<floor>/<edge>`, `window:<opening-id>`, `door:<opening-id>`, `balcony:<opening-id>`, `aperture:<id>`, `anchor:<id>`, `roof`, `parapet`, `terrace:<floor>` (setback rings), `columns`, `roof-artifacts`, `base` (bottom cap), `signage:<n>`, `screen:<n>`, `light:<n>`, `fire-escape`.
+- `options.glb: "merged"` swaps the node scheme for one mesh per material key (`merged:<theme/kind/tier>`), for runtime scale; anchors stay named nodes and the blueprint is identical either way. Default `"named"` is the canonical interchange.
 - Empty inside except one upward-facing separator plane per floor at its elevation.
 - All triangles CCW front, outward normals; windows are overlay units proud of the uncut wall; real holes only for doors and apertures (grid-cut, watertight, no T-junctions).
 - Materials carry no textures; each is named by the canonical key `theme/kind/tier` (lowercase slugs) and resolved by the materials index. Kinds used: wall, wall-trim, column, window-glass, window-frame, curtain, door, door-glass, balcony-slab, balcony-rail, roof, floor-slab, parapet, signage, ad-screen, light-fixture, fire-escape, aperture-frame, roof-artifact.

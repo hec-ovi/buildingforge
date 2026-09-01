@@ -84,6 +84,7 @@
       "additionalProperties": false,
       "properties": {
         "shape": { "enum": ["auto", "box", "octagon", "cylinder", "pyramid", "setback"], "default": "auto" },
+        "glb": { "enum": ["named", "merged"], "default": "named", "description": "named = contract node per part (canonical, inspectable); merged = one mesh per material key for runtime scale. Same blueprint either way." },
         "balconies": { "enum": ["auto", "on", "off"], "default": "auto" },
         "fireEscape": { "type": "boolean", "default": false },
         "windows": { "enum": ["auto", "none"], "default": "auto" },
