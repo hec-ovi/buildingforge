@@ -93,8 +93,10 @@ export class PreviewView {
     this.highlights.visible = this.highlightOn;
     this.scene.add(this.highlights);
 
-    this.buildingTop = blueprint.bounds.height;
     const box = new Box3().setFromObject(this.building);
+    // Clip against what is really there: the parapet height leaves out the roof
+    // bulkhead and the antennas standing on it.
+    this.buildingTop = box.max.y;
     const center = box.getCenter(new Vector3());
     this.controls.target.copy(center);
     // Stand outside the bounding sphere and fit it in the field of view, so the
