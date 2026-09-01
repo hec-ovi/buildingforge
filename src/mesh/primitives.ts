@@ -39,6 +39,11 @@ export interface Part {
    * needs the node.
    */
   pivot?: V3;
+  /**
+   * Kept as its own node in merged output too, the way a pivoted part is: a
+   * floor slab the interior replaces under the same name.
+   */
+  keepNode?: boolean;
 }
 
 /**
@@ -59,7 +64,7 @@ function pushNormal(g: Prim, n: V3, vertices: number): void {
 export class MeshBuilder {
   readonly parts: Part[] = [];
 
-  part(name: string, options: { parent?: string; pivot?: V3 } = {}): PartSink {
+  part(name: string, options: { parent?: string; pivot?: V3; keepNode?: boolean } = {}): PartSink {
     const p: Part = { name, prims: new Map(), ...options };
     this.parts.push(p);
     return new PartSink(p);

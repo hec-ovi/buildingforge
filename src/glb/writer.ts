@@ -76,14 +76,15 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
 
   if (layout.request.options?.glb === 'merged') {
     // Runtime mode: everything concatenated into one mesh per material key,
-    // except the parts the game animates, which keep their own nodes.
-    const animated = new Set<string>();
-    for (const part of mb.parts) if (part.pivot) animated.add(part.name);
-    for (const part of mb.parts) if (part.parent && animated.has(part.parent)) animated.add(part.name);
+    // except the parts a consumer addresses by node (swinging leaves, wire
+    // anchors, the floor slabs the interior replaces), which keep their own.
+    const kept = new Set<string>();
+    for (const part of mb.parts) if (part.pivot || part.keepNode) kept.add(part.name);
+    for (const part of mb.parts) if (part.parent && kept.has(part.parent)) kept.add(part.name);
 
     const byMaterial = new Map<string, Prim>();
     for (const part of mb.parts) {
-      if (animated.has(part.name)) continue;
+      if (kept.has(part.name)) continue;
       for (const [key, prim] of part.prims) {
         if (prim.indices.length === 0) continue;
         let g = byMaterial.get(key);
@@ -100,7 +101,7 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
       addPrim(mesh, key, byMaterial.get(key)!);
       root.addChild(doc.createNode(`merged:${key}`).setMesh(mesh));
     }
-    emitParts(mb.parts.filter((p) => animated.has(p.name)).map((p) => ({ ...p, parent: undefined })));
+    emitParts(mb.parts.filter((p) => kept.has(p.name)).map((p) => ({ ...p, parent: undefined })));
   } else {
     emitParts(mb.parts);
   }

@@ -2,6 +2,7 @@
 
 import type { Blueprint } from '../types.ts';
 import type { Layout } from '../layout/model.ts';
+import { measureWallDepth } from '../mesh/wallDepth.ts';
 import type { MeshBuilder } from '../mesh/primitives.ts';
 
 export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
@@ -25,7 +26,11 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     signage: layout.signage,
     screens: layout.screens,
     lights: layout.lights,
-    facade: { style: layout.style.facade.kind, panelModule: layout.style.facade.panelModule },
+    facade: {
+      style: layout.style.facade.kind,
+      panelModule: layout.style.facade.panelModule,
+      wallDepth: measureWallDepth(layout, mb),
+    },
     facadeArtifacts: layout.facadeArtifacts,
     fireEscape: layout.fireEscape,
     roof: layout.roof,

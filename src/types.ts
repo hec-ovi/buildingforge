@@ -144,7 +144,12 @@ export interface Blueprint {
   }[];
   screens: { edge: number; center: P3; width: number; height: number; standoff: number; normal: P2 }[];
   lights: { kind: 'entrance' | 'accent'; position: P3; normal: P2 }[];
-  facade: { style: 'megablock' | 'panel' | 'glass' | 'curtain-wall'; panelModule: number };
+  facade: {
+    style: 'megablock' | 'panel' | 'glass' | 'curtain-wall';
+    panelModule: number;
+    /** how far the deepest opening unit reaches behind the outline skin, measured on the built geometry */
+    wallDepth: number;
+  };
   facadeArtifacts: FacadeArtifact[];
   fireEscape: { edge: number; fromFloor: number; toFloor: number } | null;
   roof: {

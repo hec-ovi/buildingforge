@@ -179,7 +179,7 @@
     },
     "facade": {
       "type": "object",
-      "required": ["style", "panelModule"],
+      "required": ["style", "panelModule", "wallDepth"],
       "additionalProperties": false,
       "properties": {
         "style": {
@@ -190,6 +190,11 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "description": "concrete panel width in meters; equals the wall material's tile size, so map joints land on the geometry grid"
+        },
+        "wallDepth": {
+          "type": "number",
+          "minimum": 0,
+          "description": "meters the deepest opening unit reaches inward from the outline skin (window reveals, frames, glass and curtain panels, door reveals and closed leaves, aperture collars), measured on the built geometry; a consumer fitting the shell keeps everything it builds at least this far inside the outline"
         }
       }
     },

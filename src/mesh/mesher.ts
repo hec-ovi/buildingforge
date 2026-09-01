@@ -41,9 +41,10 @@ export function buildMesh(layout: Layout): MeshBuilder {
   const top = topFloor.elevation + topFloor.height;
 
   // Floor separator planes, faced both ways: seen from below through the glazing
-  // a one-sided slab is invisible and the shell reads hollow.
+  // a one-sided slab is invisible and the shell reads hollow. Each keeps its node
+  // in merged output, so the interior can swap it for the slab it furnishes.
   for (const f of floors) {
-    const sink = mb.part(`floor:${f.index}/slab`);
+    const sink = mb.part(`floor:${f.index}/slab`, { keepNode: true });
     capUp(sink, mat('floor-slab'), f.outline, f.elevation);
     capDown(sink, mat('floor-slab'), f.outline, f.elevation);
   }

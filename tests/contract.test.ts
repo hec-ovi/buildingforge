@@ -622,15 +622,29 @@ describe('GLB shell', () => {
     // the attach point can be read.
     const leaves = meshNodes.filter((n) => n.getName().includes('/leaf:'));
     expect(leaves.length).toBeGreaterThan(0);
-    const bulk = meshNodes.filter((n) => !n.getName().includes('/leaf:') && !n.getName().startsWith('anchor:'));
+    const bulk = meshNodes.filter((n) => n.getName().startsWith('merged:'));
     for (const n of bulk) expect(n.getMesh()!.listPrimitives().length).toBe(1);
-    // One bulk mesh per material, and between bulk and leaves every published key is there.
+    // One bulk mesh per material, and across every node every published key is there.
     const used = new Set<string>();
     for (const n of meshNodes) for (const p of n.getMesh()!.listPrimitives()) used.add(p.getMaterial()!.getName());
     expect([...used].sort()).toEqual(named.blueprint.materials);
     for (const n of bulk) expect(named.blueprint.materials).toContain(n.getName().replace('merged:', ''));
     expect(doc.getRoot().listNodes().some((n) => n.getName() === 'anchor:ap-wire-4')).toBe(true);
     expect(merged.glb.byteLength).toBeLessThan(named.glb.byteLength);
+  });
+
+  it('glb:merged keeps every floor slab as its own named node, so the interior can replace it', async () => {
+    const { glb, blueprint } = await generate({ ...residential, options: { glb: 'merged' } }, KEYS);
+    const doc = await new NodeIO().readBinary(glb);
+    const byName = new Map(doc.getRoot().listNodes().map((n) => [n.getName(), n]));
+    for (const floor of blueprint.floors) {
+      const slab = byName.get(`floor:${floor.index}/slab`);
+      expect(slab, `floor ${floor.index} slab node`).toBeTruthy();
+      const materials = slab!.getMesh()!.listPrimitives().map((p) => p.getMaterial()!.getName());
+      expect(materials).toEqual(['cyberpunk/floor-slab/mid']);
+    }
+    const named = [...byName.keys()].filter((n) => !n.startsWith('merged:') && !n.startsWith('building:'));
+    expect(named.every((n) => n.includes('/leaf:') || n.startsWith('anchor:') || n.endsWith('/slab'))).toBe(true);
   });
 
   it('mounts a wire anchor as a small plate on its node, the curtain wall glazed straight across it', async () => {
@@ -854,6 +868,18 @@ describe('facade styles', () => {
     expect(rich.facade.style).toBe('glass');
     expect(tower.facade.style).toBe('curtain-wall');
     for (const bp of [poor, mid, rich, tower]) expect(bp.facade.panelModule).toBeGreaterThan(0);
+  });
+
+  it('publishes facade.wallDepth as the deepest reach of the built opening units, curtain wall and megablock', async () => {
+    const tower = await generate(corpo, KEYS);
+    const block = await generate(factory, KEYS);
+    expect(tower.blueprint.facade.style).toBe('curtain-wall');
+    expect(block.blueprint.facade.style).toBe('megablock');
+    for (const { glb, blueprint } of [tower, block]) {
+      const measured = await deepestUnit(glb, blueprint);
+      expect(Math.abs(blueprint.facade.wallDepth - measured), blueprint.facade.style).toBeLessThan(0.01);
+    }
+    expect(block.blueprint.facade.wallDepth).toBeGreaterThan(tower.blueprint.facade.wallDepth + 0.1);
   });
 
   it('scatters small windows on the megablock panel grid and mounts utility boxes clear of them', async () => {
@@ -1117,33 +1143,56 @@ describe('errors', () => {
   });
 });
 
+/** Unit outward normal of an outline edge, probed against the ring so winding cannot flip it. */
+function outwardNormal(outline: [number, number][], edge: number): [number, number] {
+  const [vx, vz] = outline[edge]!;
+  const next = outline[(edge + 1) % outline.length]!;
+  const len = Math.hypot(next[0] - vx, next[1] - vz);
+  const nx = -(next[1] - vz) / len, nz = (next[0] - vx) / len;
+  const mid: [number, number] = [(vx + next[0]) / 2, (vz + next[1]) / 2];
+  return pointInPoly(outline, [mid[0] + nx * 0.01, mid[1] + nz * 0.01]) ? [-nx, -nz] : [nx, nz];
+}
+
+/** Signed distance of every vertex of a node subtree from the wall plane of an opening's edge: outward positive. */
+function unitReach(doc: Awaited<ReturnType<NodeIO['readBinary']>>, floor: Floor, o: Opening): { min: number; max: number } {
+  const prefix = { window: 'window:', door: 'door:', balconyDoor: 'balcony:', aperture: 'aperture:' }[o.kind];
+  const [vx, vz] = floor.outline[o.edge]!;
+  const [nx, nz] = outwardNormal(floor.outline, o.edge);
+  let min = Infinity, max = -Infinity;
+  const nodes = doc.getRoot().listNodes().filter((n) => n.getName() === `${prefix}${o.id}` || n.getName().startsWith(`${prefix}${o.id}/`));
+  for (const node of nodes) {
+    const [tx, , tz] = node.getWorldTranslation();
+    for (const prim of node.getMesh()?.listPrimitives() ?? []) {
+      const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
+      for (let i = 0; i < pos.length; i += 3) {
+        const d = (pos[i]! + tx - vx) * nx + (pos[i + 2]! + tz - vz) * nz;
+        min = Math.min(min, d);
+        max = Math.max(max, d);
+      }
+    }
+  }
+  return { min, max };
+}
+
 /** How far a building's window units reach out of and back into the wall plane. */
 async function windowDepth(req: unknown): Promise<{ min: number; max: number }> {
   const { glb, blueprint } = await generate(req, KEYS);
   const doc = await new NodeIO().readBinary(glb);
-  let min = Infinity, max = -Infinity;
   for (const floor of blueprint.floors) {
-    for (const o of floor.openings) {
-      if (o.kind !== 'window') continue;
-      const [vx, vz] = floor.outline[o.edge]!;
-      const next = floor.outline[(o.edge + 1) % floor.outline.length]!;
-      const len = Math.hypot(next[0] - vx, next[1] - vz);
-      const nx = -(next[1] - vz) / len, nz = (next[0] - vx) / len;
-      const mid: [number, number] = [(vx + next[0]) / 2, (vz + next[1]) / 2];
-      const sign = pointInPoly(floor.outline, [mid[0] + nx * 0.01, mid[1] + nz * 0.01]) ? -1 : 1;
-      const node = doc.getRoot().listNodes().find((n) => n.getName() === `window:${o.id}`)!;
-      for (const prim of node.getMesh()!.listPrimitives()) {
-        const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
-        for (let i = 0; i < pos.length; i += 3) {
-          const d = ((pos[i]! - vx) * nx + (pos[i + 2]! - vz) * nz) * sign;
-          min = Math.min(min, d);
-          max = Math.max(max, d);
-        }
-      }
-      return { min, max };
-    }
+    const window = floor.openings.find((o) => o.kind === 'window');
+    if (window) return unitReach(doc, floor, window);
   }
   throw new Error('no window to measure');
+}
+
+/** The deepest point any opening unit on the building reaches behind the outline skin, read off the GLB. */
+async function deepestUnit(glb: Uint8Array, blueprint: Blueprint): Promise<number> {
+  const doc = await new NodeIO().readBinary(glb);
+  let deepest = 0;
+  for (const floor of blueprint.floors) {
+    for (const o of floor.openings) deepest = Math.max(deepest, -unitReach(doc, floor, o).min);
+  }
+  return deepest;
 }
 
 /**
