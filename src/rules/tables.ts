@@ -94,6 +94,20 @@ export const BALCONY = {
 
 export const STRUCTURE = { concreteMaxFloors: 40 };
 
+/**
+ * Window units. A pane is limited by what the glass thickness and the tier's
+ * budget carry, so wider or taller openings get a mullion grid instead of one
+ * sheet. Profile dimensions are the aluminium sections real curtain walls use.
+ */
+export const GLAZING = {
+  maxPaneWidth: { poor: 0.85, mid: 1.2, rich: 1.55, high_rich: 1.9 } as Record<Tier, number>,
+  maxPaneHeight: { poor: 1.1, mid: 1.55, rich: 2.1, high_rich: 2.6 } as Record<Tier, number>,
+  frameWidth: [0.05, 0.09] as [number, number],
+  frameProud: [0.04, 0.08] as [number, number],
+  mullionWidth: [0.035, 0.06] as [number, number],
+  glassInset: [0.03, 0.06] as [number, number],
+};
+
 export const OPENING = { minPier: 0.3, cornerMargin: 0.6 };
 
 export const FIRE_ESCAPE = {

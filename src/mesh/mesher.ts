@@ -6,10 +6,10 @@ import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown } from './caps.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { BALCONY, FIRE_ESCAPE } from '../rules/tables.ts';
-import type { Layout, FloorLayout } from '../layout/model.ts';
+import { paneGrid } from '../layout/glazing.ts';
+import type { Layout, FloorLayout, Style } from '../layout/model.ts';
 import type { Opening } from '../types.ts';
 
-const WINDOW_BORDER = 0.07;
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
 
@@ -108,7 +108,7 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
 
   if (o.kind === 'window') {
     const sink = mb.part(`window:${o.id}`);
-    overlayWindow(sink, fr, u0, u1, yb, yt, o, mat);
+    windowUnit(sink, fr, u0, u1, yb, yt, o, layout.style, mat);
     return;
   }
   if (o.kind === 'door' || o.kind === 'balconyDoor') {
@@ -131,28 +131,103 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
   if (carved) reveal(sink, fr, carved.facePoly, APERTURE_REVEAL, true, o.material ?? mat('aperture-frame'));
 }
 
-function overlayWindow(sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number, o: Opening, mat: (k: string) => string): void {
-  const b = WINDOW_BORDER;
-  // Frame strips at 0.03 proud.
-  strip(sink, fr, u0, u1, yt - b, yt, 0.03, mat('window-frame'));
-  strip(sink, fr, u0, u1, yb, yb + b, 0.03, mat('window-frame'));
-  strip(sink, fr, u0, u0 + b, yb + b, yt - b, 0.03, mat('window-frame'));
-  strip(sink, fr, u1 - b, u1, yb + b, yt - b, 0.03, mat('window-frame'));
-  // Glass behind the frame, exact 0..1 UVs.
-  const g0 = u0 + b, g1 = u1 - b, gb = yb + b, gt = yt - b;
-  sink.quadFacing(o.material ?? mat('window-glass'), at(fr, [g0, gb], 0.015), at(fr, [g1, gb], 0.015), at(fr, [g1, gt], 0.015), at(fr, [g0, gt], 0.015), n3(fr), [[0, 1], [1, 1], [1, 0], [0, 0]]);
+/**
+ * A window unit: a frame profile standing proud of the wall with real reveal
+ * depth, a mullion grid splitting the opening into panes no larger than the
+ * tier's structural limit, and the glass recessed behind the profile.
+ */
+function windowUnit(
+  sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
+  o: Opening, style: Style, mat: (k: string) => string,
+): void {
+  const g = style.glazing;
+  const fw = Math.min(g.frameWidth, (u1 - u0) / 4, (yt - yb) / 4);
+  const depth = g.frameProud + g.glassInset;
+  const g0 = u0 + fw, g1 = u1 - fw, gb = yb + fw, gt = yt - fw;
+  const frameMat = mat('window-frame');
+
+  member(sink, fr, u0, u1, yt - fw, yt, g.frameProud, depth, frameMat, { bottom: true });
+  member(sink, fr, u0, u1, yb, yb + fw, g.frameProud, depth, frameMat, { top: true });
+  member(sink, fr, u0, g0, gb, gt, g.frameProud, depth, frameMat, { right: true });
+  member(sink, fr, g1, u1, gb, gt, g.frameProud, depth, frameMat, { left: true });
+
+  const { cols, rows } = o.panes ?? paneGrid(u1 - u0, yt - yb, g);
+  const mw = Math.min(g.mullionWidth, (g1 - g0) / (cols * 2), (gt - gb) / (rows * 2));
+  const mProud = g.frameProud * 0.7;
+  const mDepth = mProud + g.glassInset;
+  for (let c = 1; c < cols; c++) {
+    const u = g0 + ((g1 - g0) * c) / cols;
+    member(sink, fr, u - mw / 2, u + mw / 2, gb, gt, mProud, mDepth, frameMat, { left: true, right: true });
+  }
+  for (let r = 1; r < rows; r++) {
+    const y = gb + ((gt - gb) * r) / rows;
+    member(sink, fr, g0, g1, y - mw / 2, y + mw / 2, mProud, mDepth, frameMat, { bottom: true, top: true });
+  }
+
+  // Glass recessed behind the wall face, exact 0..1 UVs over the pane field.
+  const glassZ = -g.glassInset;
+  sink.quadFacing(o.material ?? mat('window-glass'),
+    at(fr, [g0, gb], glassZ), at(fr, [g1, gb], glassZ), at(fr, [g1, gt], glassZ), at(fr, [g0, gt], glassZ),
+    n3(fr), [[0, 1], [1, 1], [1, 0], [0, 0]]);
+
   // Curtain panel behind the glass, dropping from the top by state.
   const fraction = o.state === 'half' ? 0.5 : o.state === 'closed80' ? 0.8 : 0;
   if (fraction > 0) {
     const cb = gt - (gt - gb) * fraction;
-    sink.quadFacing(mat('curtain'), at(fr, [g0, cb], 0.008), at(fr, [g1, cb], 0.008), at(fr, [g1, gt], 0.008), at(fr, [g0, gt], 0.008), n3(fr), [[0, fraction], [1, fraction], [1, 0], [0, 0]]);
+    const z = glassZ - 0.02;
+    sink.quadFacing(mat('curtain'), at(fr, [g0, cb], z), at(fr, [g1, cb], z), at(fr, [g1, gt], z), at(fr, [g0, gt], z),
+      n3(fr), [[0, fraction], [1, fraction], [1, 0], [0, 0]]);
   }
 }
 
-/** Proud flat strip on the wall plane (frames, trims). */
+interface Reveals { left?: boolean; right?: boolean; bottom?: boolean; top?: boolean }
+
+/**
+ * One frame or mullion section: the face plate standing `proud` of the wall plus
+ * the reveal sides that reach `depth` back toward the glass. Sides that end up
+ * buried in the wall or in a neighbouring member are not emitted.
+ */
+function member(
+  sink: PartSink, fr: Frame, u0: number, u1: number, y0: number, y1: number,
+  proud: number, depth: number, material: string, reveals: Reveals,
+): void {
+  if (u1 - u0 < 1e-6 || y1 - y0 < 1e-6) return;
+  strip(sink, fr, u0, u1, y0, y1, proud, material);
+  const back = proud - depth;
+  if (reveals.left) revealU(sink, fr, u0, y0, y1, proud, back, -1, depth, material);
+  if (reveals.right) revealU(sink, fr, u1, y0, y1, proud, back, 1, depth, material);
+  if (reveals.bottom) revealY(sink, fr, u0, u1, y0, proud, back, -1, depth, material);
+  if (reveals.top) revealY(sink, fr, u0, u1, y1, proud, back, 1, depth, material);
+}
+
+/** Vertical reveal face at u, normal along the edge direction times s. */
+function revealU(
+  sink: PartSink, fr: Frame, u: number, y0: number, y1: number,
+  proud: number, back: number, s: number, depth: number, material: string,
+): void {
+  const outward: V3 = [fr.dir[0] * s, 0, fr.dir[1] * s];
+  const h = y1 - y0;
+  sink.quadFacing(material,
+    at(fr, [u, y0], proud), at(fr, [u, y0], back), at(fr, [u, y1], back), at(fr, [u, y1], proud),
+    outward, [[0, 0], [depth, 0], [depth, h], [0, h]]);
+}
+
+/** Horizontal reveal face at y, normal +Y or -Y by s. */
+function revealY(
+  sink: PartSink, fr: Frame, u0: number, u1: number, y: number,
+  proud: number, back: number, s: number, depth: number, material: string,
+): void {
+  const w = u1 - u0;
+  sink.quadFacing(material,
+    at(fr, [u0, y], proud), at(fr, [u1, y], proud), at(fr, [u1, y], back), at(fr, [u0, y], back),
+    [0, s, 0], [[0, 0], [w, 0], [w, depth], [0, depth]]);
+}
+
+/** Proud flat plate on the wall plane (frames, trims), world-scale UVs so tiles never stretch. */
 function strip(sink: PartSink, fr: Frame, u0: number, u1: number, y0: number, y1: number, proud: number, material: string): void {
   if (u1 - u0 < 1e-6 || y1 - y0 < 1e-6) return;
-  sink.quadFacing(material, at(fr, [u0, y0], proud), at(fr, [u1, y0], proud), at(fr, [u1, y1], proud), at(fr, [u0, y1], proud), n3(fr), [[0, 1], [1, 1], [1, 0], [0, 0]]);
+  const w = u1 - u0, h = y1 - y0;
+  sink.quadFacing(material, at(fr, [u0, y0], proud), at(fr, [u1, y0], proud), at(fr, [u1, y1], proud), at(fr, [u0, y1], proud), n3(fr), [[0, 0], [w, 0], [w, h], [0, h]]);
 }
 
 /** Quads bridging the wall plane to a recessed plane along a hole boundary, facing into the hole. */

@@ -110,6 +110,52 @@ describe('blueprint invariants', () => {
     for (const s of states) expect(['open', 'half', 'closed80']).toContain(s);
   });
 
+  it('splits every window into panes within the tier pane limit, and builds them with depth', async () => {
+    const { GLAZING } = await import('../src/rules/tables.ts');
+    for (const [req, tier] of [[residential, 'mid'], [corpo, 'high_rich'], [factory, 'poor']] as const) {
+      const { blueprint } = await generate(req, KEYS);
+      const windows = blueprint.floors.flatMap((f: Floor) => f.openings.filter((o) => o.kind === 'window'));
+      expect(windows.length).toBeGreaterThan(0);
+      for (const w of windows) {
+        expect(w.panes).toBeDefined();
+        const { cols, rows } = w.panes!;
+        expect(cols).toBeGreaterThanOrEqual(1);
+        expect(rows).toBeGreaterThanOrEqual(1);
+        expect(w.width / cols).toBeLessThanOrEqual(GLAZING.maxPaneWidth[tier] + 0.2);
+        expect(w.height / rows).toBeLessThanOrEqual(GLAZING.maxPaneHeight[tier] + 0.2);
+      }
+    }
+    // A bay past the pane limit gets mullions: the grid is real, not a constant 1x1.
+    const tall = (await generate(corpo, KEYS)).blueprint.floors
+      .flatMap((f: Floor) => f.openings.filter((o) => o.kind === 'window'));
+    expect(tall.some((w) => (w.panes!.cols * w.panes!.rows) > 1)).toBe(true);
+  });
+
+  it('stands the window frame proud of the wall and sets the glass back behind it', async () => {
+    const { glb, blueprint } = await generate(residential, KEYS);
+    const doc = await new NodeIO().readBinary(glb);
+    const ground = blueprint.floors.find((f) => f.index === 1)!;
+    const window = ground.openings.find((o) => o.kind === 'window')!;
+    const [vx, vz] = ground.outline[window.edge]!;
+    const next = ground.outline[(window.edge + 1) % ground.outline.length]!;
+    const len = Math.hypot(next[0] - vx, next[1] - vz);
+    const nx = -(next[1] - vz) / len, nz = (next[0] - vx) / len;
+    const sign = pointInPoly(ground.outline, [vx + nx * 0.01 + (next[0] - vx) / 2, vz + nz * 0.01 + (next[1] - vz) / 2]) ? -1 : 1;
+
+    const node = doc.getRoot().listNodes().find((n) => n.getName() === `window:${window.id}`)!;
+    let min = Infinity, max = -Infinity;
+    for (const prim of node.getMesh()!.listPrimitives()) {
+      const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
+      for (let i = 0; i < pos.length; i += 3) {
+        const d = ((pos[i]! - vx) * nx + (pos[i + 2]! - vz) * nz) * sign;
+        min = Math.min(min, d);
+        max = Math.max(max, d);
+      }
+    }
+    expect(max).toBeGreaterThan(0.03); // frame profile stands out
+    expect(min).toBeLessThan(-0.02); // glass sits back
+  });
+
   it('the ground floor has an entrance door on the street face', async () => {
     for (const req of [residential, corpo, factory]) {
       const { blueprint } = await generate(req);

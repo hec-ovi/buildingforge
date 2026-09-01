@@ -57,6 +57,16 @@
                 "sill": { "type": "number", "minimum": 0, "description": "bottom of opening above floor surface" },
                 "apertureKind": { "enum": ["bridge", "ac-tube", "tunnel"], "description": "present when kind = aperture; id echoes the request aperture id" },
                 "state": { "enum": ["open", "half", "closed80"], "description": "vertical curtain state, windows and balcony doors only" },
+                "panes": {
+                  "type": "object",
+                  "required": ["cols", "rows"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "cols": { "type": "integer", "minimum": 1 },
+                    "rows": { "type": "integer", "minimum": 1 }
+                  },
+                  "description": "mullion grid of a glazed opening; every pane is within the tier's structural pane limit"
+                },
                 "balcony": {
                   "type": "object",
                   "required": ["depth", "width"],

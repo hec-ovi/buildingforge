@@ -67,6 +67,8 @@ export interface Opening {
   sill: number;
   apertureKind?: Exclude<ApertureKind, 'wire-anchor'>;
   state?: CurtainState;
+  /** mullion grid of a glazed opening: cols x rows panes, each within the tier's pane limit */
+  panes?: { cols: number; rows: number };
   balcony?: { depth: number; width: number };
   material?: string;
 }

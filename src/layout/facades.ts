@@ -4,6 +4,7 @@
 import { Rng } from '../core/rng.ts';
 import { RULES, DOORS, OPENING, CURTAINS, type CurtainDist } from '../rules/tables.ts';
 import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
+import { paneGrid } from './glazing.ts';
 import type { Aperture, BuildingRequest, CurtainState, Opening } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
@@ -182,10 +183,12 @@ export function buildFacades(
           if (!rng.chance(p)) continue;
           if (!fits(takenByEdge, e, bayCenter - w / 2, bayCenter + w / 2)) continue;
           take(takenByEdge, e, bayCenter - w / 2, bayCenter + w / 2);
+          const width = quant(w), height = quant(h);
           openings.push({
             id: `w:${level.index}:${e}:${b}`, kind: 'window', edge: e,
-            offset: quantOff(bayCenter - w / 2), width: quant(w), height: quant(h), sill: quant(sill),
+            offset: quantOff(bayCenter - w / 2), width, height, sill: quant(sill),
             state: curtainState(seed, level.index, e, b, dist),
+            panes: paneGrid(width, height, style.glazing),
             material: `${req.theme}/window-glass/${tier}`,
           });
         }

@@ -1,7 +1,7 @@
 // One frozen style per building: dimensions vary between buildings, never within one.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, TIER_WWR_SHIFT, BALCONY, PARAPET, STRUCTURE } from '../rules/tables.ts';
+import { RULES, TIER_WWR_SHIFT, BALCONY, GLAZING, PARAPET, STRUCTURE } from '../rules/tables.ts';
 import { quant } from '../core/polygon.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Style } from './model.ts';
@@ -42,5 +42,20 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
     balconyWidth: quant(rng.range(2.4, 4.0)),
     juliet: tier === 'poor',
     parapetHeight: quant(rng.range(...PARAPET)),
+    glazing: buildGlazing(seed, tier),
+  };
+}
+
+/** Profile sections and pane limits, one draw per building so a facade stays consistent. */
+function buildGlazing(seed: string, tier: Tier): Style['glazing'] {
+  const rng = new Rng(seed, 'glazing');
+  const round = (v: number) => Math.round(v * 200) / 200; // 5 mm grid: profiles are small
+  return {
+    frameWidth: round(rng.range(...GLAZING.frameWidth)),
+    frameProud: round(rng.range(...GLAZING.frameProud)),
+    mullionWidth: round(rng.range(...GLAZING.mullionWidth)),
+    glassInset: round(rng.range(...GLAZING.glassInset)),
+    maxPaneWidth: GLAZING.maxPaneWidth[tier],
+    maxPaneHeight: GLAZING.maxPaneHeight[tier],
   };
 }

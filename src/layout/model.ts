@@ -19,6 +19,15 @@ export interface Style {
   balconyWidth: number;
   juliet: boolean;
   parapetHeight: number;
+  /** window unit profile, frozen per building */
+  glazing: {
+    frameWidth: number;
+    frameProud: number;
+    mullionWidth: number;
+    glassInset: number;
+    maxPaneWidth: number;
+    maxPaneHeight: number;
+  };
 }
 
 export interface FloorLayout {
