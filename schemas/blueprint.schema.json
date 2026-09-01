@@ -32,7 +32,7 @@
         "additionalProperties": false,
         "properties": {
           "index": { "type": "integer", "description": "0 = ground floor, contiguous; negative = basement" },
-          "kind": { "type": "string", "description": "slot label slug: lobby, residential, office, restaurant, basement..." },
+          "kind": { "type": "string", "description": "atlas type verbatim for typed floors (residential, hotel, offices, corpo, hospital, clinic, police, military, factory, commerce, mall, restaurant, coffee_shop) plus lobby, entry, basement, bar, executive; request floorKinds pass through unchanged" },
           "elevation": { "type": "number", "description": "Y of this floor's walking surface" },
           "height": { "type": "number", "minimum": 2.2, "maximum": 12, "description": "floor-to-floor distance" },
           "outline": {

@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.4, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.8.1, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -20,6 +20,8 @@ Feasibility: [schemas/floor-constants.json](schemas/floor-constants.json) carrie
 
 ## Out
 Blueprint: [schemas/blueprint.schema.json](schemas/blueprint.schema.json). Per floor (basements included): index, kind, elevation, height, CCW outline, openings (door | window | balconyDoor | aperture) positioned by outline edge + offset + sill, with curtain state, balcony dimensions, material key. Plus signage, screens, lights, fire escape, roof artifacts, and the deduplicated material key list.
+
+Floor `kind` slugs are atlas vocabulary verbatim: the parcel type itself (`restaurant`, `coffee_shop`, `commerce`, `mall`, `residential`, ...) on every typed floor, venue and ground floors included, so interior assigns real venue programs. The only slugs that are not atlas types: `lobby` and `entry` (non-venue ground floors), `basement`, and the special top floor of a tall rich hotel (`bar`) or corpo (`executive`). Request `floorKinds` pass through unchanged.
 
 GLB shell:
 - Binary glTF 2.0, one scene, named nodes: `floor:<index>/slab`, `wall:<floor>/<edge>`, `window:<opening-id>`, `door:<opening-id>`, `balcony:<opening-id>`, `aperture:<id>`, `anchor:<id>`, `roof`, `parapet`, `terrace:<floor>` (setback rings), `columns`, `roof-artifacts`, `base` (bottom cap), `signage:<n>`, `screen:<n>`, `light:<n>`, `fire-escape`.

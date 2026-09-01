@@ -163,6 +163,19 @@ describe('blueprint invariants', () => {
     }
   });
 
+  it('floor kinds are the atlas type verbatim, venue floors included', async () => {
+    for (const type of ['coffee_shop', 'commerce']) {
+      const { blueprint } = await generate({
+        seed: `urbe-venue-${type}`, buildingId: 'p900',
+        parcel: { footprint: [[0, 0], [8, 0], [8, 6], [0, 6]], accessPoint: [4, -1], maxHeight: 12 },
+        building: { type, tier: 'mid', floors: 2 },
+        theme: 'cyberpunk',
+        options: { signage: null },
+      });
+      expect(blueprint.floors.map((f: Floor) => f.kind)).toEqual([type, type]);
+    }
+  });
+
   it('windows:none produces doors but no windows', async () => {
     const { blueprint } = await generate({
       ...residential,

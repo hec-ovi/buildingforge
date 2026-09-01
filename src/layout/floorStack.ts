@@ -214,33 +214,23 @@ function basementElevations(basements: number, basesNeg: number[], basementHeigh
   return elev;
 }
 
+// Floor kind slugs are atlas vocabulary verbatim (interior assigns venue programs
+// by type), plus lobby, entry, basement, bar, executive.
 function floorKinds(req: BuildingRequest, family: Family, tier: Tier, floors: number): string[] {
   if (req.building.floorKinds) return req.building.floorKinds;
   const rng = new Rng(req.seed, 'floor-kinds');
+  const type = req.building.type;
   const kinds: string[] = [];
-  const ground = family === 'commerce' ? 'shop'
-    : family === 'industrial' ? 'hall'
+  // Commerce and industrial ground floors ARE the venue; others get a lobby.
+  const ground = family === 'commerce' || family === 'industrial' ? type
     : family === 'residential' && tier === 'poor' ? 'entry'
     : 'lobby';
   for (let i = 0; i < floors; i++) {
-    if (i === 0) { kinds.push(ground); continue; }
-    kinds.push(familyKind(family));
+    kinds.push(i === 0 ? ground : type);
   }
   // A tall rich hotel or corpo gets one special top floor.
   if (floors >= 10 && (family === 'hotel' || family === 'corpo') && (tier === 'rich' || tier === 'high_rich') && rng.chance(0.6)) {
     kinds[floors - 1] = family === 'hotel' ? 'bar' : 'executive';
   }
   return kinds;
-}
-
-function familyKind(family: Family): string {
-  switch (family) {
-    case 'residential': return 'residential';
-    case 'hotel': return 'rooms';
-    case 'office': case 'corpo': return 'office';
-    case 'hospital': return 'ward';
-    case 'security': return 'operations';
-    case 'industrial': return 'hall';
-    case 'commerce': return 'shop';
-  }
 }
