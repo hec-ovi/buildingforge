@@ -1,0 +1,37 @@
+{
+  "seed": "urbe-bridge-012",
+  "buildingId": "p412",
+  "parcel": {
+    "footprint": [[0, 0], [30, 0], [30, 20], [0, 20]],
+    "accessPoint": [15, -2],
+    "maxHeight": 140
+  },
+  "building": { "type": "offices", "tier": "rich", "floors": 30, "basements": 1 },
+  "theme": "cyberpunk",
+  "apertures": [
+    {
+      "id": "ap-bridge-1", "buildingId": "p412", "floor": 6, "face": 1, "kind": "bridge",
+      "u": 10, "base": 24, "width": 3, "height": 3, "shape": "rect",
+      "cut": { "polygon": [[30, 24, 8.5], [30, 24, 11.5], [30, 27, 11.5], [30, 27, 8.5]], "axisDir": [1, 0, 0] },
+      "linkId": "L-bridge-1"
+    },
+    {
+      "id": "ap-tube-2", "buildingId": "p412", "floor": 3, "face": 3, "kind": "ac-tube",
+      "u": 5.7, "base": 12, "width": 2.6, "height": 2.5, "shape": "rect",
+      "cut": { "polygon": [[0, 12, 15], [0, 12, 13], [0, 14.5, 13.6], [0, 14.5, 15.6]], "axisDir": [-0.8, 0.6, 0] },
+      "linkId": "L-tube-2"
+    },
+    {
+      "id": "ap-tunnel-3", "buildingId": "p412", "floor": -1, "face": 0, "kind": "tunnel",
+      "u": 12, "base": -3.5, "width": 4, "height": 2.8, "shape": "rect",
+      "cut": { "polygon": [[10, -3.5, 0], [14, -3.5, 0], [14, -0.7, 0], [10, -0.7, 0]], "axisDir": [0, 0, -1] },
+      "linkId": "L-tunnel-3"
+    },
+    {
+      "id": "ap-wire-4", "buildingId": "p412", "floor": 7, "face": 1, "kind": "wire-anchor",
+      "u": 16, "base": 30, "width": 0.5, "height": 0.5, "shape": "rect",
+      "cut": { "polygon": [[30, 30, 15.75], [30, 30, 16.25], [30, 30.5, 16.25], [30, 30.5, 15.75]], "axisDir": [1, 0, 0] },
+      "linkId": "L-wire-4"
+    }
+  ]
+}

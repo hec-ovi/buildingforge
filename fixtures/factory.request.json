@@ -1,0 +1,15 @@
+{
+  "seed": "urbe-fab-003",
+  "buildingId": "p330",
+  "parcel": {
+    "footprint": [[0, 0], [48, 0], [52, 26], [26, 34], [0, 28]],
+    "accessPoint": [24, -1],
+    "maxHeight": 18
+  },
+  "building": { "type": "factory", "tier": "poor", "floors": 2 },
+  "theme": "cyberpunk",
+  "options": {
+    "signage": { "mode": "marquee", "text": "NAKATOMI HEAVY INDUSTRIES" },
+    "fireEscape": true
+  }
+}

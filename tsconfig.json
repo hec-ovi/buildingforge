@@ -5,6 +5,8 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022", "DOM"],
     "strict": true,
+    "esModuleInterop": true,
+    "types": ["node", "vite/client"],
     "noUncheckedIndexedAccess": true,
     "noEmit": true,
     "skipLibCheck": true,

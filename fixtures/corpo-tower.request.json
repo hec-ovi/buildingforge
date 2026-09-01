@@ -1,0 +1,15 @@
+{
+  "seed": "urbe-corpo-007",
+  "buildingId": "p207",
+  "parcel": {
+    "footprint": [[0, 0], [36, 0], [36, 30], [0, 30]],
+    "accessPoint": [18, -2],
+    "maxHeight": 150
+  },
+  "building": { "type": "corpo", "tier": "high_rich", "floors": 32 },
+  "theme": "cyberpunk",
+  "options": {
+    "signage": { "mode": "logo", "ratio": "16:9" },
+    "adScreens": "on"
+  }
+}

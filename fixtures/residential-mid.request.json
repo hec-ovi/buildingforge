@@ -1,0 +1,12 @@
+{
+  "seed": "urbe-res-001",
+  "buildingId": "p101",
+  "parcel": {
+    "footprint": [[0, 0], [22, 0], [24, 14], [2, 16]],
+    "accessPoint": [11, -1],
+    "maxHeight": 24
+  },
+  "building": { "type": "residential", "tier": "mid", "floors": 6 },
+  "theme": "cyberpunk",
+  "options": { "signage": null }
+}

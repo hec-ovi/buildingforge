@@ -1,0 +1,66 @@
+// Internal layout model: everything the mesher and blueprint builder consume.
+
+import type { P2, P3, Opening, RoofArtifact, Blueprint, BuildingRequest, Aperture } from '../types.ts';
+import type { Family, Tier } from '../rules/families.ts';
+
+export interface Style {
+  floorHeight: number;
+  groundFloorHeight: number;
+  windowWidth: number;
+  windowHeight: number;
+  sill: number;
+  bayModule: number;
+  wwr: number;
+  curtainWall: boolean;
+  columnSpacing: number;
+  columnWidth: number;
+  showColumns: boolean;
+  balconyDepth: number;
+  balconyWidth: number;
+  juliet: boolean;
+  parapetHeight: number;
+}
+
+export interface FloorLayout {
+  index: number;
+  kind: string;
+  elevation: number;
+  height: number;
+  outline: P2[];
+  openings: Opening[];
+}
+
+/** An aperture hole to carve, resolved to world geometry. */
+export interface CarvedAperture {
+  aperture: Aperture;
+  facePoly: P2[]; // cut polygon in face-plane [u, y] coords (u from footprint vertex, y absolute)
+}
+
+export interface Layout {
+  request: BuildingRequest;
+  family: Family;
+  tier: Tier;
+  theme: string;
+  style: Style;
+  streetEdge: number;
+  floors: FloorLayout[];
+  carved: CarvedAperture[];
+  anchors: Blueprint['anchors'];
+  signage: Blueprint['signage'];
+  screens: Blueprint['screens'];
+  lights: Blueprint['lights'];
+  fireEscape: Blueprint['fireEscape'];
+  roof: { elevation: number; outline: P2[]; parapetHeight: number; artifacts: RoofArtifact[] };
+}
+
+export function materialKey(theme: string, kind: string, tier: Tier): string {
+  return `${theme}/${kind}/${tier}`;
+}
+
+export type FaceFrame = {
+  origin: P3;      // bottom-left corner seen from outside
+  right: P3;       // unit, horizontal, along the face
+  up: P3;          // unit +Y
+  normal: P3;      // unit outward
+  length: number;  // face width in meters
+};
