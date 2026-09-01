@@ -30,7 +30,7 @@ export function buildFeatures(
 
   const blockedU = blockedIntervalsByFace(req, ground);
 
-  placeSignage(req, ground, streetEdge, groundFloor.height, top, signage, blockedU);
+  placeSignage(req, family, ground, streetEdge, groundFloor.height, top, signage, blockedU);
   placeScreens(req, family, tier, ground, streetEdge, groundFloor.height, top, signage.length > 0, screens, blockedU);
   placeLights(req, family, ground, streetEdge, groundFloor, lights);
   const facadeArtifacts = placeFacadeArtifacts(req, style, floors);
@@ -110,8 +110,14 @@ function facePoint(outline: P2[], edge: number, u: number, y: number): P3 {
   return [vx + d[0] * u, y, vz + d[1] * u];
 }
 
+/**
+ * Modular signage: the text takes one cell per letter and runs either as a
+ * marquee band over the entrance or as a blade sign protruding edge-on from the
+ * facade. Orientation is decided by what fits, then by building family and the
+ * facade's own proportions, so the same building always gets the same sign.
+ */
 function placeSignage(
-  req: BuildingRequest, ground: P2[], streetEdge: number, groundHeight: number, top: number,
+  req: BuildingRequest, family: Family, ground: P2[], streetEdge: number, groundHeight: number, top: number,
   out: Blueprint['signage'], blocked: Map<number, [number, number, number, number][]>,
 ): void {
   const spec = req.options?.signage;
@@ -123,24 +129,47 @@ function placeSignage(
   const rng = new Rng(req.seed, 'signage');
 
   if (spec.mode === 'marquee') {
-    // Legibility floor 0.2 m (USSC: letter height ~ distance / 120, storefront read at ~25 m).
-    let letterH = quant(rng.range(...SIGNAGE.bandHeight) * 0.55);
-    let width = spec.text.length * SIGNAGE.letterAdvance * letterH;
-    while (width > usable * 0.9 && letterH > 0.2) {
-      letterH = quant(letterH - 0.05);
-      width = spec.text.length * SIGNAGE.letterAdvance * letterH;
+    const cells = spec.text.length;
+    const bandWidthLimit = usable * 0.9;
+    // A blade hangs from just above the entrance to just under the parapet.
+    const bladeBottom = groundHeight + 0.6;
+    const bladeRoom = Math.max(0, top - 0.8 - bladeBottom);
+    const horizontalMax = Math.floor(bandWidthLimit / SIGNAGE.minCellSize);
+    const verticalMax = Math.floor((bladeRoom - 2 * SIGNAGE.framePad) / SIGNAGE.minCellSize);
+    if (cells > Math.max(horizontalMax, verticalMax)) {
+      throw new ExteriorError('E_SIGNAGE_TEXT_TOO_LONG',
+        `"${spec.text}" is ${cells} letter cells; this facade holds ${horizontalMax} across or ${verticalMax} stacked`);
     }
-    if (width > usable * 0.9) {
-      throw new ExteriorError('E_SIGNAGE_TEXT_TOO_LONG', `"${spec.text}" needs ${width.toFixed(1)} m, facade offers ${(usable * 0.9).toFixed(1)}`);
+
+    let cell = quant(rng.range(...SIGNAGE.cellSize));
+    const fitsWide = (c: number) => cells * c <= bandWidthLimit;
+    const fitsTall = (c: number) => cells * c + 2 * SIGNAGE.framePad <= bladeRoom;
+    const vertical = chooseVertical(rng, family, L, top, cells, cell, fitsWide, fitsTall);
+    while (cell > SIGNAGE.minCellSize && !(vertical ? fitsTall(cell) : fitsWide(cell))) cell = quant(cell - 0.05);
+    const letterHeight = quant(cell * SIGNAGE.glyphFill);
+
+    if (vertical) {
+      const height = quant(cells * cell + 2 * SIGNAGE.framePad);
+      const depth = quant(rng.range(...SIGNAGE.bladeDepth));
+      const y = quant(bladeBottom + height / 2);
+      const uc = quant(Math.min(Math.max(OPENING.cornerMargin + 1, L * 0.22), L - OPENING.cornerMargin - 1));
+      if (!rectClear(blocked, e, uc - 1, uc + 1, y - height / 2, y + height / 2)) return;
+      out.push({
+        mode: 'marquee', orientation: 'vertical', text: spec.text, cellSize: cell, letterHeight,
+        center: facePoint(ground, e, uc, y), width: SIGNAGE.bladeThickness, height, depth, normal,
+      });
+      return;
     }
-    const bandH = quant(letterH / 0.55);
-    const y = Math.min(Math.max(2.6, groundHeight - bandH * 0.5), Math.max(2.6, top - bandH));
+
+    const width = quant(cells * cell);
+    const height = quant(cell + 2 * SIGNAGE.framePad);
+    const y = Math.min(Math.max(2.6, groundHeight - height * 0.5), Math.max(2.6, top - height));
     const uc = L / 2;
-    if (!rectClear(blocked, e, uc - width / 2, uc + width / 2, y, y + bandH)) return;
+    if (!rectClear(blocked, e, uc - width / 2, uc + width / 2, y, y + height)) return;
     out.push({
-      mode: 'marquee', text: spec.text, letterHeight: letterH,
-      center: facePoint(ground, e, uc, y + bandH / 2),
-      width: quant(width), height: bandH, normal,
+      mode: 'marquee', orientation: 'horizontal', text: spec.text, cellSize: cell, letterHeight,
+      center: facePoint(ground, e, uc, quant(y + height / 2)),
+      width, height, depth: SIGNAGE.marqueeProud, normal,
     });
     return;
   }
@@ -154,6 +183,24 @@ function placeSignage(
   if (y < groundHeight * 0.5 || y + height > top) return;
   if (!rectClear(blocked, e, uc - width / 2, uc + width / 2, y, y + height)) return;
   out.push({ mode: 'logo', ratio: spec.ratio, center: facePoint(ground, e, uc, y + height / 2), width, height, normal });
+}
+
+/**
+ * Blade or marquee. Whatever only fits one way goes that way; when both fit, a
+ * street-front family on a facade no wider than it is tall hangs a blade, the
+ * way the reference hotel sign does.
+ */
+function chooseVertical(
+  rng: Rng, family: Family, faceLength: number, top: number, cells: number, cell: number,
+  fitsWide: (c: number) => boolean, fitsTall: (c: number) => boolean,
+): boolean {
+  const min = SIGNAGE.minCellSize;
+  if (!fitsWide(min)) return true;
+  if (!fitsTall(min)) return false;
+  if (!SIGNAGE.bladeFamilies.includes(family)) return false;
+  const slender = faceLength < top * 1.2;
+  if (slender && fitsTall(cell)) return true;
+  return cells >= 6 && fitsTall(cell) && rng.chance(0.5);
 }
 
 function placeScreens(

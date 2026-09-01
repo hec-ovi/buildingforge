@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.13.0, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.14.0, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -34,6 +34,7 @@ GLB shell:
 - All triangles CCW front, outward normals; every mesh carries a NORMAL attribute (flat per face, matching the winding) so it shades correctly in any viewer. Windows are overlay units on the uncut wall; real holes only for doors and apertures (grid-cut, watertight, no T-junctions).
 - A window unit is a frame profile with real reveal depth, a mullion grid splitting the opening into `panes.cols` x `panes.rows` panes, and the glass recessed behind the profile. Profile sections and pane limits are seeded once per building, so a facade is consistent and buildings differ.
 - Facade style follows the tier and is published as `facade.style`. `glass` (rich, high_rich): clean mullioned glazing nearly flush with the panels. `panel` (mid): the unit sits back behind a reveal, thin ribs and floor bands, a few utility boxes. `megablock` (poor): heavy ribs on the panel grid with floor bands, many small windows scattered semi-irregularly inside the cells and deeply set, surface-mounted utility boxes. `facade.panelModule` is the panel width and the wall material's tile size at once, so the joints painted in the map land on the geometry that sits on the same grid; ribs and megablock cells run in whole modules from the face origin. Utility boxes are published as `facadeArtifacts` (edge, offset, sill, size) and use the `roof-artifact` material.
+- Signage is modular: one letter, one 1x1 cell, an N-letter text is N cells. `orientation: "horizontal"` is a framed marquee band over the entrance; `"vertical"` is a blade sign protruding edge-on from the facade, lettered on both faces. The orientation is decided by what fits the facade, then by building family and the facade's proportions, so a building always gets the same sign. Glyph cells wear the emissive `signage` material; when ../materials publishes a letter atlas, `SIGNAGE.letterAtlas` (kind, grid, charset) turns the cells into UV picks out of that sheet with no other change. Sign text is a request parameter.
 - Every material is named by the canonical key `theme/kind/tier` (lowercase slugs). Kinds used: wall, wall-trim, column, window-glass, window-frame, curtain, door, door-glass, balcony-slab, balcony-rail, roof, floor-slab, parapet, signage, ad-screen, light-fixture, fire-escape, aperture-frame, roof-artifact.
 - Tiled materials get world-scale UVs (1 UV unit = 1 tile meter, planar per face, origin at the face's bottom-left, U along the face's own horizontal edge) so textures never stretch; opening and style dimensions are quantized to 0.05 m, positions to millimeters. Exact-placement materials (ad-screen, signage, window glass) get exact 0..1 UVs over their quad, never a partial tile.
 
@@ -53,7 +54,7 @@ Thrown as `ExteriorError { code, message, details? }`:
 - `E_APERTURE_UNREACHABLE`: face index outside the footprint, base outside the vertical range, an aperture taller than the type's max floor height, or no legal floor split exists for the requested floor count; the message names the feasible count range.
 - `E_APERTURE_INVALID`: cut polygon off its face plane or inconsistent with u/width/height.
 - `E_APERTURE_OVERLAP`: two aperture cuts overlap on the same face.
-- `E_SIGNAGE_TEXT_TOO_LONG`: marquee text exceeds the facade's computed capacity.
+- `E_SIGNAGE_TEXT_TOO_LONG`: the text needs more letter cells than the facade holds either way round; the message names both limits.
 - `E_MATERIAL_UNRESOLVED`: the materials theme has no entry for a key the building uses, or embedded textures were asked for without the database on disk.
 - `E_INVARIANT`: post-generation coherence check failed; exterior bug, report with the request.
 

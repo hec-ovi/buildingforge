@@ -5,10 +5,11 @@ import { MeshBuilder, type PartSink, type V3, add, scale } from './primitives.ts
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown } from './caps.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
-import { BALCONY, FIRE_ESCAPE } from '../rules/tables.ts';
+import { BALCONY, FIRE_ESCAPE, SIGNAGE } from '../rules/tables.ts';
+import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
-import type { Opening } from '../types.ts';
+import type { Blueprint, Opening } from '../types.ts';
 
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
@@ -375,12 +376,76 @@ function meshRoofArtifacts(mb: MeshBuilder, layout: Layout, top: number, mat: (k
 }
 
 function meshFeatures(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {
-  layout.signage.forEach((s, i) => plate(mb.part(`signage:${i}`), s.center, s.normal, s.width, s.height, 0.06, mat('signage')));
+  layout.signage.forEach((s, i) => meshSign(mb.part(`signage:${i}`), s, mat));
   layout.screens.forEach((s, i) => plate(mb.part(`screen:${i}`), s.center, s.normal, s.width, s.height, 0.1, mat('ad-screen')));
   layout.lights.forEach((l, i) => {
     const c = add(l.position, [l.normal[0] * 0.1, 0, l.normal[1] * 0.1]);
     mb.part(`light:${i}`).aabox(mat('light-fixture'), c, 0.16, 0.16, 0.28);
   });
+}
+
+/**
+ * A sign: a framed plate carrying one glyph cell per letter. Horizontal signs
+ * are a marquee band on the wall; vertical ones are a blade protruding edge-on,
+ * lettered on both faces so the street reads it from either side.
+ */
+function meshSign(sink: PartSink, s: Blueprint['signage'][number], mat: (k: string) => string): void {
+  const frame = mat('signage');
+  const glyph = mat(glyphKind());
+  const n: V3 = [s.normal[0], 0, s.normal[1]];
+  const right: V3 = [s.normal[1], 0, -s.normal[0]];
+  const up: V3 = [0, 1, 0];
+  const text = s.text ?? '';
+  const cell = s.cellSize ?? 0;
+
+  if (s.mode === 'logo' || s.orientation !== 'vertical') {
+    const depth = s.depth ?? 0.06;
+    plate(sink, s.center, s.normal, s.width, s.height, depth, frame);
+    if (!cell) return;
+    // Glyph cells left to right across the band, standing just off the plate face.
+    const face = add(s.center, scale(n, depth + 0.01));
+    const size = cell * SIGNAGE.glyphFill;
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i] as string;
+      if (isBlank(char)) continue;
+      const cx = (i + 0.5) * cell - s.width / 2;
+      glyphQuad(sink, glyph, add(face, scale(right, cx)), right, up, size, n, char);
+    }
+    return;
+  }
+
+  // Blade: a box standing out from the wall, letters stacked down both sides.
+  const depth = s.depth ?? 1;
+  const half = s.width / 2;
+  const center = add(s.center, scale(n, depth / 2));
+  sink.box(frame, center, scale(right, half), scale(up, s.height / 2), scale(n, depth / 2));
+  if (!cell) return;
+  const size = Math.min(cell * SIGNAGE.glyphFill, depth * 0.8);
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i] as string;
+    if (isBlank(char)) continue;
+    const cy = s.height / 2 - SIGNAGE.framePad - (i + 0.5) * cell;
+    for (const side of [1, -1]) {
+      const outward = scale(right, side);
+      const at3 = add(add(center, scale(up, cy)), scale(right, side * (half + 0.01)));
+      glyphQuad(sink, glyph, at3, scale(n, -1), up, size, outward, char);
+    }
+  }
+}
+
+/** One letter cell: a quad facing `outward`, UV-picked from the letter atlas when there is one. */
+function glyphQuad(
+  sink: PartSink, material: string, center: V3, right: V3, up: V3, size: number, outward: V3, char: string,
+): void {
+  const [u0, v0, u1, v1] = glyphUv(char);
+  const h = scale(right, size / 2);
+  const v = scale(up, size / 2);
+  sink.quadFacing(material,
+    add(add(center, scale(h, -1)), scale(v, -1)),
+    add(add(center, h), scale(v, -1)),
+    add(add(center, h), v),
+    add(add(center, scale(h, -1)), v),
+    outward, [[u0, v1], [u1, v1], [u1, v0], [u0, v0]]);
 }
 
 /** Shallow box on a wall: exact 0..1 front face plus four thin sides, no back. */

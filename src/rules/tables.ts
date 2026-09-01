@@ -178,14 +178,31 @@ export const LIGHTING = {
   accentFamilies: ['corpo', 'office', 'hotel', 'commerce'] as string[],
 };
 
+/**
+ * Signs are modular: one letter, one 1x1 cell, N letters N cells. They run
+ * horizontally as a marquee over the entrance or stack into a blade sign
+ * protruding edge-on from the facade, framed like the reference hotel sign.
+ */
 export const SIGNAGE = {
-  letterPerDistance: 1 / 120,
-  bandHeight: [0.6, 0.9] as [number, number],
-  bandBase: [3.0, 4.5] as [number, number],
-  letterAdvance: 0.7,
+  cellSize: [0.5, 0.85] as [number, number],
+  /** legibility floor: a storefront sign is read at ~25 m (letter height ~ distance / 120) */
+  minCellSize: 0.28,
+  framePad: 0.12,
+  glyphFill: 0.72,
+  marqueeProud: 0.16,
+  bladeDepth: [0.8, 1.4] as [number, number],
+  bladeThickness: 0.22,
+  /** families that hang a blade sign when the facade is not much wider than it is tall */
+  bladeFamilies: ['hotel', 'commerce', 'residential'] as string[],
   maxChars: 40,
   logoRatios: { '1:1': 1, '3:2': 3 / 2, '16:9': 16 / 9 } as Record<string, number>,
-  screenFamilies: ['corpo', 'office', 'hotel', 'commerce'] as string[],
+  /**
+   * Letter atlas hookup. While this is null the glyph quads carry full 0..1 UVs
+   * of the emissive `signage` material (a lit placeholder cell per letter). When
+   * ../materials publishes a letter atlas, set kind, grid and charset here and
+   * every glyph picks its cell out of the sheet; nothing else changes.
+   */
+  letterAtlas: null as null | { kind: string; cols: number; rows: number; charset: string },
 };
 
 export const PARAPET: [number, number] = [0.9, 1.1];

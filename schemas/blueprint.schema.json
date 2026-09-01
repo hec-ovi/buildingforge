@@ -108,12 +108,22 @@
         "additionalProperties": false,
         "properties": {
           "mode": { "enum": ["marquee", "logo"] },
+          "orientation": {
+            "enum": ["horizontal", "vertical"],
+            "description": "marquee only: a band over the entrance, or a blade sign protruding edge-on from the facade"
+          },
           "text": { "type": "string", "description": "marquee only" },
           "ratio": { "enum": ["1:1", "3:2", "16:9"], "description": "logo only" },
-          "letterHeight": { "type": "number", "description": "marquee only" },
+          "cellSize": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "marquee only: one letter cell in meters; an N-letter text takes N cells along the orientation"
+          },
+          "letterHeight": { "type": "number", "description": "marquee only: glyph height inside its cell" },
           "center": { "$ref": "#/$defs/point3" },
-          "width": { "type": "number", "exclusiveMinimum": 0 },
+          "width": { "type": "number", "exclusiveMinimum": 0, "description": "extent along the facade" },
           "height": { "type": "number", "exclusiveMinimum": 0 },
+          "depth": { "type": "number", "minimum": 0, "description": "how far the sign stands out from the wall face" },
           "normal": { "$ref": "#/$defs/point2", "description": "[x, z] outward normal of the carrying face" }
         }
       }

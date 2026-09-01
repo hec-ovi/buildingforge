@@ -171,13 +171,40 @@ describe('blueprint invariants', () => {
     }
   });
 
-  it('marquee signage is placed with its text and letter height', async () => {
-    const { blueprint } = await generate(factory);
+  it('signage takes one cell per letter, running as a marquee on a wide facade', async () => {
+    const { glb, blueprint } = await generate(factory, KEYS);
     expect(blueprint.signage.length).toBe(1);
     const s = blueprint.signage[0]!;
     expect(s.mode).toBe('marquee');
+    expect(s.orientation).toBe('horizontal');
     expect(s.text).toBe('NAKATOMI HEAVY INDUSTRIES');
     expect(s.letterHeight).toBeGreaterThan(0);
+    expect(s.width).toBeCloseTo(s.text!.length * s.cellSize!, 6);
+
+    // One glyph quad per non-blank letter, on top of the framed plate.
+    const doc = await new NodeIO().readBinary(glb);
+    const tris = doc.getRoot().listNodes().find((n) => n.getName() === 'signage:0')!
+      .getMesh()!.listPrimitives().reduce((n, p) => n + p.getIndices()!.getCount() / 3, 0);
+    const letters = [...s.text!].filter((c) => c.trim().length > 0).length;
+    expect(tris).toBe(10 + letters * 2); // 5 plate quads + one quad per letter
+  });
+
+  it('stacks the same text into a protruding blade sign on a narrow facade', async () => {
+    const request = {
+      seed: 'urbe-hotel-1', buildingId: 'p700',
+      parcel: { footprint: [[0, 0], [14, 0], [14, 22], [0, 22]], accessPoint: [7, -2], maxHeight: 40 },
+      building: { type: 'hotel', tier: 'mid', floors: 10 },
+      theme: 'cyberpunk',
+      options: { signage: { mode: 'marquee', text: 'HOTEL' } },
+    };
+    const { blueprint } = await generate(request, KEYS);
+    const s = blueprint.signage[0]!;
+    expect(s.orientation).toBe('vertical');
+    expect(s.height).toBeCloseTo(s.text!.length * s.cellSize! + 0.24, 1); // cells plus the frame border
+    expect(s.depth).toBeGreaterThan(0.5); // protrudes edge-on from the facade
+    expect(s.width).toBeLessThan(0.4); // a thin blade, not a panel on the wall
+    // Deterministic: the same request keeps the same sign.
+    expect(JSON.stringify((await generate(request, KEYS)).blueprint.signage)).toBe(JSON.stringify(blueprint.signage));
   });
 
   it('fits envelope-legal floor counts that quantization used to reject (p241 class)', async () => {

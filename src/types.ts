@@ -102,12 +102,18 @@ export interface Blueprint {
   anchors: { id: string; position: P3; normal: P2 }[];
   signage: {
     mode: 'marquee' | 'logo';
+    /** marquee only: horizontal band over the entrance, or a blade sign edge-on to the facade */
+    orientation?: 'horizontal' | 'vertical';
     text?: string;
     ratio?: '1:1' | '3:2' | '16:9';
+    /** marquee only: one letter cell, N letters = N cells along the orientation */
+    cellSize?: number;
     letterHeight?: number;
     center: P3;
     width: number;
     height: number;
+    /** how far the sign stands out from the wall face */
+    depth?: number;
     normal: P2;
   }[];
   screens: { center: P3; width: number; height: number; normal: P2 }[];
