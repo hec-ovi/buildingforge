@@ -105,11 +105,6 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
     emitParts(mb.parts);
   }
 
-  // Wire anchors: empty named nodes at the attach points.
-  for (const a of layout.anchors) {
-    root.addChild(doc.createNode(`anchor:${a.id}`).setTranslation([a.position[0], a.position[1], a.position[2]]));
-  }
-
   // NodeIO touches node:fs; WebIO is the browser twin. Same serializer, same bytes.
   const mod = await import('@gltf-transform/core');
   const io = typeof process !== 'undefined' && process.versions?.node ? new mod.NodeIO() : new mod.WebIO();

@@ -103,7 +103,7 @@
     "anchors": {
       "type": "array",
       "default": [],
-      "description": "wire-anchor apertures: no hole, wall region kept clear, GLB carries node anchor:<id>",
+      "description": "wire-anchor apertures: no hole; GLB node anchor:<id> sits at the attach point and carries the mount plate",
       "items": {
         "type": "object",
         "required": ["id", "position", "normal"],

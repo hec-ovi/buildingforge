@@ -47,7 +47,7 @@
     "apertures": {
       "type": "array",
       "default": [],
-      "description": "connections' aperture schema verbatim (../connections/schemas/aperture.schema.json). Face i = vertical quad over parcel footprint segment i -> i+1; face-local frame origin at vertex i at y=0, U along the segment, V along +Y. Exterior reads id, face, kind, base, cut (u/width/height cross-checked); a floor plate lands exactly at each base. wire-anchor cuts no hole: region kept clear, anchor node emitted.",
+      "description": "connections' aperture schema verbatim (../connections/schemas/aperture.schema.json). Face i = vertical quad over parcel footprint segment i -> i+1; face-local frame origin at vertex i at y=0, U along the segment, V along +Y. Exterior reads id, face, kind, base, cut (u/width/height cross-checked); a floor plate lands exactly at each base. wire-anchor cuts no hole: node anchor:<id> emitted at the cut center with its mount plate.",
       "items": {
         "type": "object",
         "required": ["id", "buildingId", "floor", "face", "kind", "u", "base", "width", "height", "shape", "cut", "linkId"],

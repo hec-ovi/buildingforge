@@ -2,6 +2,7 @@
 
 import type { P2, P3, Opening, Blueprint, BuildingRequest, Aperture } from '../types.ts';
 import type { Relief } from './relief.ts';
+import type { AnchorMount } from './anchors.ts';
 import type { Family, Tier } from '../rules/families.ts';
 
 export interface Style {
@@ -74,7 +75,7 @@ export interface Layout {
   relief: Relief;
   floors: FloorLayout[];
   carved: CarvedAperture[];
-  anchors: Blueprint['anchors'];
+  anchors: AnchorMount[];
   signage: Blueprint['signage'];
   screens: Blueprint['screens'];
   lights: Blueprint['lights'];

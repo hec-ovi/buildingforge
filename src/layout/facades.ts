@@ -8,6 +8,7 @@ import {
 } from '../rules/proportions.ts';
 import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
 import { paneGrid } from './glazing.ts';
+import { anchorSeat, type AnchorSeat } from './anchors.ts';
 import type { Aperture, BuildingRequest, CurtainState, Opening } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
@@ -20,12 +21,12 @@ const COMPASS: P2[] = [
   [0, 1], [-0.7071067811865476, 0.7071067811865476], [-1, 0], [-0.7071067811865476, -0.7071067811865476],
 ];
 
-interface Taken { start: number; end: number }
+interface Taken { start: number; end: number; anchor: boolean }
 
 export interface FacadeResult {
   floors: FloorLayout[];
   carved: CarvedAperture[];
-  anchors: { id: string; position: [number, number, number]; normal: P2 }[];
+  anchors: AnchorSeat[];
 }
 
 export function buildFacades(
@@ -98,17 +99,10 @@ export function buildFacades(
         if (u < minU) minU = u;
         if (u > maxU) maxU = u;
       }
-      take(takenByEdge, a.face, minU - OPENING.minPier, maxU + OPENING.minPier);
+      take(takenByEdge, a.face, minU - OPENING.minPier, maxU + OPENING.minPier, a.kind === 'wire-anchor');
       if (a.kind === 'wire-anchor') {
-        if (apertureAnchored.has(a.id)) continue;
+        if (!apertureAnchored.has(a.id)) anchors.push(anchorSeat(a, outline, minU, maxU));
         apertureAnchored.add(a.id);
-        const n = edgeNormal(outline, a.face);
-        const uc = (minU + maxU) / 2;
-        anchors.push({
-          id: a.id,
-          position: [vx + d[0] * uc, a.base + a.height / 2, vz + d[1] * uc],
-          normal: n,
-        });
         continue;
       }
       if (apertureFloor.get(a.id) === level.index) {
@@ -313,7 +307,8 @@ function placeCurtainWallBays(
   const height = level.height;
   if (height - spandrel < 1.2) return;
 
-  const blocks = blockedSpans(taken.get(e) ?? [], openings, e).sort((a, b) => a.start - b.start);
+  // A wire anchor mounts on the skin, so the glazing runs straight across it.
+  const blocks = blockedSpans((taken.get(e) ?? []).filter((t) => !t.anchor), openings, e).sort((a, b) => a.start - b.start);
   let u = cw.cornerInset;
   const bays: { start: number; end: number }[] = [];
   for (const b of blocks) {
@@ -357,9 +352,9 @@ function blockedSpans(taken: Taken[], openings: Opening[], e: number): { start: 
   });
 }
 
-function take(map: Map<number, Taken[]>, edge: number, start: number, end: number): void {
+function take(map: Map<number, Taken[]>, edge: number, start: number, end: number, anchor = false): void {
   const list = map.get(edge) ?? [];
-  list.push({ start, end });
+  list.push({ start, end, anchor });
   map.set(edge, list);
 }
 

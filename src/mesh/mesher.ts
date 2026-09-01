@@ -4,6 +4,7 @@
 import { MeshBuilder, type PartSink, type V3, add, scale } from './primitives.ts';
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown } from './caps.ts';
+import { meshAnchorMount } from './anchorMount.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { BALCONY, FACADE, FIRE_ESCAPE, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
@@ -103,6 +104,7 @@ export function buildMesh(layout: Layout): MeshBuilder {
   meshColumns(mb, layout, above, top, mat);
   meshRoofArtifacts(mb, layout, top, mat);
   meshFacadeArtifacts(mb, layout, mat);
+  for (const a of layout.anchors) meshAnchorMount(mb, a, mat('window-frame'));
   meshFeatures(mb, layout, mat);
   meshFireEscape(mb, layout, above, mat);
 

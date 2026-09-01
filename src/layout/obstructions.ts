@@ -6,6 +6,7 @@
 import { edgeLength, type P2 } from '../core/polygon.ts';
 import type { CarvedAperture, FloorLayout } from './model.ts';
 import type { Relief } from './relief.ts';
+import { anchorRect, type AnchorSeat } from './anchors.ts';
 
 export interface Rect {
   u0: number; u1: number; y0: number; y1: number;
@@ -48,7 +49,9 @@ export interface Placement {
 const GLASS_PROUD = 0.1;
 
 /** Everything already on the faces, keyed by edge index. */
-export function faceObstacles(floors: FloorLayout[], carved: CarvedAperture[], relief: Relief, top: number): Map<number, Rect[]> {
+export function faceObstacles(
+  floors: FloorLayout[], carved: CarvedAperture[], anchors: AnchorSeat[], relief: Relief, top: number,
+): Map<number, Rect[]> {
   const map = new Map<number, Rect[]>();
   const push = (edge: number, r: Rect) => {
     const list = map.get(edge) ?? [];
@@ -87,6 +90,9 @@ export function faceObstacles(floors: FloorLayout[], carved: CarvedAperture[], r
       what: `aperture ${c.aperture.id}`, kind: 'opening', depth: 0,
     });
   }
+
+  // A wire lands on its plate: nothing covers a mount.
+  for (const a of anchors) push(a.edge, anchorRect(a, relief.outline));
 
   relief.byEdge.forEach((face, e) => {
     for (const u of face.ribs) {
@@ -139,13 +145,18 @@ export function findClearRect(rects: Rect[] | undefined, req: ScanRequest): Plac
           const r: Rect = { u0: u - width / 2, u1: u + width / 2, y0: y - height / 2, y1: y + height / 2, what: 'candidate', kind: 'relief', depth: 0 };
           const on = crossed(rects, r, req.margin);
           if (on.some((o) => forbidden.includes(o.kind))) continue;
-          const standoff = on.reduce((d, o) => Math.max(d, o.depth), 0);
-          return { u, y, width, height, standoff: standoff > 0 ? standoff + 0.04 : 0 };
+          return { u, y, width, height, standoff: standoffOver(on) };
         }
       }
     }
   }
   return null;
+}
+
+/** How far an overlay has to start off the wall to clear everything it sits on. */
+export function standoffOver(on: Rect[]): number {
+  const depth = on.reduce((d, o) => Math.max(d, o.depth), 0);
+  return depth > 0 ? depth + 0.04 : 0;
 }
 
 /** Preferred value first, then alternating outward on a fixed step, inside the range. */

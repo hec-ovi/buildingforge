@@ -594,11 +594,12 @@ describe('GLB shell', () => {
     expect(JSON.stringify(merged.blueprint)).toBe(JSON.stringify(named.blueprint));
     const doc = await new NodeIO().readBinary(merged.glb);
     const meshNodes = doc.getRoot().listNodes().filter((n) => n.getMesh());
-    // Everything merges by material except what the game animates: door leaves
-    // keep their own node so they can still swing.
+    // Everything merges by material except what the game addresses by node:
+    // door leaves keep their own node so they can still swing, wire anchors so
+    // the attach point can be read.
     const leaves = meshNodes.filter((n) => n.getName().includes('/leaf:'));
     expect(leaves.length).toBeGreaterThan(0);
-    const bulk = meshNodes.filter((n) => !n.getName().includes('/leaf:'));
+    const bulk = meshNodes.filter((n) => !n.getName().includes('/leaf:') && !n.getName().startsWith('anchor:'));
     for (const n of bulk) expect(n.getMesh()!.listPrimitives().length).toBe(1);
     // One bulk mesh per material, and between bulk and leaves every published key is there.
     const used = new Set<string>();
@@ -607,6 +608,38 @@ describe('GLB shell', () => {
     for (const n of bulk) expect(named.blueprint.materials).toContain(n.getName().replace('merged:', ''));
     expect(doc.getRoot().listNodes().some((n) => n.getName() === 'anchor:ap-wire-4')).toBe(true);
     expect(merged.glb.byteLength).toBeLessThan(named.glb.byteLength);
+  });
+
+  it('mounts a wire anchor as a small plate on its node, the curtain wall glazed straight across it', async () => {
+    const { glb, blueprint } = await generate(bridged, KEYS);
+    expect(blueprint.facade.style).toBe('curtain-wall');
+    const anchor = blueprint.anchors.find((a) => a.id === 'ap-wire-4')!;
+    // ap-wire-4 cuts face 1 (x = 30) at z 15.75..16.25, y 30..30.5: every band it
+    // touches keeps one bay running over it, so the mullion grid stays whole.
+    for (const f of blueprint.floors.filter((fl) => fl.elevation < 30.5 && fl.elevation + fl.height > 30)) {
+      const bay = f.openings.find((o) => o.edge === 1 && o.kind === 'window' && o.offset <= 15.75 && o.offset + o.width >= 16.25);
+      expect(bay, `floor ${f.index} glazing over the anchor`).toBeDefined();
+    }
+    const doc = await new NodeIO().readBinary(glb);
+    const node = doc.getRoot().listNodes().find((n) => n.getName() === 'anchor:ap-wire-4')!;
+    node.getTranslation().forEach((v, i) => expect(v).toBeCloseTo(anchor.position[i]!, 6));
+    const prims = node.getMesh()!.listPrimitives();
+    expect(prims.map((p) => p.getMaterial()!.getName())).toEqual(['cyberpunk/window-frame/rich']);
+    // Tens of centimetres around the attach point, standing on the face, never inside the building.
+    const n = [anchor.normal[0], 0, anchor.normal[1]];
+    const pos = prims[0]!.getAttribute('POSITION')!;
+    const v = [0, 0, 0];
+    let reach = 0, out = 0, inward = 0;
+    for (let i = 0; i < pos.getCount(); i++) {
+      pos.getElement(i, v);
+      reach = Math.max(reach, Math.abs(v[0]!), Math.abs(v[1]!), Math.abs(v[2]!));
+      const proud = v[0]! * n[0]! + v[1]! * n[1]! + v[2]! * n[2]!;
+      out = Math.max(out, proud);
+      inward = Math.min(inward, proud);
+    }
+    expect(reach).toBeLessThanOrEqual(0.3 + 1e-6);
+    expect(out).toBeLessThanOrEqual(0.3);
+    expect(inward).toBeGreaterThanOrEqual(-1e-6);
   });
 
   it('faces every floor slab both ways so the shell never reads hollow from below', async () => {

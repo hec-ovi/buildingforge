@@ -12,6 +12,7 @@ import { buildMassing } from './layout/massing.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
 import { buildFacades } from './layout/facades.ts';
 import { buildRelief } from './layout/relief.ts';
+import { mountAnchors } from './layout/anchors.ts';
 import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.ts';
 import { buildFeatures } from './layout/features.ts';
 import { buildMesh } from './mesh/mesher.ts';
@@ -32,13 +33,14 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
   const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
   const relief = buildRelief(style, facades.floors, facades.carved);
-  const obstacles = faceObstacles(facades.floors, facades.carved, relief, stack.top);
+  const obstacles = faceObstacles(facades.floors, facades.carved, facades.anchors, relief, stack.top);
+  const anchors = mountAnchors(facades.anchors, massing.groundOutline, obstacles);
   const features = buildFeatures(
     req, family, tier, style, massing, stack.top, facades.floors, streetEdges, obstacles);
 
   const layout: Layout = {
     request: req, family, tier, theme: req.theme, style, relief,
-    floors: facades.floors, carved: facades.carved, anchors: facades.anchors,
+    floors: facades.floors, carved: facades.carved, anchors,
     ...features,
   };
   checkInvariants(layout, obstacles);

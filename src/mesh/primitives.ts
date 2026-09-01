@@ -32,10 +32,11 @@ export interface Part {
   /** node this part hangs under; the root when absent */
   parent?: string;
   /**
-   * Pivot of an animated part (a door leaf hinge). Its geometry is written
-   * relative to this point and the node carries it as a translation, so turning
-   * the node about its own Y swings the whole subtree. A part with a pivot is
-   * never merged away: the game needs the node.
+   * Origin of a part the game addresses by node: a door leaf hinge, a wire
+   * anchor's attach point. Its geometry is written relative to this point and
+   * the node carries it as a translation, so turning a leaf node about its own Y
+   * swings the whole subtree. A part with a pivot is never merged away: the game
+   * needs the node.
    */
   pivot?: V3;
 }

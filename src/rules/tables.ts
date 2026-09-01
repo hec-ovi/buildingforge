@@ -196,6 +196,15 @@ export const GLAZING = {
 
 export const OPENING = { minPier: 0.3, cornerMargin: 0.6 };
 
+/** Wire anchor mount: a plate sized to the cut, the lug the wire hangs from on its face. */
+export const ANCHOR_MOUNT = {
+  plate: [0.3, 0.6] as [number, number],
+  plateMargin: 0.1,
+  thickness: 0.03,
+  lug: 0.08,
+  lugDepth: 0.06,
+};
+
 export const FIRE_ESCAPE = {
   maxFloors: 7,
   stairWidth: 0.56,
