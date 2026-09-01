@@ -186,7 +186,37 @@ describe('blueprint invariants', () => {
     const tris = doc.getRoot().listNodes().find((n) => n.getName() === 'signage:0')!
       .getMesh()!.listPrimitives().reduce((n, p) => n + p.getIndices()!.getCount() / 3, 0);
     const letters = [...s.text!].filter((c) => c.trim().length > 0).length;
-    expect(tris).toBe(10 + letters * 2); // 5 plate quads + one quad per letter
+    expect(tris).toBe(12 + letters * 2); // closed plate box (6 quads) + one quad per letter
+  });
+
+  it('closes the marquee with a back panel standing off the wall', async () => {
+    const { glb, blueprint } = await generate(factory, KEYS);
+    const s = blueprint.signage[0]!;
+    expect(s.orientation).toBe('horizontal');
+    const doc = await new NodeIO().readBinary(glb);
+    const mesh = doc.getRoot().listNodes().find((n) => n.getName() === 'signage:0')!.getMesh()!;
+
+    let backFacing = 0;
+    let minDepth = Infinity;
+    for (const prim of mesh.listPrimitives()) {
+      const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
+      const idx = prim.getIndices()!.getArray() as Uint32Array;
+      for (let i = 0; i + 2 < idx.length; i += 3) {
+        const [a, b, c] = [idx[i]! * 3, idx[i + 1]! * 3, idx[i + 2]! * 3];
+        const ab = [pos[b]! - pos[a]!, pos[b + 1]! - pos[a + 1]!, pos[b + 2]! - pos[a + 2]!];
+        const ac = [pos[c]! - pos[a]!, pos[c + 1]! - pos[a + 1]!, pos[c + 2]! - pos[a + 2]!];
+        const nx = ab[1]! * ac[2]! - ab[2]! * ac[1]!;
+        const nz = ab[0]! * ac[1]! - ab[1]! * ac[0]!;
+        if (nx * s.normal[0] + nz * s.normal[1] < -1e-9) backFacing++;
+        for (const v of [a, b, c]) {
+          minDepth = Math.min(minDepth, (pos[v]! - s.center[0]) * s.normal[0] + (pos[v + 2]! - s.center[2]) * s.normal[1]);
+        }
+      }
+    }
+    // A solid back: nothing behind the plate can read through it, mirrored or not.
+    expect(backFacing).toBeGreaterThan(0);
+    // And it stands off the wall face instead of sharing its plane.
+    expect(minDepth).toBeGreaterThan(0.005);
   });
 
   it('each glyph cell picks its character out of the letter atlas', async () => {

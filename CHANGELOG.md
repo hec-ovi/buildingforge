@@ -1,5 +1,7 @@
 # Changelog
 
+- 0.18.1: wall-mounted plates are closed boxes. A marquee, a logo plate and an ad screen carry a solid back panel standing a centimetre off the wall, so a sign shows its face from the street and nothing from behind.
+
 - 0.18: doors are assemblies. Each swinging leaf is one node subtree (`door:<id>/leaf:<n>`, `balcony:<id>/leaf:<n>`) holding every mesh that moves with it, glass pane included, with the node origin on the hinge so the game turns it about its own Y; the blueprint publishes `leaves`. The casing (`door:<id>/frame`) is a mitred ring of three members that never share a plane, machine-checked by a contract test, and merged GLBs keep leaf nodes out of the merge so they can still swing.
 
 - 0.17: curtain-wall facade style for offices and corpo at rich and high_rich, published as `facade.style: "curtain-wall"`. Each face is glazed corner to corner in bays that hang slab to slab, an opaque spandrel band (0.75 to 1.05 m, on the window-frame material) covering every floor line and thin mullions splitting the vision glass into panes within the tier limit; the skin runs over the entrance and over apertures as a transom light. Bays carry `spandrel` in the blueprint, curtain states on a curtain wall stay mostly open so the interiors read through, and the tier facade style is now a family-and-tier decision.

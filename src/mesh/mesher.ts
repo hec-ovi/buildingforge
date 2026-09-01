@@ -13,6 +13,8 @@ import type { Blueprint, Opening } from '../types.ts';
 
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
+/** A wall-mounted plate's back panel stands this far off the wall, so the two never share a plane. */
+const PLATE_STANDOFF = 0.012;
 
 /** Door assembly sections: casing around the hole, then the swinging leaf itself. */
 const DOOR = {
@@ -564,22 +566,28 @@ function glyphQuad(
     outward, [[u0, v1], [u1, v1], [u1, v0], [u0, v0]]);
 }
 
-/** Shallow box on a wall: exact 0..1 front face plus four thin sides, no back. */
+/**
+ * Shallow closed box on a wall: the exact 0..1 front face the sign or screen is
+ * painted on, four thin sides, and a solid back so nothing reads through the
+ * plate from behind. The back stands a centimetre off the wall, never on it.
+ */
 function plate(sink: PartSink, center: V3, normal: P2, w: number, h: number, depth: number, material: string): void {
   const n: V3 = [normal[0], 0, normal[1]];
   const right: V3 = [normal[1], 0, -normal[0]];
   const up: V3 = [0, 1, 0];
-  const corner = (su: number, sv: number, proud: boolean): V3 =>
-    add(add(add(center, scale(right, su * w / 2)), scale(up, sv * h / 2)), scale(n, proud ? depth : 0));
-  sink.quadFacing(material, corner(-1, -1, true), corner(1, -1, true), corner(1, 1, true), corner(-1, 1, true), n, [[0, 1], [1, 1], [1, 0], [0, 0]]);
+  const back = PLATE_STANDOFF;
+  const corner = (su: number, sv: number, proud: number): V3 =>
+    add(add(add(center, scale(right, su * w / 2)), scale(up, sv * h / 2)), scale(n, proud));
+  sink.quadFacing(material, corner(-1, -1, depth), corner(1, -1, depth), corner(1, 1, depth), corner(-1, 1, depth), n, [[0, 1], [1, 1], [1, 0], [0, 0]]);
+  sink.quadFacing(material, corner(1, -1, back), corner(-1, -1, back), corner(-1, 1, back), corner(1, 1, back), scale(n, -1), [[0, 1], [1, 1], [1, 0], [0, 0]]);
   const sides: [V3, V3, V3][] = [
-    [corner(-1, 1, false), corner(1, 1, false), up],
-    [corner(1, -1, false), corner(-1, -1, false), scale(up, -1)],
-    [corner(-1, -1, false), corner(-1, 1, false), scale(right, -1)],
-    [corner(1, 1, false), corner(1, -1, false), right],
+    [corner(-1, 1, back), corner(1, 1, back), up],
+    [corner(1, -1, back), corner(-1, -1, back), scale(up, -1)],
+    [corner(-1, -1, back), corner(-1, 1, back), scale(right, -1)],
+    [corner(1, 1, back), corner(1, -1, back), right],
   ];
   for (const [a, b, out] of sides) {
-    sink.quadFacing(material, a, b, add(b, scale(n, depth)), add(a, scale(n, depth)), out, [[0, 0], [1, 0], [1, 1], [0, 1]]);
+    sink.quadFacing(material, a, b, add(b, scale(n, depth - back)), add(a, scale(n, depth - back)), out, [[0, 0], [1, 0], [1, 1], [0, 1]]);
   }
 }
 
