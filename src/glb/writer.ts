@@ -49,10 +49,41 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
     );
   };
 
+  /** One node per part, parented as the mesher asked, pivots kept as translations. */
+  const emitParts = (parts: typeof mb.parts) => {
+    const nodes = new Map<string, ReturnType<Document['createNode']>>();
+    const parents = new Set(parts.map((p) => p.parent).filter((n): n is string => !!n));
+    for (const part of parts) {
+      if (part.prims.size === 0 && !parents.has(part.name)) continue;
+      const node = doc.createNode(part.name);
+      if (part.pivot) node.setTranslation([part.pivot[0], part.pivot[1], part.pivot[2]]);
+      if (part.prims.size > 0) {
+        const mesh = doc.createMesh(part.name);
+        for (const [key, prim] of [...part.prims.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) {
+          if (prim.indices.length === 0) continue;
+          addPrim(mesh, key, prim);
+        }
+        if (mesh.listPrimitives().length > 0) node.setMesh(mesh);
+      }
+      nodes.set(part.name, node);
+    }
+    for (const part of parts) {
+      const node = nodes.get(part.name);
+      if (!node) continue;
+      (part.parent ? nodes.get(part.parent) ?? root : root).addChild(node);
+    }
+  };
+
   if (layout.request.options?.glb === 'merged') {
-    // Runtime mode: everything concatenated into one mesh per material key.
+    // Runtime mode: everything concatenated into one mesh per material key,
+    // except the parts the game animates, which keep their own nodes.
+    const animated = new Set<string>();
+    for (const part of mb.parts) if (part.pivot) animated.add(part.name);
+    for (const part of mb.parts) if (part.parent && animated.has(part.parent)) animated.add(part.name);
+
     const byMaterial = new Map<string, Prim>();
     for (const part of mb.parts) {
+      if (animated.has(part.name)) continue;
       for (const [key, prim] of part.prims) {
         if (prim.indices.length === 0) continue;
         let g = byMaterial.get(key);
@@ -69,16 +100,9 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
       addPrim(mesh, key, byMaterial.get(key)!);
       root.addChild(doc.createNode(`merged:${key}`).setMesh(mesh));
     }
+    emitParts(mb.parts.filter((p) => animated.has(p.name)).map((p) => ({ ...p, parent: undefined })));
   } else {
-    for (const part of mb.parts) {
-      if (part.prims.size === 0) continue;
-      const mesh = doc.createMesh(part.name);
-      for (const [key, prim] of [...part.prims.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) {
-        if (prim.indices.length === 0) continue;
-        addPrim(mesh, key, prim);
-      }
-      root.addChild(doc.createNode(part.name).setMesh(mesh));
-    }
+    emitParts(mb.parts);
   }
 
   // Wire anchors: empty named nodes at the attach points.

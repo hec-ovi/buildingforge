@@ -517,8 +517,17 @@ describe('GLB shell', () => {
     expect(JSON.stringify(merged.blueprint)).toBe(JSON.stringify(named.blueprint));
     const doc = await new NodeIO().readBinary(merged.glb);
     const meshNodes = doc.getRoot().listNodes().filter((n) => n.getMesh());
-    expect(meshNodes.map((n) => n.getName()).sort()).toEqual(named.blueprint.materials.map((m) => `merged:${m}`));
-    for (const n of meshNodes) expect(n.getMesh()!.listPrimitives().length).toBe(1);
+    // Everything merges by material except what the game animates: door leaves
+    // keep their own node so they can still swing.
+    const leaves = meshNodes.filter((n) => n.getName().includes('/leaf:'));
+    expect(leaves.length).toBeGreaterThan(0);
+    const bulk = meshNodes.filter((n) => !n.getName().includes('/leaf:'));
+    for (const n of bulk) expect(n.getMesh()!.listPrimitives().length).toBe(1);
+    // One bulk mesh per material, and between bulk and leaves every published key is there.
+    const used = new Set<string>();
+    for (const n of meshNodes) for (const p of n.getMesh()!.listPrimitives()) used.add(p.getMaterial()!.getName());
+    expect([...used].sort()).toEqual(named.blueprint.materials);
+    for (const n of bulk) expect(named.blueprint.materials).toContain(n.getName().replace('merged:', ''));
     expect(doc.getRoot().listNodes().some((n) => n.getName() === 'anchor:ap-wire-4')).toBe(true);
     expect(merged.glb.byteLength).toBeLessThan(named.glb.byteLength);
   });
@@ -630,6 +639,70 @@ describe('GLB shell', () => {
           const nx = ab[1]! * ac[2]! - ab[2]! * ac[1]!;
           const nz = ab[0]! * ac[1]! - ab[1]! * ac[0]!;
           expect(nx * out[0]! + nz * out[1]!).toBeGreaterThanOrEqual(-1e-6);
+        }
+      }
+    }
+  });
+
+  it('makes every door leaf one node subtree, glass included, hinged on its own pivot', async () => {
+    for (const req of [residential, corpo, factory]) {
+      const { glb, blueprint } = await generate(req, KEYS);
+      const doc = await new NodeIO().readBinary(glb);
+      const byName = new Map(doc.getRoot().listNodes().map((n) => [n.getName(), n]));
+
+      const doors = blueprint.floors.flatMap((f) => f.openings
+        .filter((o) => o.kind === 'door' || o.kind === 'balconyDoor')
+        .map((o) => ({ o, f })));
+      expect(doors.length).toBeGreaterThan(0);
+
+      for (const { o, f } of doors) {
+        const base = o.kind === 'door' ? `door:${o.id}` : `balcony:${o.id}`;
+        const node = byName.get(base)!;
+        expect(node, `${base} node`).toBeDefined();
+        expect(byName.get(`${base}/frame`)).toBeDefined();
+        expect(o.leaves).toBeGreaterThanOrEqual(1);
+
+        const children = node.listChildren().map((c) => c.getName());
+        for (let i = 0; i < o.leaves!; i++) expect(children).toContain(`${base}/leaf:${i}`);
+
+        for (let i = 0; i < o.leaves!; i++) {
+          const leaf = byName.get(`${base}/leaf:${i}`)!;
+          // The hinge is the node's own origin, at the floor, so a rotation swings it.
+          const [, py] = leaf.getTranslation();
+          expect(py).toBeCloseTo(f.elevation + o.sill, 6);
+          const kinds = new Set(leaf.getMesh()!.listPrimitives()
+            .map((p) => p.getMaterial()!.getName().split('/')[1]));
+          // Everything that swings is in this one subtree, the glass with it.
+          if ((o.material ?? '').includes('door-glass')) expect(kinds).toContain('door-glass');
+          expect([...kinds].every((k) => k === 'door' || k === 'door-glass')).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('builds the door casing from members that never share a plane', async () => {
+    const { glb, blueprint } = await generate(residential, KEYS);
+    const doc = await new NodeIO().readBinary(glb);
+    const doorIds = blueprint.floors.flatMap((f) => f.openings
+      .filter((o) => o.kind === 'door').map((o) => `door:${o.id}/frame`));
+    expect(doorIds.length).toBeGreaterThan(0);
+
+    for (const name of doorIds) {
+      const mesh = doc.getRoot().listNodes().find((n) => n.getName() === name)!.getMesh()!;
+      const tris: [number, number, number][][] = [];
+      for (const prim of mesh.listPrimitives()) {
+        const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
+        const idx = prim.getIndices()!.getArray() as Uint32Array;
+        for (let i = 0; i + 2 < idx.length; i += 3) {
+          tris.push([0, 1, 2].map((k) => {
+            const b = idx[i + k]! * 3;
+            return [pos[b]!, pos[b + 1]!, pos[b + 2]!] as [number, number, number];
+          }));
+        }
+      }
+      for (let i = 0; i < tris.length; i++) {
+        for (let j = i + 1; j < tris.length; j++) {
+          expect(coplanarOverlap(tris[i]!, tris[j]!), `${name} triangles ${i} and ${j} share a plane`).toBe(false);
         }
       }
     }
@@ -892,6 +965,48 @@ async function windowDepth(req: unknown): Promise<{ min: number; max: number }> 
     }
   }
   throw new Error('no window to measure');
+}
+
+/**
+ * Do two triangles sit on the same plane, face the same way and overlap there?
+ * That is the pair a renderer z-fights on; touching edges are not one.
+ */
+function coplanarOverlap(A: [number, number, number][], B: [number, number, number][]): boolean {
+  const planeOf = (t: [number, number, number][]) => {
+    const a = t[0]!, b = t[1]!, c = t[2]!;
+    const u = [b[0]! - a[0]!, b[1]! - a[1]!, b[2]! - a[2]!];
+    const v = [c[0]! - a[0]!, c[1]! - a[1]!, c[2]! - a[2]!];
+    const n = [u[1]! * v[2]! - u[2]! * v[1]!, u[2]! * v[0]! - u[0]! * v[2]!, u[0]! * v[1]! - u[1]! * v[0]!];
+    const len = Math.hypot(n[0]!, n[1]!, n[2]!);
+    if (len < 1e-9) return null;
+    const unit = [n[0]! / len, n[1]! / len, n[2]! / len];
+    return { n: unit, d: unit[0]! * a[0]! + unit[1]! * a[1]! + unit[2]! * a[2]! };
+  };
+  const pa = planeOf(A), pb = planeOf(B);
+  if (!pa || !pb) return false;
+  const dot = pa.n[0]! * pb.n[0]! + pa.n[1]! * pb.n[1]! + pa.n[2]! * pb.n[2]!;
+  if (dot < 0.999 || Math.abs(pa.d - pb.d) > 1e-4) return false; // different plane or facing away
+
+  // Flatten both onto the shared plane and run a separating-axis test with slack.
+  const ref = Math.abs(pa.n[0]!) < 0.9 ? [1, 0, 0] : [0, 1, 0];
+  const e1raw = [pa.n[1]! * ref[2]! - pa.n[2]! * ref[1]!, pa.n[2]! * ref[0]! - pa.n[0]! * ref[2]!, pa.n[0]! * ref[1]! - pa.n[1]! * ref[0]!];
+  const l1 = Math.hypot(e1raw[0]!, e1raw[1]!, e1raw[2]!);
+  const e1 = [e1raw[0]! / l1, e1raw[1]! / l1, e1raw[2]! / l1];
+  const e2 = [pa.n[1]! * e1[2]! - pa.n[2]! * e1[1]!, pa.n[2]! * e1[0]! - pa.n[0]! * e1[2]!, pa.n[0]! * e1[1]! - pa.n[1]! * e1[0]!];
+  const flat = (t: [number, number, number][]) =>
+    t.map((p) => [p[0] * e1[0]! + p[1] * e1[1]! + p[2] * e1[2]!, p[0] * e2[0]! + p[1] * e2[1]! + p[2] * e2[2]!] as [number, number]);
+  const P = flat(A), Q = flat(B);
+  for (const [X, Y] of [[P, Q], [Q, P]] as [typeof P, typeof Q][]) {
+    for (let i = 0; i < 3; i++) {
+      const p = X[i]!, q = X[(i + 1) % 3]!;
+      const ax = -(q[1] - p[1]), ay = q[0] - p[0];
+      const len = Math.hypot(ax, ay) || 1;
+      const proj = (S: [number, number][]) => S.map((v) => (v[0] * ax + v[1] * ay) / len);
+      const px = proj(X), qx = proj(Y);
+      if (Math.min(...qx) > Math.max(...px) - 0.005 || Math.min(...px) > Math.max(...qx) - 0.005) return false;
+    }
+  }
+  return true;
 }
 
 function edgeLen(outline: [number, number][], e: number): number {

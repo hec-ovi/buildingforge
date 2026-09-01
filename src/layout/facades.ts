@@ -180,7 +180,7 @@ export function buildFacades(
             openings.push({
               id: `bd:${level.index}:${e}:${b}`, kind: 'balconyDoor', edge: e,
               offset: quantOff(bayCenter - doorW / 2), width: doorW, height: quant(doorH), sill: 0,
-              state: curtainState(seed, level.index, e, b, dist),
+              leaves: leafCount(doorW), state: curtainState(seed, level.index, e, b, dist),
               balcony: { depth: style.balconyDepth, width: balconyW },
               material: `${req.theme}/door-glass/${tier}`,
             });
@@ -230,6 +230,11 @@ function quantOff(v: number): number {
   return Math.round(v * 1000) / 1000;
 }
 
+/** Swinging leaves: one per person-width of opening, four at the widest portal. */
+function leafCount(width: number): number {
+  return Math.min(4, Math.max(1, Math.ceil(width / DOORS.maxLeafWidth - 1e-9)));
+}
+
 /**
  * Megablock facade: the panel grid runs from the face origin in whole modules,
  * the same grid the wall material tiles on. Each cell rolls for a small window,
@@ -263,7 +268,7 @@ function placeMegablockCells(
         openings.push({
           id: `bd:${level.index}:${e}:${c}`, kind: 'balconyDoor', edge: e,
           offset: quantOff(uc - doorW / 2), width: doorW, height: doorH, sill: 0,
-          state: curtainState(seed, level.index, e, c, dist),
+          leaves: leafCount(doorW), state: curtainState(seed, level.index, e, c, dist),
           balcony: { depth: style.balconyDepth, width: quant(Math.max(doorW + 0.4, Math.min(module - 0.4, style.balconyWidth))) },
           material: `${theme}/door-glass/${tier}`,
         });
@@ -414,7 +419,7 @@ function placeEntrance(
       take(taken, e, t - w / 2, t + w / 2);
       openings.push({
         id: 'entrance', kind: 'door', edge: e, offset: quantOff(t - w / 2),
-        width: quant(w), height: quant(h), sill: 0,
+        width: quant(w), height: quant(h), sill: 0, leaves: leafCount(w),
         material: `${req.theme}/${rules.entranceGlass ? 'door-glass' : 'door'}/${tier}`,
       });
       return;
@@ -446,7 +451,7 @@ function placeLoadingDoors(
     take(taken, e, t - w / 2, t + w / 2);
     openings.push({
       id: `loading:${i}`, kind: 'door', edge: e, offset: quantOff(t - w / 2),
-      width: w, height: h, sill: 0, material: `${theme}/door/${tier}`,
+      width: w, height: h, sill: 0, leaves: 1, material: `${theme}/door/${tier}`,
     });
   }
 }

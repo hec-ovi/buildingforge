@@ -29,6 +29,15 @@ export interface Prim {
 export interface Part {
   name: string;
   prims: Map<string, Prim>;
+  /** node this part hangs under; the root when absent */
+  parent?: string;
+  /**
+   * Pivot of an animated part (a door leaf hinge). Its geometry is written
+   * relative to this point and the node carries it as a translation, so turning
+   * the node about its own Y swings the whole subtree. A part with a pivot is
+   * never merged away: the game needs the node.
+   */
+  pivot?: V3;
 }
 
 /**
@@ -49,8 +58,8 @@ function pushNormal(g: Prim, n: V3, vertices: number): void {
 export class MeshBuilder {
   readonly parts: Part[] = [];
 
-  part(name: string): PartSink {
-    const p: Part = { name, prims: new Map() };
+  part(name: string, options: { parent?: string; pivot?: V3 } = {}): PartSink {
+    const p: Part = { name, prims: new Map(), ...options };
     this.parts.push(p);
     return new PartSink(p);
   }
@@ -73,11 +82,17 @@ export class PartSink {
     return g;
   }
 
+  /** World point in the part's own frame: identity unless the part turns on a pivot. */
+  private local(p: V3): V3 {
+    const o = this.p.pivot;
+    return o ? [p[0] - o[0], p[1] - o[1], p[2] - o[2]] : p;
+  }
+
   /** Raw triangle, vertices CCW from the visible side. uv per vertex. */
   tri(material: string, a: V3, b: V3, c: V3, uv: [number, number][]): void {
     const g = this.prim(material);
     const base = g.positions.length / 3;
-    g.positions.push(...a, ...b, ...c);
+    g.positions.push(...this.local(a), ...this.local(b), ...this.local(c));
     pushNormal(g, faceNormal(a, b, c), 3);
     g.uvs.push(...(uv[0] as [number, number]), ...(uv[1] as [number, number]), ...(uv[2] as [number, number]));
     g.indices.push(base, base + 1, base + 2);
@@ -87,7 +102,7 @@ export class PartSink {
   quad(material: string, bl: V3, br: V3, tr: V3, tl: V3, uv: [number, number][]): void {
     const g = this.prim(material);
     const base = g.positions.length / 3;
-    g.positions.push(...bl, ...br, ...tr, ...tl);
+    g.positions.push(...this.local(bl), ...this.local(br), ...this.local(tr), ...this.local(tl));
     pushNormal(g, faceNormal(bl, br, tr), 4);
     for (const t of uv) g.uvs.push(...t);
     g.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);

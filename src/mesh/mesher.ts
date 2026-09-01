@@ -14,6 +14,16 @@ import type { Blueprint, Opening } from '../types.ts';
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
 
+/** Door assembly sections: casing around the hole, then the swinging leaf itself. */
+const DOOR = {
+  casingWidth: 0.09,
+  casingDepth: 0.05,
+  leafThickness: 0.055,
+  stile: 0.11,
+  rail: 0.16,
+  paneThickness: 0.02,
+};
+
 interface Frame { v: P2; dir: P2; n: P2; len: number }
 
 export function buildMesh(layout: Layout): MeshBuilder {
@@ -118,23 +128,83 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
     return;
   }
   if (o.kind === 'door' || o.kind === 'balconyDoor') {
-    const sink = mb.part(o.kind === 'door' ? `door:${o.id}` : `balcony:${o.id}`);
-    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], REVEAL, o.sill > 0.01, mat('wall-trim'));
-    // Leaf recessed at the reveal depth.
-    const leafMat = o.material ?? mat('door');
-    sink.quadFacing(leafMat, at(fr, [u0, yb], -REVEAL), at(fr, [u1, yb], -REVEAL), at(fr, [u1, yt], -REVEAL), at(fr, [u0, yt], -REVEAL), n3(fr), [[0, 1], [1, 1], [1, 0], [0, 0]]);
-    // Trim strips proud around the hole.
-    const t = 0.08;
-    strip(sink, fr, u0 - t, u1 + t, yt, yt + t, 0.03, mat('wall-trim'));
-    strip(sink, fr, u0 - t, u0, yb, yt, 0.03, mat('wall-trim'));
-    strip(sink, fr, u1, u1 + t, yb, yt, 0.03, mat('wall-trim'));
-    if (o.kind === 'balconyDoor' && o.balcony) meshBalcony(sink, fr, o, f.elevation, mat);
+    const base = o.kind === 'door' ? `door:${o.id}` : `balcony:${o.id}`;
+    mb.part(base); // the door as a whole: frame plus one node per leaf
+    const frame = mb.part(`${base}/frame`, { parent: base });
+    reveal(frame, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], REVEAL, o.sill > 0.01, mat('wall-trim'));
+    doorCasing(frame, fr, u0, u1, yb, yt, mat('wall-trim'));
+    doorLeaves(mb, base, fr, u0, u1, yb, yt, o, mat);
+    if (o.kind === 'balconyDoor' && o.balcony) meshBalcony(frame, fr, o, f.elevation, mat);
     return;
   }
   // Aperture: reveal ring around the exact cut, mouth left open.
   const sink = mb.part(`aperture:${o.id}`);
   const carved = layout.carved.find((c) => c.aperture.id === o.id);
   if (carved) reveal(sink, fr, carved.facePoly, APERTURE_REVEAL, true, o.material ?? mat('aperture-frame'));
+}
+
+/**
+ * The casing around a door: two jambs running the full height of the ring and a
+ * head between them. The three members partition the ring, so no two plates ever
+ * share a plane.
+ */
+function doorCasing(sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number, material: string): void {
+  const w = DOOR.casingWidth;
+  const d = DOOR.casingDepth;
+  const boxOn = (a: number, b: number, y0: number, y1: number) => {
+    sink.box(material, at(fr, [(a + b) / 2, (y0 + y1) / 2], d / 2),
+      [fr.dir[0] * (b - a) / 2, 0, fr.dir[1] * (b - a) / 2],
+      [0, (y1 - y0) / 2, 0],
+      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2]);
+  };
+  boxOn(u0 - w, u0, yb, yt + w);
+  boxOn(u1, u1 + w, yb, yt + w);
+  boxOn(u0, u1, yt, yt + w);
+}
+
+/**
+ * The leaves. Each one is a single node subtree holding everything that swings
+ * with it, its glass included, and the node sits on the hinge so the game turns
+ * it about its own Y. A pair hinges on the outer jambs and meets in the middle.
+ */
+function doorLeaves(
+  mb: MeshBuilder, base: string, fr: Frame, u0: number, u1: number, yb: number, yt: number,
+  o: Opening, mat: (k: string) => string,
+): void {
+  const count = Math.max(1, o.leaves ?? 1);
+  const leafW = (u1 - u0) / count;
+  const t = DOOR.leafThickness;
+  const back = -REVEAL - t;
+  const glazed = (o.material ?? '').includes('door-glass');
+  const frameMat = mat('door');
+  const glassMat = o.material ?? mat('door-glass');
+  const stile = Math.min(DOOR.stile, leafW / 3);
+  const rail = Math.min(DOOR.rail, (yt - yb) / 4);
+
+  for (let i = 0; i < count; i++) {
+    const a = u0 + i * leafW;
+    const b = a + leafW;
+    const hinge = i < count / 2 ? a : b;
+    const sink = mb.part(`${base}/leaf:${i}`, { parent: base, pivot: at(fr, [hinge, yb], back + t / 2) });
+    const slab = (uA: number, uB: number, y0: number, y1: number, front: number, depth: number, material: string) => {
+      if (uB - uA < 1e-6 || y1 - y0 < 1e-6) return;
+      sink.box(material, at(fr, [(uA + uB) / 2, (y0 + y1) / 2], front - depth / 2),
+        [fr.dir[0] * (uB - uA) / 2, 0, fr.dir[1] * (uB - uA) / 2],
+        [0, (y1 - y0) / 2, 0],
+        [fr.n[0] * depth / 2, 0, fr.n[1] * depth / 2]);
+    };
+    if (!glazed) {
+      slab(a, b, yb, yt, -REVEAL, t, frameMat);
+      continue;
+    }
+    // Stiles and rails carry the leaf; the pane sits inside them, thinner, so no
+    // two faces of the leaf ever land on one plane.
+    slab(a, a + stile, yb, yt, -REVEAL, t, frameMat);
+    slab(b - stile, b, yb, yt, -REVEAL, t, frameMat);
+    slab(a + stile, b - stile, yb, yb + rail, -REVEAL, t, frameMat);
+    slab(a + stile, b - stile, yt - rail, yt, -REVEAL, t, frameMat);
+    slab(a + stile, b - stile, yb + rail, yt - rail, -REVEAL - (t - DOOR.paneThickness) / 2, DOOR.paneThickness, glassMat);
+  }
 }
 
 /**

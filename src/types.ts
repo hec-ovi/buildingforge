@@ -71,6 +71,8 @@ export interface Opening {
   panes?: { cols: number; rows: number };
   /** curtain-wall bay: opaque spandrel band at the bottom of the opening; vision glass starts above it */
   spandrel?: number;
+  /** door and balconyDoor: swinging leaves, one node subtree each in the GLB */
+  leaves?: number;
   balcony?: { depth: number; width: number };
   material?: string;
 }

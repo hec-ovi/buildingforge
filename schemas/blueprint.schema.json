@@ -57,6 +57,12 @@
                 "sill": { "type": "number", "minimum": 0, "description": "bottom of opening above floor surface" },
                 "apertureKind": { "enum": ["bridge", "ac-tube", "tunnel"], "description": "present when kind = aperture; id echoes the request aperture id" },
                 "state": { "enum": ["open", "half", "closed80"], "description": "vertical curtain state, windows and balcony doors only" },
+                "leaves": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4,
+                  "description": "door and balconyDoor: swinging leaves; the GLB carries one node subtree per leaf, hinged on its own pivot"
+                },
                 "spandrel": {
                   "type": "number",
                   "minimum": 0,
