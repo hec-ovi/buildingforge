@@ -96,13 +96,9 @@ export const BALCONY = {
   maxCantilever: 2.0,
 };
 
-export const STRUCTURE = {
-  concreteMaxFloors: 40,
-  steelLook: 'thin' as const,
-  columnTaperTopFactor: 0.7,
-};
+export const STRUCTURE = { concreteMaxFloors: 40 };
 
-export const OPENING = { minPier: 0.3, cornerMargin: 0.6, headAlign: [2.1, 2.4] as [number, number] };
+export const OPENING = { minPier: 0.3, cornerMargin: 0.6 };
 
 export const FIRE_ESCAPE = {
   maxFloors: 7,
@@ -115,9 +111,6 @@ export const FIRE_ESCAPE = {
 
 export const LIGHTING = {
   accentSpacing: [4, 8] as [number, number],
-  minSpacing: 2,
-  maxSpacing: 12,
-  entranceFixtures: [2, 4] as [number, number],
   accentFamilies: ['corpo', 'office', 'hotel', 'commerce'] as string[],
 };
 

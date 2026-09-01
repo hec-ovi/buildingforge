@@ -42,7 +42,6 @@ export interface Layout {
   tier: Tier;
   theme: string;
   style: Style;
-  streetEdge: number;
   floors: FloorLayout[];
   carved: CarvedAperture[];
   anchors: Blueprint['anchors'];

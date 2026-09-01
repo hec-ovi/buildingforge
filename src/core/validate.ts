@@ -3,7 +3,7 @@
 
 import { ExteriorError } from './errors.ts';
 import { FAMILY, type AtlasType, type Tier } from '../rules/families.ts';
-import { RULES } from '../rules/tables.ts';
+import { RULES, SIGNAGE } from '../rules/tables.ts';
 import { area, selfIntersects, edgeDir, edgeNormal } from './polygon.ts';
 import type { Aperture, BuildingRequest, P2 } from '../types.ts';
 
@@ -156,7 +156,7 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
     const mode = str(s.mode, 'options.signage.mode');
     if (mode === 'marquee') {
       const text = str(s.text, 'options.signage.text');
-      if (text.length > 40) fail('options.signage.text', 'max 40 characters');
+      if (text.length > SIGNAGE.maxChars) fail('options.signage.text', `max ${SIGNAGE.maxChars} characters`);
       out.signage = { mode, text };
     } else if (mode === 'logo') {
       const ratio = str(s.ratio, 'options.signage.ratio');

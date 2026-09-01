@@ -22,7 +22,6 @@ export interface FacadeResult {
   floors: FloorLayout[];
   carved: CarvedAperture[];
   anchors: { id: string; position: [number, number, number]; normal: P2 }[];
-  balconyStacks: Map<number, Set<number>>;
 }
 
 export function buildFacades(
@@ -194,7 +193,7 @@ export function buildFacades(
     floors.push({ index: level.index, kind: level.kind, elevation: level.elevation, height: level.height, outline, openings });
   }
 
-  return { floors, carved, anchors, balconyStacks };
+  return { floors, carved, anchors };
 }
 
 function quantOff(v: number): number {

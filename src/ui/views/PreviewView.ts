@@ -58,10 +58,14 @@ export class PreviewView {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     container.appendChild(this.renderer.domElement);
 
-    this.scene.add(new AmbientLight(0xffffff, 0.7));
-    const sun = new DirectionalLight(0xffffff, 1.6);
+    this.scene.add(new AmbientLight(0xffffff, 0.55));
+    const sun = new DirectionalLight(0xffffff, 1.5);
     sun.position.set(60, 100, 40);
     this.scene.add(sun);
+    // Fill from the opposite quadrant so shadow-side facades keep readable shading.
+    const fill = new DirectionalLight(0x8090b0, 0.7);
+    fill.position.set(-50, 40, -70);
+    this.scene.add(fill);
     const grid = new GridHelper(200, 40, 0x2a2a34, 0x1c1c24);
     this.scene.add(grid);
 

@@ -27,7 +27,7 @@ export async function generate(raw: unknown): Promise<GenerateResult> {
   const features = buildFeatures(req, family, tier, style, massing, stack.top, facades.floors, streetEdge);
 
   const layout: Layout = {
-    request: req, family, tier, theme: req.theme, style, streetEdge,
+    request: req, family, tier, theme: req.theme, style,
     floors: facades.floors, carved: facades.carved, anchors: facades.anchors,
     ...features,
   };

@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.3. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.4, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -20,11 +20,11 @@ CLI: `npm run generate -- <request.json> <outDir>` writes `<buildingId>.glb` and
 Blueprint: [schemas/blueprint.schema.json](schemas/blueprint.schema.json). Per floor (basements included): index, kind, elevation, height, CCW outline, openings (door | window | balconyDoor | aperture) positioned by outline edge + offset + sill, with curtain state, balcony dimensions, material key. Plus signage, screens, lights, fire escape, roof artifacts, and the deduplicated material key list.
 
 GLB shell:
-- Binary glTF 2.0, one scene, named nodes: `floor:<index>/slab`, `wall:<floor>/<edge>`, `window:<opening-id>`, `door:<opening-id>`, `balcony:<opening-id>`, `aperture:<id>`, `roof`, `parapet`, `signage:<n>`, `screen:<n>`, `light:<n>`, `fire-escape`.
+- Binary glTF 2.0, one scene, named nodes: `floor:<index>/slab`, `wall:<floor>/<edge>`, `window:<opening-id>`, `door:<opening-id>`, `balcony:<opening-id>`, `aperture:<id>`, `anchor:<id>`, `roof`, `parapet`, `terrace:<floor>` (setback rings), `columns`, `roof-artifacts`, `base` (bottom cap), `signage:<n>`, `screen:<n>`, `light:<n>`, `fire-escape`.
 - Empty inside except one upward-facing separator plane per floor at its elevation.
 - All triangles CCW front, outward normals; windows are overlay units proud of the uncut wall; real holes only for doors and apertures (grid-cut, watertight, no T-junctions).
 - Materials carry no textures; each is named by the canonical key `theme/kind/tier` (lowercase slugs) and resolved by the materials index. Kinds used: wall, wall-trim, column, window-glass, window-frame, curtain, door, door-glass, balcony-slab, balcony-rail, roof, floor-slab, parapet, signage, ad-screen, light-fixture, fire-escape, aperture-frame, roof-artifact.
-- Tiled materials get world-scale UVs (1 UV unit = 1 tile meter, planar per face, origin at the face's bottom-left, U along the face's own horizontal edge) so textures never stretch; layout dimensions are quantized to 0.05 m. Exact-placement materials (ad-screen, signage, helipad mark) get exact 0..1 UVs over their quad, never a partial tile.
+- Tiled materials get world-scale UVs (1 UV unit = 1 tile meter, planar per face, origin at the face's bottom-left, U along the face's own horizontal edge) so textures never stretch; opening and style dimensions are quantized to 0.05 m, positions to millimeters. Exact-placement materials (ad-screen, signage, window glass) get exact 0..1 UVs over their quad, never a partial tile.
 
 ## Errors
 Thrown as `ExteriorError { code, message, details? }`:

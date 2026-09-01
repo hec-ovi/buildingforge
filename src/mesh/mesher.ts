@@ -182,7 +182,7 @@ function meshBalcony(sink: PartSink, fr: Frame, o: Opening, elevation: number, m
   if (depth <= 0) {
     // Juliet: railing panel directly in front of the door.
     const w = o.width + 0.3;
-    const c = at(fr, [uc, elevation + railH / 2], 0.15);
+    const c = at(fr, [uc, elevation + railH / 2], BALCONY.julietDepth);
     sink.box(mat('balcony-rail'), c, [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2], [0, railH / 2, 0], [fr.n[0] * railT / 2, 0, fr.n[1] * railT / 2]);
     return;
   }

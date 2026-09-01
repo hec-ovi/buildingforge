@@ -23,7 +23,6 @@ const RING16: P2[] = [
 export type Shape = 'box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
 
 export interface Massing {
-  shape: Shape;
   /** outline per above-ground floor index (0..floors-1); basements reuse outline 0 */
   outlineOf(floor: number): P2[];
   groundOutline: P2[];
@@ -56,7 +55,6 @@ export function buildMassing(req: BuildingRequest, family: Family, tier: Tier, b
     const top = mid && isConvex(mid) ? insetConvex(mid, d2) : null;
     if (mid) {
       return {
-        shape,
         groundOutline: base,
         outlineOf: (f) => (top && f >= t2 ? top : f >= t1 ? mid : base),
       };
@@ -76,13 +74,12 @@ export function buildMassing(req: BuildingRequest, family: Family, tier: Tier, b
       current = next;
     }
     return {
-      shape,
       groundOutline: base,
       outlineOf: (f) => steps[Math.min(f, steps.length - 1)] as P2[],
     };
   }
 
-  return { shape: shape === 'setback' || shape === 'pyramid' ? 'box' : shape, groundOutline: base, outlineOf: () => base };
+  return { groundOutline: base, outlineOf: () => base };
 }
 
 function pickShape(rng: Rng, family: Family, tier: Tier, floors: number): Shape {

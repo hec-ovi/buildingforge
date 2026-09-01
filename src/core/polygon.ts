@@ -13,15 +13,6 @@ export function signedArea(poly: P2[]): number {
   return a / 2;
 }
 
-/** CCW on the XZ ground plane seen from +Y (atlas convention). */
-export function isCCW(poly: P2[]): boolean {
-  return signedArea(poly) < 0;
-}
-
-export function ensureCCW(poly: P2[]): P2[] {
-  return isCCW(poly) ? poly : [...poly].reverse();
-}
-
 export function area(poly: P2[]): number {
   return Math.abs(signedArea(poly));
 }

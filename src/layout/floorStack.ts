@@ -12,7 +12,7 @@ import type { Style } from './model.ts';
 
 export interface Stack {
   /** ascending by index; index -basements..-1 then 0..floors-1 */
-  levels: { index: number; elevation: number; height: number; kind: string; pinned: boolean }[];
+  levels: { index: number; elevation: number; height: number; kind: string }[];
   top: number;
 }
 
@@ -61,7 +61,7 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
     if (h < rules.minFloorHeight - 0.001 && idx >= 0) {
       throw new ExteriorError('E_APERTURE_UNREACHABLE', `aperture pinning squeezes floor ${idx} to ${h.toFixed(2)} m, below min ${rules.minFloorHeight}`);
     }
-    levels.push({ index: idx, elevation: e, height: h, kind: idx < 0 ? 'basement' : (kinds[idx] as string), pinned: pinned.has(idx) });
+    levels.push({ index: idx, elevation: e, height: h, kind: idx < 0 ? 'basement' : (kinds[idx] as string) });
   }
   const last = levels[levels.length - 1]!;
   const top = last.elevation + last.height;
