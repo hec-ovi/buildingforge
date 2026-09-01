@@ -60,7 +60,7 @@ function entranceCandidates(outline: P2[], point: P2): number[] {
   return [...long, ...mid, ...rest].map((x) => x.e);
 }
 
-/** Machine-checked coherence: every opening lies entirely inside its edge. */
+/** Machine-checked coherence: every opening lies entirely inside its edge and its floor. */
 function checkInvariants(layout: Layout): void {
   for (const floor of layout.floors) {
     for (const o of floor.openings) {
@@ -70,6 +70,10 @@ function checkInvariants(layout: Layout): void {
       if (!ok) {
         throw new ExteriorError('E_INVARIANT',
           `opening ${o.id} exceeds edge ${o.edge} on floor ${floor.index} (offset ${o.offset}, width ${o.width}, edge ${edgeLength(floor.outline, Math.min(o.edge, floor.outline.length - 1)).toFixed(2)} m); exterior bug, report with the request`);
+      }
+      if (o.sill + o.height > floor.height + 1e-6) {
+        throw new ExteriorError('E_INVARIANT',
+          `opening ${o.id} spans ${(o.sill + o.height).toFixed(2)} m in a ${floor.height.toFixed(2)} m floor ${floor.index}; exterior bug, report with the request`);
       }
     }
   }

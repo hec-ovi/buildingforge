@@ -1,5 +1,6 @@
 # Changelog
 
+- 0.8: the floor pinned at an aperture base is tall enough to contain the aperture's full vertical extent (first floor of each segment goes tall, rest split uniformly); gap capacity bounds and the floor-constants recipe account for aperture heights; an aperture taller than the type max floor height is a named feasibility error; the machine-checked invariant also covers vertical containment.
 - 0.7: entrance facade chosen by true point-to-segment distance with a 3 m minimum edge (sliver edges never win), entrance zone reserved before window fill with a position scan around reservations, and a machine-checked opening-fits-edge invariant (new closed error E_INVARIANT); p1640 repro added as the sliver-parcel fixture.
 - 0.6: floor solver searches legal splits between aperture bases (bounded count allocation, feasible range named in E_APERTURE_UNREACHABLE); envelope scaling rounds down so quantization cannot overflow maxHeight; feasibility constants published at schemas/floor-constants.json (type map, min/max floor height, min footprint area) for assemblers.
 - 0.5: GLB output mode option: named (canonical, node per part) or merged (one mesh per material key for runtime scale), identical blueprint in both.

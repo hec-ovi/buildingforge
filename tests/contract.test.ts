@@ -121,6 +121,7 @@ describe('blueprint invariants', () => {
         for (const o of floor.openings) {
           expect(o.offset).toBeGreaterThanOrEqual(-1e-6);
           expect(o.offset + o.width).toBeLessThanOrEqual(edgeLen(floor.outline, o.edge) + 1e-6);
+          expect(o.sill + o.height).toBeLessThanOrEqual(floor.height + 1e-6);
         }
       }
     }
@@ -258,6 +259,49 @@ describe('apertures', () => {
       expect(err).toBeInstanceOf(ExteriorError);
       expect((err as ExteriorError).code).toBe('E_APERTURE_UNREACHABLE');
       expect((err as ExteriorError).message).toMatch(/feasible counts are \d+\.\.\d+/);
+    }
+  });
+
+  it('makes the pinned floor tall enough to contain its aperture (p513 class)', async () => {
+    const req = {
+      seed: 'urbe:p513', buildingId: 'p513',
+      parcel: { footprint: [[0, 0], [30, 0], [30, 20], [0, 20]], accessPoint: [15, -2], maxHeight: 80 },
+      building: { type: 'offices', tier: 'mid', floors: 12 },
+      theme: 'cyberpunk',
+      apertures: [{
+        id: 'tall-bridge', buildingId: 'p513', floor: 10, face: 1, kind: 'bridge',
+        u: 10.5, base: 40, width: 5, height: 5, shape: 'rect',
+        cut: { polygon: [[30, 40, 8], [30, 40, 13], [30, 45, 13], [30, 45, 8]], axisDir: [1, 0, 0] },
+        linkId: 'L1',
+      }],
+    };
+    const { blueprint } = await generate(req);
+    const owner = blueprint.floors.find((f) => f.elevation === 40)!;
+    expect(owner).toBeDefined();
+    expect(owner.height).toBeGreaterThanOrEqual(5 - 1e-9);
+    const opening = owner.openings.find((o) => o.id === 'tall-bridge')!;
+    expect(opening.sill + opening.height).toBeLessThanOrEqual(owner.height + 1e-9);
+  });
+
+  it('rejects an aperture taller than the type max floor height, naming it', async () => {
+    const req = {
+      seed: 'urbe:p513', buildingId: 'p513',
+      parcel: { footprint: [[0, 0], [30, 0], [30, 20], [0, 20]], accessPoint: [15, -2], maxHeight: 80 },
+      building: { type: 'offices', tier: 'mid', floors: 12 },
+      theme: 'cyberpunk',
+      apertures: [{
+        id: 'too-tall', buildingId: 'p513', floor: 10, face: 1, kind: 'bridge',
+        u: 10.5, base: 40, width: 5, height: 6.5, shape: 'rect',
+        cut: { polygon: [[30, 40, 8], [30, 40, 13], [30, 46.5, 13], [30, 46.5, 8]], axisDir: [1, 0, 0] },
+        linkId: 'L1',
+      }],
+    };
+    try {
+      await generate(req);
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      expect((err as ExteriorError).code).toBe('E_APERTURE_UNREACHABLE');
+      expect((err as ExteriorError).message).toContain('6');
     }
   });
 

@@ -36,7 +36,7 @@ Thrown as `ExteriorError { code, message, details? }`:
 - `E_FOOTPRINT_TOO_SMALL`: usable area below the type's minimum.
 - `E_ENVELOPE_TOO_LOW`: floors x the type's minimum floor height exceeds maxHeight; the message carries the exact numbers.
 - `E_FLOORKINDS_MISMATCH`: floorKinds length differs from floors.
-- `E_APERTURE_UNREACHABLE`: face index outside the footprint, base outside the vertical range, or no legal floor split exists for the requested floor count; the message names the feasible count range.
+- `E_APERTURE_UNREACHABLE`: face index outside the footprint, base outside the vertical range, an aperture taller than the type's max floor height, or no legal floor split exists for the requested floor count; the message names the feasible count range.
 - `E_APERTURE_INVALID`: cut polygon off its face plane or inconsistent with u/width/height.
 - `E_APERTURE_OVERLAP`: two aperture cuts overlap on the same face.
 - `E_SIGNAGE_TEXT_TOO_LONG`: marquee text exceeds the facade's computed capacity.
@@ -44,9 +44,9 @@ Thrown as `ExteriorError { code, message, details? }`:
 
 ## Invariants
 - Face i is the vertical quad over parcel footprint segment i -> i+1 (connections convention). Every face carrying an aperture keeps its wall exactly on that segment; shape variation (octagon, cylinder, pyramid, inset) applies to aperture-free buildings, setbacks only above the topmost aperture.
-- Every bridge, ac-tube and tunnel aperture yields exactly one `aperture` opening carving exactly the given cut, with a floor walking surface at exactly its base. Wire anchors cut no hole: the region stays clear of openings and the GLB carries node `anchor:<id>`. The per-floor elevation table in the blueprint is final; interior consumes it.
+- Every bridge, ac-tube and tunnel aperture yields exactly one `aperture` opening carving exactly the given cut, with a floor walking surface at exactly its base; that floor is tall enough to contain the aperture's full vertical extent. Wire anchors cut no hole: the region stays clear of openings and the GLB carries node `anchor:<id>`. The per-floor elevation table in the blueprint is final; interior consumes it.
 - Floor elevations are contiguous: `elevation[i+1] = elevation[i] + height[i]`; ground floor at 0.
-- Openings on one floor never overlap; min 0.3 m pier between openings. Every opening lies entirely inside its edge with non-negative offset (machine-checked before output).
+- Openings on one floor never overlap; min 0.3 m pier between openings. Every opening lies entirely inside its edge with non-negative offset and inside its floor's height (machine-checked before output).
 - The entrance goes to a street-facing edge at least 3 m long when one exists (true point-to-segment distance from the access point, never a corner-touching sliver), and its zone is reserved before any window fill.
 - Every balconyDoor carries balcony dimensions; balconies protrude beyond the outline but stay inside the parcel footprint.
 - The structure never exceeds the parcel footprint; it need not fill it.

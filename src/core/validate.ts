@@ -87,7 +87,7 @@ export function validateRequest(raw: unknown): BuildingRequest {
   if (floorKinds && floorKinds.length !== floors) {
     throw new ExteriorError('E_FLOORKINDS_MISMATCH', `floorKinds has ${floorKinds.length} entries for ${floors} floors`);
   }
-  validateAperturesSemantics(apertures, footprint, maxHeight, basements);
+  validateAperturesSemantics(apertures, footprint, maxHeight, basements, RULES[family].maxFloorHeight);
 
   return {
     seed, buildingId,
@@ -180,7 +180,7 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   return out;
 }
 
-function validateAperturesSemantics(apertures: Aperture[], footprint: P2[], maxHeight: number, basements: number): void {
+function validateAperturesSemantics(apertures: Aperture[], footprint: P2[], maxHeight: number, basements: number, maxFloorHeight: number): void {
   const lowest = -basements * 3.5 - 1;
   for (const a of apertures) {
     if (a.face >= footprint.length) {
@@ -188,6 +188,9 @@ function validateAperturesSemantics(apertures: Aperture[], footprint: P2[], maxH
     }
     if (a.base + a.height > maxHeight || a.base < lowest) {
       throw new ExteriorError('E_APERTURE_UNREACHABLE', `aperture ${a.id} base ${a.base} outside vertical range`, { id: a.id });
+    }
+    if (a.kind !== 'wire-anchor' && a.height > maxFloorHeight + 1e-9) {
+      throw new ExteriorError('E_APERTURE_UNREACHABLE', `aperture ${a.id} is ${a.height} m tall; no floor of this type can exceed ${maxFloorHeight} m, so no floor can contain it`, { id: a.id });
     }
     // Every cut vertex must lie on the face plane (within float tolerance).
     const [vx, vz] = footprint[a.face] as P2;
