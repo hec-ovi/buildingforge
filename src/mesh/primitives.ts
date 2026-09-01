@@ -21,6 +21,7 @@ export const norm = (a: V3): V3 => {
 
 export interface Prim {
   positions: number[];
+  normals: number[];
   uvs: number[];
   indices: number[];
 }
@@ -28,6 +29,21 @@ export interface Prim {
 export interface Part {
   name: string;
   prims: Map<string, Prim>;
+}
+
+/**
+ * Face normal from the winding the caller already fixed. Every vertex belongs to
+ * exactly one face, so these are flat shading normals with no averaging; a
+ * degenerate sliver falls back to +Y rather than emitting NaN.
+ */
+function faceNormal(a: V3, b: V3, c: V3): V3 {
+  const n = cross(sub(b, a), sub(c, a));
+  const len = Math.sqrt(dot(n, n));
+  return len > 0 ? [n[0] / len, n[1] / len, n[2] / len] : [0, 1, 0];
+}
+
+function pushNormal(g: Prim, n: V3, vertices: number): void {
+  for (let i = 0; i < vertices; i++) g.normals.push(n[0], n[1], n[2]);
 }
 
 export class MeshBuilder {
@@ -53,7 +69,7 @@ export class PartSink {
 
   private prim(material: string): Prim {
     let g = this.p.prims.get(material);
-    if (!g) { g = { positions: [], uvs: [], indices: [] }; this.p.prims.set(material, g); }
+    if (!g) { g = { positions: [], normals: [], uvs: [], indices: [] }; this.p.prims.set(material, g); }
     return g;
   }
 
@@ -62,6 +78,7 @@ export class PartSink {
     const g = this.prim(material);
     const base = g.positions.length / 3;
     g.positions.push(...a, ...b, ...c);
+    pushNormal(g, faceNormal(a, b, c), 3);
     g.uvs.push(...(uv[0] as [number, number]), ...(uv[1] as [number, number]), ...(uv[2] as [number, number]));
     g.indices.push(base, base + 1, base + 2);
   }
@@ -71,6 +88,7 @@ export class PartSink {
     const g = this.prim(material);
     const base = g.positions.length / 3;
     g.positions.push(...bl, ...br, ...tr, ...tl);
+    pushNormal(g, faceNormal(bl, br, tr), 4);
     for (const t of uv) g.uvs.push(...t);
     g.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
   }

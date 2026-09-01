@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.9.0, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.9.1, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -29,7 +29,7 @@ GLB shell:
 - Binary glTF 2.0, one scene, named nodes: `floor:<index>/slab`, `wall:<floor>/<edge>`, `window:<opening-id>`, `door:<opening-id>`, `balcony:<opening-id>`, `aperture:<id>`, `anchor:<id>`, `roof`, `parapet`, `terrace:<floor>` (setback rings), `columns`, `roof-artifacts`, `base` (bottom cap), `signage:<n>`, `screen:<n>`, `light:<n>`, `fire-escape`.
 - `options.glb: "merged"` swaps the node scheme for one mesh per material key (`merged:<theme/kind/tier>`), for runtime scale; anchors stay named nodes and the blueprint is identical either way. Default `"named"` is the canonical interchange.
 - Empty inside except one upward-facing separator plane per floor at its elevation. The `floor:<index>/slab` nodes are replaceable: interior re-emits them with stair and elevator holes under the same names.
-- All triangles CCW front, outward normals; windows are overlay units proud of the uncut wall; real holes only for doors and apertures (grid-cut, watertight, no T-junctions).
+- All triangles CCW front, outward normals; every mesh carries a NORMAL attribute (flat per face, matching the winding) so it shades correctly in any viewer. Windows are overlay units proud of the uncut wall; real holes only for doors and apertures (grid-cut, watertight, no T-junctions).
 - Every material is named by the canonical key `theme/kind/tier` (lowercase slugs). Kinds used: wall, wall-trim, column, window-glass, window-frame, curtain, door, door-glass, balcony-slab, balcony-rail, roof, floor-slab, parapet, signage, ad-screen, light-fixture, fire-escape, aperture-frame, roof-artifact.
 - Tiled materials get world-scale UVs (1 UV unit = 1 tile meter, planar per face, origin at the face's bottom-left, U along the face's own horizontal edge) so textures never stretch; opening and style dimensions are quantized to 0.05 m, positions to millimeters. Exact-placement materials (ad-screen, signage, window glass) get exact 0..1 UVs over their quad, never a partial tile.
 

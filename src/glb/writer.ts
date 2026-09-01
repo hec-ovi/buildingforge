@@ -33,6 +33,8 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
   const addPrim = (mesh: ReturnType<Document['createMesh']>, key: string, prim: Prim) => {
     const position = doc.createAccessor()
       .setType('VEC3').setArray(new Float32Array(prim.positions)).setBuffer(buffer);
+    const normal = doc.createAccessor()
+      .setType('VEC3').setArray(new Float32Array(prim.normals)).setBuffer(buffer);
     const uv = doc.createAccessor()
       .setType('VEC2').setArray(new Float32Array(prim.uvs)).setBuffer(buffer);
     const indices = doc.createAccessor()
@@ -40,6 +42,7 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
     mesh.addPrimitive(
       doc.createPrimitive()
         .setAttribute('POSITION', position)
+        .setAttribute('NORMAL', normal)
         .setAttribute('TEXCOORD_0', uv)
         .setIndices(indices)
         .setMaterial(materialOf(key)),
@@ -53,9 +56,10 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
       for (const [key, prim] of part.prims) {
         if (prim.indices.length === 0) continue;
         let g = byMaterial.get(key);
-        if (!g) { g = { positions: [], uvs: [], indices: [] }; byMaterial.set(key, g); }
+        if (!g) { g = { positions: [], normals: [], uvs: [], indices: [] }; byMaterial.set(key, g); }
         const base = g.positions.length / 3;
         g.positions.push(...prim.positions);
+        g.normals.push(...prim.normals);
         g.uvs.push(...prim.uvs);
         for (const i of prim.indices) g.indices.push(base + i);
       }

@@ -369,6 +369,41 @@ describe('GLB shell', () => {
     expect(merged.glb.byteLength).toBeLessThan(named.glb.byteLength);
   });
 
+  it('gives every mesh a NORMAL attribute agreeing with its winding', async () => {
+    for (const req of [residential, bridged]) {
+      const { glb } = await generate(req, KEYS);
+      const doc = await new NodeIO().readBinary(glb);
+      const meshes = doc.getRoot().listMeshes();
+      expect(meshes.length).toBeGreaterThan(0);
+      for (const mesh of meshes) {
+        for (const prim of mesh.listPrimitives()) {
+          const normalAccessor = prim.getAttribute('NORMAL');
+          expect(normalAccessor, `${mesh.getName()} has no NORMAL`).toBeTruthy();
+          const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
+          const nor = normalAccessor!.getArray() as Float32Array;
+          expect(nor.length).toBe(pos.length);
+          const idx = prim.getIndices()!.getArray() as Uint32Array;
+          for (let i = 0; i + 2 < idx.length; i += 3) {
+            const [a, b, c] = [idx[i]! * 3, idx[i + 1]! * 3, idx[i + 2]! * 3];
+            const ab = [pos[b]! - pos[a]!, pos[b + 1]! - pos[a + 1]!, pos[b + 2]! - pos[a + 2]!];
+            const ac = [pos[c]! - pos[a]!, pos[c + 1]! - pos[a + 1]!, pos[c + 2]! - pos[a + 2]!];
+            const geo = [
+              ab[1]! * ac[2]! - ab[2]! * ac[1]!,
+              ab[2]! * ac[0]! - ab[0]! * ac[2]!,
+              ab[0]! * ac[1]! - ab[1]! * ac[0]!,
+            ];
+            const len = Math.hypot(geo[0]!, geo[1]!, geo[2]!);
+            if (len < 1e-9) continue; // degenerate sliver: normal is the +Y fallback
+            const stored = [nor[a]!, nor[a + 1]!, nor[a + 2]!];
+            expect(Math.hypot(stored[0]!, stored[1]!, stored[2]!)).toBeCloseTo(1, 4);
+            const align = (geo[0]! * stored[0]! + geo[1]! * stored[1]! + geo[2]! * stored[2]!) / len;
+            expect(align).toBeGreaterThan(0.99);
+          }
+        }
+      }
+    }
+  });
+
   it('faces every ground wall triangle outward', async () => {
     const { glb, blueprint } = await generate(bridged, KEYS);
     const doc = await new NodeIO().readBinary(glb);
