@@ -84,6 +84,22 @@ export interface Floor {
 
 export interface RoofArtifact { kind: string; center: P2; size: P3; rotationDeg: number }
 
+/**
+ * Roof access. `center` and `axis` (a unit vector along `width`) place an
+ * axis-free rectangle on the roof plane: the cutout the interior stair head
+ * lands in. The housing standing over it carries one door onto the roof.
+ */
+export interface Bulkhead {
+  center: P2;
+  axis: P2;
+  width: number;
+  depth: number;
+  housingHeight: number;
+  doorNormal: P2;
+  doorWidth: number;
+  doorHeight: number;
+}
+
 /** Surface-mounted equipment on a facade: positioned like an opening, sized [w, h, depth]. */
 export interface FacadeArtifact {
   kind: string;
@@ -121,7 +137,14 @@ export interface Blueprint {
   facade: { style: 'megablock' | 'panel' | 'glass'; panelModule: number };
   facadeArtifacts: FacadeArtifact[];
   fireEscape: { edge: number; fromFloor: number; toFloor: number } | null;
-  roof: { elevation: number; outline: P2[]; parapetHeight: number; artifacts: RoofArtifact[] };
+  roof: {
+    elevation: number;
+    outline: P2[];
+    parapetHeight: number;
+    /** stair-head cutout in the roof plane, with the housing that covers it */
+    bulkhead: Bulkhead | null;
+    artifacts: RoofArtifact[];
+  };
   materials: string[];
 }
 

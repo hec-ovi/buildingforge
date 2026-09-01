@@ -1,6 +1,6 @@
 // Internal layout model: everything the mesher and blueprint builder consume.
 
-import type { P2, P3, Opening, RoofArtifact, Blueprint, BuildingRequest, Aperture } from '../types.ts';
+import type { P2, P3, Opening, Blueprint, BuildingRequest, Aperture } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 
 export interface Style {
@@ -70,7 +70,7 @@ export interface Layout {
   lights: Blueprint['lights'];
   facadeArtifacts: Blueprint['facadeArtifacts'];
   fireEscape: Blueprint['fireEscape'];
-  roof: { elevation: number; outline: P2[]; parapetHeight: number; artifacts: RoofArtifact[] };
+  roof: Blueprint['roof'];
 }
 
 export function materialKey(theme: string, kind: string, tier: Tier): string {

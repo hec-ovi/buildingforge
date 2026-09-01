@@ -10,8 +10,8 @@ export function capUp(sink: PartSink, material: string, ring: P2[], y: number, h
   cap(sink, material, ring, y, hole, true);
 }
 
-export function capDown(sink: PartSink, material: string, ring: P2[], y: number): void {
-  cap(sink, material, ring, y, undefined, false);
+export function capDown(sink: PartSink, material: string, ring: P2[], y: number, hole?: P2[]): void {
+  cap(sink, material, ring, y, hole, false);
 }
 
 function cap(sink: PartSink, material: string, ring: P2[], y: number, hole: P2[] | undefined, up: boolean): void {

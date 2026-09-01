@@ -214,6 +214,23 @@
           "items": { "$ref": "#/$defs/point2" }
         },
         "parapetHeight": { "type": "number", "minimum": 0 },
+        "bulkhead": {
+          "type": ["object", "null"],
+          "default": null,
+          "required": ["center", "axis", "width", "depth", "housingHeight", "doorNormal", "doorWidth", "doorHeight"],
+          "additionalProperties": false,
+          "description": "stair-head cutout in the roof plane and the housing over it; null when the plate is too small for access plus its walk space",
+          "properties": {
+            "center": { "$ref": "#/$defs/point2" },
+            "axis": { "$ref": "#/$defs/point2", "description": "unit vector along `width`; the cutout rectangle follows the plate's own axis" },
+            "width": { "type": "number", "exclusiveMinimum": 0 },
+            "depth": { "type": "number", "exclusiveMinimum": 0 },
+            "housingHeight": { "type": "number", "exclusiveMinimum": 0 },
+            "doorNormal": { "$ref": "#/$defs/point2", "description": "outward normal of the housing face carrying the roof door" },
+            "doorWidth": { "type": "number", "exclusiveMinimum": 0 },
+            "doorHeight": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
         "artifacts": {
           "type": "array",
           "items": {

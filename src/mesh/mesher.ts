@@ -66,10 +66,13 @@ export function buildMesh(layout: Layout): MeshBuilder {
     for (const o of f.openings) meshOpening(mb, layout, f, o, mat);
   }
 
-  // Roof, parapet, bottom cap. The roof is the top floor's ceiling too.
+  // Roof, parapet, bottom cap. The roof is the top floor's ceiling too, cut open
+  // where the stair head comes up.
   const roofSink = mb.part('roof');
-  capUp(roofSink, mat('roof'), topFloor.outline, top);
-  capDown(roofSink, mat('floor-slab'), topFloor.outline, top);
+  const cutout = layout.roof.bulkhead ? bulkheadRect(layout.roof.bulkhead) : undefined;
+  capUp(roofSink, mat('roof'), topFloor.outline, top, cutout);
+  capDown(roofSink, mat('floor-slab'), topFloor.outline, top, cutout);
+  if (layout.roof.bulkhead) meshBulkhead(mb.part('bulkhead'), layout.roof.bulkhead, top, mat);
   capDown(mb.part('base'), mat('floor-slab'), lowest.outline, lowest.elevation);
   const parapet = mb.part('parapet');
   for (let e = 0; e < topFloor.outline.length; e++) {
@@ -362,6 +365,37 @@ function meshColumns(mb: MeshBuilder, layout: Layout, above: FloorLayout[], top:
       sink.box(mat('column'), at(fr, [u, top / 2], 0.06), [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2], [0, top / 2, 0], [fr.n[0] * 0.06, 0, fr.n[1] * 0.06]);
     }
   }
+}
+
+/** World corners of the stair-head cutout, in the plate's own axis frame. */
+function bulkheadRect(b: NonNullable<Blueprint['roof']['bulkhead']>): P2[] {
+  const a = b.axis;
+  const c: P2 = [-a[1], a[0]];
+  const hw = b.width / 2, hd = b.depth / 2;
+  const at2 = (u: number, v: number): P2 => [b.center[0] + a[0] * u + c[0] * v, b.center[1] + a[1] * u + c[1] * v];
+  return [at2(-hw, -hd), at2(hw, -hd), at2(hw, hd), at2(-hw, hd)];
+}
+
+/** The housing over the stair head: four walls, one door onto the roof, a capped top. */
+function meshBulkhead(sink: PartSink, b: NonNullable<Blueprint['roof']['bulkhead']>, top: number, mat: (k: string) => string): void {
+  const ring = bulkheadRect(b);
+  const yTop = top + b.housingHeight;
+  for (let e = 0; e < ring.length; e++) {
+    const fr = frame(ring, e);
+    const onDoorFace = fr.n[0] * b.doorNormal[0] + fr.n[1] * b.doorNormal[1] > 0.99;
+    const holes: Hole[] = [];
+    if (onDoorFace) {
+      const width = Math.min(b.doorWidth, fr.len - 0.4);
+      const height = Math.min(b.doorHeight, b.housingHeight - 0.2);
+      holes.push(rectHole((fr.len - width) / 2, top, width, height));
+    }
+    for (const piece of cutWall(fr.len, top, yTop, holes)) {
+      const uvs = [piece.bl, piece.br, piece.tr, piece.tl].map(([u, y]) => [u, top - y] as [number, number]);
+      sink.quadFacing(mat('wall'), at(fr, piece.bl), at(fr, piece.br), at(fr, piece.tr), at(fr, piece.tl), n3(fr), uvs);
+    }
+  }
+  capUp(sink, mat('roof'), ring, yTop);
+  capDown(sink, mat('floor-slab'), ring, yTop);
 }
 
 function meshRoofArtifacts(mb: MeshBuilder, layout: Layout, top: number, mat: (k: string) => string): void {

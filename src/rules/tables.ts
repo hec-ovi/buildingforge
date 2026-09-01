@@ -207,6 +207,20 @@ export const SIGNAGE = {
 
 export const PARAPET: [number, number] = [0.9, 1.1];
 
+/**
+ * Roof access: the cutout the interior stair head lands in, and the housing that
+ * covers it. Sized for a stair shaft plus its landing, with walk space kept
+ * clear around the housing and in front of its door.
+ */
+export const ROOF_ACCESS = {
+  width: [2.4, 3.0] as [number, number],
+  depth: [3.0, 3.8] as [number, number],
+  housingHeight: [2.4, 2.9] as [number, number],
+  doorWidth: 0.95,
+  doorHeight: 2.05,
+  clearance: 0.9,
+};
+
 export interface RoofArtifactRule {
   kind: string;
   size: [[number, number], [number, number], [number, number]];
@@ -215,14 +229,12 @@ export interface RoofArtifactRule {
 
 export const ROOF_ARTIFACTS: Record<Family, RoofArtifactRule[]> = {
   residential: [
-    { kind: 'bulkhead', size: [[2.5, 3.5], [2.5, 3.5], [2.6, 3.2]], chance: 1 },
     { kind: 'water-tank', size: [[3.0, 4.5], [3.0, 4.5], [3.5, 5.0]], chance: 0.6 },
     { kind: 'hvac', size: [[1.0, 1.6], [0.6, 1.0], [0.7, 1.0]], chance: 0.8 },
     { kind: 'antenna', size: [[0.1, 0.2], [0.1, 0.2], [3.0, 6.0]], chance: 0.7 },
     { kind: 'solar', size: [[2.0, 4.0], [1.0, 2.0], [0.15, 0.25]], chance: 0.3 },
   ],
   hotel: [
-    { kind: 'bulkhead', size: [[3.0, 4.0], [3.0, 4.0], [2.8, 3.4]], chance: 1 },
     { kind: 'cooling-tower', size: [[2.5, 4.0], [2.5, 4.0], [2.0, 3.0]], chance: 0.8 },
     { kind: 'pool', size: [[4.0, 8.0], [3.0, 5.0], [0.3, 0.5]], chance: 0.35 },
     { kind: 'bar', size: [[3.0, 5.0], [2.5, 4.0], [2.8, 3.2]], chance: 0.25 },
@@ -255,7 +267,6 @@ export const ROOF_ARTIFACTS: Record<Family, RoofArtifactRule[]> = {
   ],
   commerce: [
     { kind: 'hvac', size: [[1.2, 2.2], [0.8, 1.4], [0.8, 1.2]], chance: 1 },
-    { kind: 'bulkhead', size: [[2.0, 3.0], [2.0, 3.0], [2.4, 2.8]], chance: 0.5 },
   ],
 };
 

@@ -551,6 +551,48 @@ describe('facade styles', () => {
   });
 });
 
+describe('roof access', () => {
+  it('cuts the stair-head bulkhead out of the roof plane and publishes it', async () => {
+    for (const req of [residential, corpo, factory, bridged]) {
+      const { glb, blueprint } = await generate(req, KEYS);
+      const b = blueprint.roof.bulkhead!;
+      expect(b, 'every fixture roof is big enough for access').toBeTruthy();
+      expect(Math.hypot(b.axis[0], b.axis[1])).toBeCloseTo(1, 6);
+      expect(pointInPoly(blueprint.roof.outline, b.center)).toBe(true);
+
+      // The roof plane really is open there: no roof triangle covers the cutout centre.
+      const doc = await new NodeIO().readBinary(glb);
+      const roof = doc.getRoot().listNodes().find((n) => n.getName() === 'roof')!;
+      for (const prim of roof.getMesh()!.listPrimitives()) {
+        const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
+        const idx = prim.getIndices()!.getArray() as Uint32Array;
+        for (let i = 0; i + 2 < idx.length; i += 3) {
+          const tri = [0, 1, 2].map((k) => [pos[idx[i + k]! * 3]!, pos[idx[i + k]! * 3 + 2]!] as [number, number]);
+          expect(pointInPoly(tri, b.center), 'roof still covers the cutout').toBe(false);
+        }
+      }
+      expect(doc.getRoot().listNodes().some((n) => n.getName() === 'bulkhead')).toBe(true);
+    }
+  });
+
+  it('keeps roof artifacts clear of the bulkhead and its walk space', async () => {
+    for (const req of [residential, corpo, factory, bridged]) {
+      const { blueprint } = await generate(req, KEYS);
+      const b = blueprint.roof.bulkhead!;
+      const cross: [number, number] = [-b.axis[1], b.axis[0]];
+      const halfX = Math.abs(b.axis[0]) * b.width / 2 + Math.abs(cross[0]) * b.depth / 2;
+      const halfZ = Math.abs(b.axis[1]) * b.width / 2 + Math.abs(cross[1]) * b.depth / 2;
+      for (const a of blueprint.roof.artifacts) {
+        const [w, d] = a.rotationDeg === 90 ? [a.size[1], a.size[0]] : [a.size[0], a.size[1]];
+        const clearX = Math.abs(a.center[0] - b.center[0]) >= halfX + w / 2;
+        const clearZ = Math.abs(a.center[1] - b.center[1]) >= halfZ + d / 2;
+        expect(clearX || clearZ, `${a.kind} sits on the bulkhead`).toBe(true);
+      }
+      expect(blueprint.roof.artifacts.some((a) => a.kind === 'bulkhead')).toBe(false);
+    }
+  });
+});
+
 describe('textured export', () => {
   it('defaults to a textured GLB with external map URIs against the materials base path', async () => {
     const { glb, textures } = await generate(residential, { textures: { baseUrl: '../materials/' } });
