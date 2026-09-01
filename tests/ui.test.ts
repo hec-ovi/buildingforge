@@ -9,6 +9,8 @@ import { userEvent } from '@testing-library/user-event';
 import { getByText } from '@testing-library/dom';
 import { RequestPanel } from '../src/ui/widgets/RequestPanel.ts';
 import { flatMaterialFor } from '../src/ui/views/flatMaterials.ts';
+import { streetEyeCamera } from '../src/ui/views/cameras.ts';
+import { pointInPolygon } from '../src/core/polygon.ts';
 import { fetchSource } from '../src/materials/fetchSource.ts';
 import { generate } from '../src/index.ts';
 
@@ -51,6 +53,24 @@ describe('RequestPanel', () => {
     const next = (onGenerate.mock.calls.at(-1)![0] as { seed: string }).seed;
     expect(next).toMatch(/^[0-9a-f]{12}$/);
     expect(next).not.toBe(rolled);
+  });
+});
+
+describe('preview cameras', () => {
+  it('stands the street eye 1.7 m up, in front of the entrance, looking at its head', async () => {
+    const request = JSON.parse(readFileSync(resolve('fixtures/residential-mid.request.json'), 'utf8'));
+    const { blueprint } = await generate(request, { textures: { mode: 'keys' } });
+    const ground = blueprint.floors.find((f) => f.index === 0)!;
+    const door = ground.openings.find((o) => o.id === 'entrance')!;
+    const pose = streetEyeCamera(blueprint, 10);
+
+    expect(pose.position[1]).toBe(1.7);
+    expect(pose.target[1]).toBeCloseTo(door.sill + door.height, 6);
+    // Ten metres out from the door, on the outside of its wall.
+    const dx = pose.position[0] - pose.target[0];
+    const dz = pose.position[2] - pose.target[2];
+    expect(Math.hypot(dx, dz)).toBeCloseTo(10, 6);
+    expect(pointInPolygon(ground.outline, [pose.position[0], pose.position[2]])).toBe(false);
   });
 });
 

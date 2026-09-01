@@ -3,6 +3,9 @@
 
 import { validateRequest } from './core/validate.ts';
 import { FAMILY } from './rules/families.ts';
+import {
+  PROPORTIONS, clearHeight, isStorefrontFloor, minWindowHeight, proportionsOf,
+} from './rules/proportions.ts';
 import { buildStyle } from './layout/style.ts';
 import { buildMassing } from './layout/massing.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
@@ -60,8 +63,13 @@ function entranceCandidates(outline: P2[], point: P2): number[] {
   return [...long, ...mid, ...rest].map((x) => x.e);
 }
 
-/** Machine-checked coherence: every opening lies entirely inside its edge and its floor. */
+/**
+ * Machine-checked coherence: every opening lies entirely inside its edge and its
+ * floor, and every opening the proportion table covers is the size that table
+ * promises.
+ */
 function checkInvariants(layout: Layout): void {
+  checkProportions(layout);
   for (const floor of layout.floors) {
     for (const o of floor.openings) {
       const ok = o.edge < floor.outline.length
@@ -74,6 +82,49 @@ function checkInvariants(layout: Layout): void {
       if (o.sill + o.height > floor.height + 1e-6) {
         throw new ExteriorError('E_INVARIANT',
           `opening ${o.id} spans ${(o.sill + o.height).toFixed(2)} m in a ${floor.height.toFixed(2)} m floor ${floor.index}; exterior bug, report with the request`);
+      }
+    }
+  }
+}
+
+/**
+ * The proportion table is a promise: entrance doors stand in their family's
+ * height range, punched windows reach their share of the floor's clear height on
+ * a sill inside the range, and the small deep megablock window is the poor
+ * tier's alone.
+ */
+function checkProportions(layout: Layout): void {
+  const prop = proportionsOf(layout.family);
+  const megablock = layout.style.facade.kind === 'megablock';
+  if (megablock && layout.tier !== PROPORTIONS.megablock.tier) {
+    throw new ExteriorError('E_INVARIANT',
+      `megablock windows on tier ${layout.tier}; the small deep window is the ${PROPORTIONS.megablock.tier} tier's alone`);
+  }
+  const fail = (why: string): never => {
+    throw new ExteriorError('E_INVARIANT', `${why}; exterior bug, report with the request`);
+  };
+
+  for (const floor of layout.floors) {
+    if (floor.index < 0) continue;
+    const clear = clearHeight(floor.height);
+    for (const o of floor.openings) {
+      if (o.id === 'entrance') {
+        const want = Math.min(prop.entrance[0], clear);
+        if (o.height < want - 1e-6 || o.height > prop.entrance[1] + 1e-6) {
+          fail(`entrance is ${o.height.toFixed(2)} m tall, outside ${want.toFixed(2)}..${prop.entrance[1]} m for ${layout.family}`);
+        }
+        continue;
+      }
+      if (o.kind !== 'window' || megablock) continue;
+      const storefront = floor.index === 0 && isStorefrontFloor(layout.family, floor.kind);
+      const spec = storefront
+        ? { ...prop, sill: PROPORTIONS.storefront.sill, windowHeight: PROPORTIONS.storefront.windowHeight }
+        : prop;
+      if (o.height < minWindowHeight(spec, clear) - 0.051) {
+        fail(`window ${o.id} is ${o.height.toFixed(2)} m in a ${clear.toFixed(2)} m clear floor, under the ${spec.windowHeight[0]} share`);
+      }
+      if (o.sill > spec.sill[1] + 0.051) {
+        fail(`window ${o.id} sits on a ${o.sill.toFixed(2)} m sill, over the ${spec.sill[1]} m limit`);
       }
     }
   }

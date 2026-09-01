@@ -2,14 +2,15 @@
 // Every range is [min, max] in meters unless noted.
 
 import { FEASIBILITY, type FeasibilityConstants, type Family, type Tier } from './families.ts';
+import { PROPORTIONS } from './proportions.ts';
 
+// Opening sizes (window width and height, sill, entrance height) live in
+// schemas/proportions.json, the published proportion table; these rules cover
+// what the table does not: storey heights, structure and bay rhythm.
 interface StyleRules {
   floorHeight: [number, number];
   groundFloorFactor: [number, number];
   windowToWall: [number, number];
-  windowWidth: [number, number];
-  windowHeight: [number, number];
-  sill: [number, number];
   bayModule: [number, number];
   columnGrid: [number, number];
   columnWidth: [number, number];
@@ -22,51 +23,43 @@ export interface FamilyRules extends StyleRules, FeasibilityConstants {}
 
 const STYLE_RULES: Record<Family, StyleRules> = {
   residential: {
-    floorHeight: [2.75, 3.05], groundFloorFactor: [1.3, 1.6],
-    windowToWall: [0.15, 0.4], windowWidth: [0.6, 1.2], windowHeight: [0.9, 1.8],
-    sill: [0.75, 0.9], bayModule: [3.0, 4.5], columnGrid: [3.0, 4.5],
+    floorHeight: [2.9, 3.2], groundFloorFactor: [1.3, 1.6],
+    windowToWall: [0.15, 0.4], bayModule: [3.0, 4.5], columnGrid: [3.0, 4.5],
     columnWidth: [0.3, 0.45], curtainWall: false, balconies: true, entranceGlass: true,
   },
   hotel: {
-    floorHeight: [3.0, 3.3], groundFloorFactor: [1.5, 2.0],
-    windowToWall: [0.3, 0.5], windowWidth: [1.2, 1.8], windowHeight: [1.2, 1.8],
-    sill: [0.6, 0.9], bayModule: [3.6, 4.5], columnGrid: [3.6, 4.5],
+    floorHeight: [3.1, 3.4], groundFloorFactor: [1.5, 2.0],
+    windowToWall: [0.3, 0.5], bayModule: [3.6, 4.5], columnGrid: [3.6, 4.5],
     columnWidth: [0.35, 0.5], curtainWall: false, balconies: true, entranceGlass: true,
   },
   office: {
     floorHeight: [3.66, 4.0], groundFloorFactor: [1.3, 1.6],
-    windowToWall: [0.3, 0.8], windowWidth: [1.5, 2.5], windowHeight: [1.5, 2.0],
-    sill: [0.7, 0.9], bayModule: [1.2, 1.8], columnGrid: [6.0, 9.0],
+    windowToWall: [0.3, 0.8], bayModule: [1.8, 2.6], columnGrid: [6.0, 9.0],
     columnWidth: [0.3, 0.6], curtainWall: true, balconies: false, entranceGlass: true,
   },
   corpo: {
     floorHeight: [3.9, 4.27], groundFloorFactor: [1.5, 2.0],
-    windowToWall: [0.7, 0.95], windowWidth: [1.5, 1.8], windowHeight: [2.4, 3.0],
-    sill: [0.0, 0.4], bayModule: [1.5, 1.8], columnGrid: [7.5, 9.0],
+    windowToWall: [0.7, 0.95], bayModule: [1.8, 2.4], columnGrid: [7.5, 9.0],
     columnWidth: [0.4, 0.7], curtainWall: true, balconies: false, entranceGlass: true,
   },
   hospital: {
     floorHeight: [4.2, 4.5], groundFloorFactor: [1.2, 1.4],
-    windowToWall: [0.2, 0.35], windowWidth: [1.2, 1.8], windowHeight: [1.2, 1.6],
-    sill: [0.7, 0.91], bayModule: [3.6, 4.8], columnGrid: [6.0, 7.5],
+    windowToWall: [0.2, 0.35], bayModule: [3.6, 4.8], columnGrid: [6.0, 7.5],
     columnWidth: [0.4, 0.6], curtainWall: false, balconies: false, entranceGlass: true,
   },
   security: {
     floorHeight: [3.2, 3.6], groundFloorFactor: [1.2, 1.5],
-    windowToWall: [0.1, 0.2], windowWidth: [0.6, 0.9], windowHeight: [0.9, 1.2],
-    sill: [1.5, 2.0], bayModule: [3.0, 4.0], columnGrid: [4.5, 6.0],
+    windowToWall: [0.1, 0.2], bayModule: [3.0, 4.0], columnGrid: [4.5, 6.0],
     columnWidth: [0.4, 0.6], curtainWall: false, balconies: false, entranceGlass: false,
   },
   industrial: {
     floorHeight: [6.0, 9.0], groundFloorFactor: [1.0, 1.0],
-    windowToWall: [0.05, 0.15], windowWidth: [1.8, 3.0], windowHeight: [0.9, 1.5],
-    sill: [2.5, 4.0], bayModule: [6.0, 9.0], columnGrid: [8.0, 12.0],
+    windowToWall: [0.05, 0.15], bayModule: [6.0, 9.0], columnGrid: [8.0, 12.0],
     columnWidth: [0.4, 0.6], curtainWall: false, balconies: false, entranceGlass: false,
   },
   commerce: {
     floorHeight: [3.4, 4.0], groundFloorFactor: [1.2, 1.5],
-    windowToWall: [0.4, 0.7], windowWidth: [1.5, 2.4], windowHeight: [1.5, 2.1],
-    sill: [0.4, 0.8], bayModule: [2.4, 3.6], columnGrid: [7.5, 9.0],
+    windowToWall: [0.4, 0.7], bayModule: [2.4, 3.6], columnGrid: [7.5, 9.0],
     columnWidth: [0.3, 0.5], curtainWall: false, balconies: false, entranceGlass: true,
   },
 };
@@ -77,11 +70,15 @@ export const RULES = Object.fromEntries(
 
 export const TIER_WWR_SHIFT: Record<Tier, number> = { poor: -0.35, mid: 0, rich: 0.35, high_rich: 0.7 };
 
+/**
+ * Entrance widths come from the proportion table; heights come from the family
+ * row there too, so every entrance lands in its published range. Service doors
+ * are their own thing: a roller shutter is sized by the truck, not by a person.
+ */
 export const DOORS = {
-  single: { width: 0.95, height: 2.1 },
-  double: { width: 1.85, height: 2.15 },
-  grandPortal: { width: [2.4, 4.2] as [number, number], height: [2.6, 3.5] as [number, number] },
-  loadingDock: { width: [2.4, 2.6] as [number, number], height: [2.7, 3.0] as [number, number] },
+  width: PROPORTIONS.entranceWidth,
+  /** one swinging leaf: wider than this and the entrance takes two */
+  maxLeafWidth: 1.2,
   rollerDrive: { width: [3.6, 5.4] as [number, number], height: [3.6, 5.0] as [number, number] },
 };
 
@@ -131,10 +128,11 @@ export const FACADE = {
       utilityChance: 0,
     },
   },
-  /** megablock cells: small openings, semi-irregular inside the panel grid */
+  /** megablock cells: the proportion table's small deep openings, semi-irregular inside the panel grid */
   megablockWindow: {
-    width: [0.55, 0.95] as [number, number],
-    height: [0.6, 1.05] as [number, number],
+    width: PROPORTIONS.megablock.windowWidth,
+    height: PROPORTIONS.megablock.windowHeight,
+    minSill: PROPORTIONS.megablock.minSill,
     density: 0.55,
   },
   utilityBox: {

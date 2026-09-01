@@ -2,6 +2,7 @@
 
 import { Rng } from '../core/rng.ts';
 import { RULES, TIER_WWR_SHIFT, BALCONY, FACADE, FACADE_STYLE, GLAZING, PARAPET, STRUCTURE } from '../rules/tables.ts';
+import { PROPORTIONS, proportionsOf } from '../rules/proportions.ts';
 import { quant } from '../core/polygon.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Style } from './model.ts';
@@ -9,6 +10,7 @@ import type { Style } from './model.ts';
 export function buildStyle(seed: string, family: Family, tier: Tier, floors: number): Style {
   const rng = new Rng(seed, 'style');
   const r = RULES[family];
+  const p = proportionsOf(family);
 
   const floorHeight = quant(rng.range(...r.floorHeight));
   const groundFloorHeight = quant(floorHeight * rng.range(...r.groundFloorFactor));
@@ -29,9 +31,12 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
   return {
     floorHeight,
     groundFloorHeight,
-    windowWidth: quant(rng.range(...r.windowWidth)),
-    windowHeight: quant(rng.range(...r.windowHeight)),
-    sill: quant(rng.range(...r.sill)),
+    windowWidth: quant(rng.range(...p.windowWidth)),
+    windowFraction: rng.range(...p.windowHeight),
+    sill: quant(rng.range(...p.sill)),
+    storefrontFraction: rng.range(...PROPORTIONS.storefront.windowHeight),
+    storefrontSill: quant(rng.range(...PROPORTIONS.storefront.sill)),
+    entrancePick: rng.next(),
     bayModule: quant(rng.range(...r.bayModule)),
     wwr,
     curtainWall,

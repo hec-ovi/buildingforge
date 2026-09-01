@@ -3,6 +3,9 @@
 
 import { Rng } from '../core/rng.ts';
 import { RULES, DOORS, FACADE, OPENING, CURTAINS, type CurtainDist } from '../rules/tables.ts';
+import {
+  PROPORTIONS, clearHeight, entranceHeight, fitWindow, isStorefrontFloor, proportionsOf,
+} from '../rules/proportions.ts';
 import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
 import { paneGrid } from './glazing.ts';
 import type { Aperture, BuildingRequest, CurtainState, Opening } from '../types.ts';
@@ -32,6 +35,7 @@ export function buildFacades(
   const streetEdge = streetEdges[0] as number;
   const seed = req.seed;
   const rules = RULES[family];
+  const prop = proportionsOf(family);
   const noWindows = req.options?.windows === 'none';
   const balconiesOpt = req.options?.balconies ?? 'auto';
   const balconiesOn = rules.balconies && balconiesOpt !== 'off' && (balconiesOpt === 'on' || family === 'residential' || family === 'hotel');
@@ -124,7 +128,7 @@ export function buildFacades(
     // 2. Entrance and service doors on the ground floor (doors exist even window-less),
     // reserved before any window fill so the facade always keeps its entrance zone.
     if (isGround) {
-      placeEntrance(req, family, tier, outline, streetEdges, level.height, openings, takenByEdge);
+      placeEntrance(req, family, tier, style, outline, streetEdges, level.height, openings, takenByEdge);
       if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
     }
 
@@ -172,18 +176,28 @@ export function buildFacades(
             continue;
           }
 
-          // Window bay. Curtain-wall styles glaze every bay wide; punched windows roll density.
+          // Window bay. Curtain-wall styles glaze every bay wide; punched windows
+          // roll density. Sizes come from the proportion table, fitted to this
+          // floor's clear height.
           let w: number, h: number, sill: number, always: boolean;
+          const clear = clearHeight(level.height);
           if (style.curtainWall && !isGround) {
             w = quant(Math.max(0.6, bayW - 0.15));
             h = quant(Math.max(1.2, level.height - 0.45));
             sill = 0.25;
             always = true;
           } else {
+            const storefront = isGround && isStorefrontFloor(family, level.kind);
+            const fit = fitWindow(
+              storefront ? { ...prop, sill: PROPORTIONS.storefront.sill, windowHeight: PROPORTIONS.storefront.windowHeight } : prop,
+              storefront ? style.storefrontFraction : style.windowFraction,
+              storefront ? style.storefrontSill : style.sill,
+              clear,
+            );
+            if (!fit) continue;
             w = Math.min(style.windowWidth, bayW - OPENING.minPier);
-            h = Math.min(style.windowHeight, level.height - 0.6);
-            sill = isGround && family === 'commerce' ? 0.35 : style.sill;
-            if (sill + h > level.height - 0.2) h = quant(level.height - 0.2 - sill);
+            h = fit.height;
+            sill = fit.sill;
             always = false;
           }
           if (w < 0.4 || h < 0.5) continue;
@@ -261,7 +275,8 @@ function placeMegablockCells(
     const height = quant(Math.min(rng.range(...h), level.height - 1.1));
     if (width < 0.4 || height < 0.4) continue;
     const u = quantOff(start + rng.next() * (end - start - width));
-    const sill = quant(0.8 + rng.next() * Math.max(0, level.height - height - 1.4));
+    const minSill = FACADE.megablockWindow.minSill;
+    const sill = quant(minSill + rng.next() * Math.max(0, level.height - height - minSill - 0.6));
     if (!fits(taken, e, u, u + width)) continue;
     take(taken, e, u, u + width);
     openings.push({
@@ -287,25 +302,27 @@ function fits(map: Map<number, Taken[]>, edge: number, start: number, end: numbe
   return true;
 }
 
+/**
+ * The entrance: 2.4 to 3.2 m tall by the family's row in the proportion table
+ * (venue and lobby entrances at the top of it), as wide as its leaf count needs,
+ * capped only by a ground floor too short to hold it.
+ */
 function placeEntrance(
-  req: BuildingRequest, family: Family, tier: Tier,
+  req: BuildingRequest, family: Family, tier: Tier, style: Style,
   outline: P2[], candidates: number[], groundHeight: number,
   openings: Opening[], taken: Map<number, Taken[]>,
 ): void {
   const rng = new Rng(req.seed, 'entrance');
   const rules = RULES[family];
+  const prop = proportionsOf(family);
 
-  let wWant: number, h: number;
-  const grand = (family === 'corpo' || family === 'hotel') && (tier === 'rich' || tier === 'high_rich');
-  if (grand) {
-    wWant = quant(rng.range(...DOORS.grandPortal.width));
-    h = quant(rng.range(...DOORS.grandPortal.height));
-  } else if (family === 'residential' && tier === 'poor') {
-    wWant = DOORS.single.width; h = DOORS.single.height;
-  } else {
-    wWant = DOORS.double.width; h = DOORS.double.height;
-  }
-  h = Math.min(h, groundHeight - 0.3);
+  const grand = (family === 'corpo' || family === 'hotel' || family === 'commerce')
+    && (tier === 'rich' || tier === 'high_rich');
+  const widthRange = grand ? DOORS.width.grand
+    : family === 'residential' && tier === 'poor' ? DOORS.width.single
+    : DOORS.width.double;
+  const wWant = quant(rng.range(...widthRange));
+  const h = entranceHeight(prop, style.entrancePick, clearHeight(groundHeight));
 
   for (const e of candidates) {
     if (e >= outline.length) continue;

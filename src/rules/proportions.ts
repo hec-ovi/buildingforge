@@ -1,0 +1,72 @@
+// The proportion table (schemas/proportions.json) and the fit it defines:
+// how tall a window is on a floor of a given height, and how tall an entrance
+// door is. One module owns the arithmetic so the facade builder and the
+// machine check can never drift apart.
+
+import table from '../../schemas/proportions.json' with { type: 'json' };
+import type { Family, Tier } from './families.ts';
+
+export interface FamilyProportions {
+  entrance: [number, number];
+  /** window height as a fraction of the floor's clear height */
+  windowHeight: [number, number];
+  sill: [number, number];
+  windowWidth: [number, number];
+}
+
+export const PROPORTIONS = table as unknown as {
+  clearHeightAllowance: number;
+  entranceRange: [number, number];
+  standardFamilies: Family[];
+  families: Record<Family, FamilyProportions>;
+  storefront: { windowHeight: [number, number]; sill: [number, number] };
+  megablock: { tier: Tier; windowHeight: [number, number]; windowWidth: [number, number]; minSill: number };
+  entranceWidth: { single: [number, number]; double: [number, number]; grand: [number, number] };
+};
+
+/** Floor-to-floor minus the slab and ceiling zone: the height a person sees. */
+export function clearHeight(floorHeight: number): number {
+  return Math.max(0, floorHeight - PROPORTIONS.clearHeightAllowance);
+}
+
+export interface WindowFit { height: number; sill: number }
+
+/**
+ * The window a floor of this clear height gets from a building's frozen
+ * fraction and sill. The sill drops to the family minimum before the height is
+ * trimmed, so a short floor loses sill before it loses glass; null when even the
+ * minimum window cannot stand in the floor.
+ */
+export function fitWindow(spec: FamilyProportions, fraction: number, sill: number, clear: number): WindowFit | null {
+  const minH = Math.min(spec.windowHeight[0] * clear, clear - spec.sill[0]);
+  let h = fraction * clear;
+  let s = sill;
+  if (s + h > clear) s = Math.max(spec.sill[0], clear - h);
+  if (s + h > clear) h = clear - s;
+  if (h < minH - 1e-9) h = minH;
+  if (h < 0.5 || s < 0 || s + h > clear + 1e-9) return null;
+  return { height: q(h), sill: q(s) };
+}
+
+/** The smallest height fitWindow can return on this floor: what the invariant asserts. */
+export function minWindowHeight(spec: FamilyProportions, clear: number): number {
+  return Math.min(spec.windowHeight[0] * clear, clear - spec.sill[0]);
+}
+
+/** Entrance door height for a family, capped by what the ground floor can hold. */
+export function entranceHeight(spec: FamilyProportions, pick: number, groundClear: number): number {
+  const want = spec.entrance[0] + pick * (spec.entrance[1] - spec.entrance[0]);
+  return q(Math.min(want, groundClear));
+}
+
+export function proportionsOf(family: Family): FamilyProportions {
+  return PROPORTIONS.families[family];
+}
+
+/** A ground floor that sells or receives reads as a shopfront, not as a housing floor. */
+export function isStorefrontFloor(family: Family, kind: string): boolean {
+  if (family === 'industrial' || family === 'security') return false;
+  return kind !== 'entry' && kind !== 'basement';
+}
+
+const q = (v: number): number => Math.round(v * 20) / 20;

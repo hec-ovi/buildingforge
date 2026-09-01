@@ -10,6 +10,7 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { flatMaterialFor } from './flatMaterials.ts';
+import { orbitCamera, streetEyeCamera, type ViewMode } from './cameras.ts';
 import { edgeDir, edgeNormal, type P2 } from '../../core/polygon.ts';
 import type { Blueprint } from '../../types.ts';
 
@@ -26,6 +27,9 @@ export class PreviewView {
   private wireframe = false;
   private highlightOn = false;
   private flat = false;
+  private view: ViewMode = 'orbit';
+  private blueprint: Blueprint | null = null;
+  private orbitPose = { center: [0, 0, 0] as [number, number, number], radius: 30 };
   /** shipped material and inspection material per mesh, so the toggle is lossless */
   private readonly looks = new Map<Mesh, { textured: Material; flat: Material }>();
 
@@ -98,13 +102,24 @@ export class PreviewView {
     // bulkhead and the antennas standing on it.
     this.buildingTop = box.max.y;
     const center = box.getCenter(new Vector3());
-    this.controls.target.copy(center);
-    // Stand outside the bounding sphere and fit it in the field of view, so the
-    // first look is the whole building from the street side, never from inside it.
-    const radius = box.getSize(new Vector3()).length() / 2;
-    const distance = (radius / Math.sin((this.camera.fov * Math.PI) / 360)) * 1.1;
-    const eye = new Vector3(1, 0.55, 1).normalize().multiplyScalar(distance);
-    this.camera.position.copy(center).add(eye);
+    this.blueprint = blueprint;
+    this.orbitPose = { center: [center.x, center.y, center.z], radius: box.getSize(new Vector3()).length() / 2 };
+    this.applyCamera();
+  }
+
+  /** Orbit frames the whole building; street eye stands on the pavement at 1.7 m. */
+  setView(view: ViewMode): void {
+    this.view = view;
+    this.applyCamera();
+  }
+
+  private applyCamera(): void {
+    const pose = this.view === 'eye' && this.blueprint
+      ? streetEyeCamera(this.blueprint)
+      : orbitCamera(this.orbitPose.center, this.orbitPose.radius, this.camera.fov);
+    this.camera.position.set(...pose.position);
+    this.controls.target.set(...pose.target);
+    this.controls.update();
   }
 
   setClip(fraction: number): void {

@@ -30,6 +30,7 @@ const inspect = new InspectPanel({
   onWireframe: (on) => view.setWireframe(on),
   onHighlight: (on) => view.setHighlight(on),
   onFlat: (on) => view.setFlat(on),
+  onView: (mode) => view.setView(mode),
 });
 
 const sources = new Map<string, Promise<MaterialSource | null>>();

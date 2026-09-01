@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.15.1, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.16, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -21,6 +21,8 @@ CLI: `npm run generate -- <request.json> <outDir> [--seed S] [--embed | --keys-o
 Seeds: `generate` needs one, so a request with no seed (and no `--seed`) gets a random one rolled at the edge. The CLI prints the seed it used on every run and the preview keeps it in the seed field, so any building can be regenerated exactly.
 
 Feasibility: [schemas/floor-constants.json](schemas/floor-constants.json) carries the per-type constants the generator enforces (type-to-family map, min and max floor height, min footprint area) plus the recipe for pre-computing a guaranteed-feasible floor count, with or without apertures.
+
+Proportions: [schemas/proportions.json](schemas/proportions.json) is the published opening size table, also exported as `PROPORTIONS`. A floor's clear height is its floor-to-floor height minus `clearHeightAllowance`. Every entrance door stands 2.4 to 3.2 m tall inside its family's row (venue, hotel, office and corpo entrances at the top of it), capped only by a ground floor too short to hold it. A standard-family window (residential, hotel, office, corpo, hospital, commerce) is 55 to 85 percent of the clear height by its family row, on a 0.7 to 0.9 m sill for the housing families and lower and larger for offices and corpo; a venue or lobby ground floor takes the `storefront` row instead. `security` and `industrial` are the documented small-window exceptions, and the small deep scattered window is the poor tier's megablock alone. The generator enforces all of it (`E_INVARIANT`).
 
 ## Out
 Blueprint: [schemas/blueprint.schema.json](schemas/blueprint.schema.json). Per floor (basements included): index, kind, elevation, height, CCW outline, openings (door | window | balconyDoor | aperture) positioned by outline edge + offset + sill, with curtain state, pane grid, balcony dimensions, material key. Plus signage, screens, lights, facade style and artifacts, fire escape, roof artifacts, and the deduplicated material key list.
@@ -64,13 +66,14 @@ Thrown as `ExteriorError { code, message, details? }`:
 - Every bridge, ac-tube and tunnel aperture yields exactly one `aperture` opening carving exactly the given cut, with a floor walking surface at exactly its base; that floor is tall enough to contain the aperture's full vertical extent. Wire anchors cut no hole: the region stays clear of openings and the GLB carries node `anchor:<id>`. The per-floor elevation table in the blueprint is final; interior consumes it.
 - Floor elevations are contiguous: `elevation[i+1] = elevation[i] + height[i]`; ground floor at 0.
 - Openings on one floor never overlap; min 0.3 m pier between openings. Every opening lies entirely inside its edge with non-negative offset and inside its floor's height (machine-checked before output).
+- Every opening the proportion table covers is the size that table promises: entrance height in its family range, window height at or above its share of the clear height, sill inside the family range (machine-checked before output).
 - The entrance goes to a street-facing edge at least 3 m long when one exists (true point-to-segment distance from the access point, never a corner-touching sliver), and its zone is reserved before any window fill.
 - Every balconyDoor carries balcony dimensions; balconies protrude beyond the outline but stay inside the parcel footprint.
 - The structure never exceeds the parcel footprint; it need not fill it.
 - Blueprint floors match GLB geometry exactly (same outlines, same opening rectangles).
 
 ## Preview
-`npm run preview`: vite app, loads a fixture, generates in-browser and shows the finished textured building at first load framed from outside (the dev server serves the materials box at `/materials`). Orbit controls, per-floor clipping, a flat kind-coloured look and wireframe for reading geometry, opening highlighting. UI in `src/ui/` with `views/`, `widgets/`, `components/`.
+`npm run preview`: vite app, loads a fixture, generates in-browser and shows the finished textured building at first load framed from outside (the dev server serves the materials box at `/materials`). Two cameras: orbit, and a street eye standing 1.7 m above the pavement in front of the entrance, which is where door and window proportions are judged. Per-floor clipping, a flat kind-coloured look and wireframe for reading geometry, opening highlighting. UI in `src/ui/` with `views/`, `widgets/`, `components/`.
 
 ## Depends on
 - ../atlas/CONTRACT.md (parcel: footprint, access point, envelope, type, tier)

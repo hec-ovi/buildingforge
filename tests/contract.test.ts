@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { NodeIO } from '@gltf-transform/core';
-import { generate, ExteriorError } from '../src/index.ts';
+import { generate, ExteriorError, PROPORTIONS } from '../src/index.ts';
 import type { Blueprint, Floor, GenerateOptions, Opening } from '../src/index.ts';
 
 const fixture = (name: string): Record<string, unknown> =>
@@ -287,6 +287,57 @@ describe('blueprint invariants', () => {
       });
       expect(blueprint.floors.map((f: Floor) => f.kind)).toEqual([type, type]);
     }
+  });
+
+  it('gives every entrance the height its family row publishes, inside 2.4 to 3.2 m', async () => {
+    const cases: [Record<string, unknown>, keyof typeof PROPORTIONS.families][] = [
+      [residential, 'residential'], [corpo, 'corpo'], [factory, 'industrial'], [sliver, 'office'],
+    ];
+    for (const [req, family] of cases) {
+      const { blueprint } = await generate(req, KEYS);
+      const door = blueprint.floors.find((f) => f.index === 0)!.openings.find((o) => o.id === 'entrance')!;
+      const row = PROPORTIONS.families[family];
+      expect(door.height).toBeGreaterThanOrEqual(row.entrance[0] - 1e-6);
+      expect(door.height).toBeLessThanOrEqual(row.entrance[1] + 1e-6);
+      expect(door.height).toBeGreaterThanOrEqual(PROPORTIONS.entranceRange[0] - 1e-6);
+      expect(door.height).toBeLessThanOrEqual(PROPORTIONS.entranceRange[1] + 1e-6);
+    }
+  });
+
+  it('sizes punched windows by the published share of the floor clear height', async () => {
+    const cases: [string, keyof typeof PROPORTIONS.families][] = [
+      ['residential', 'residential'], ['clinic', 'hospital'], ['commerce', 'commerce'],
+    ];
+    for (const [type, family] of cases) {
+      const req = { ...residential, building: { ...(residential.building as object), type }, seed: `prop-${type}` };
+      const { blueprint } = await generate(req, KEYS);
+      const row = PROPORTIONS.families[family];
+      const windows = blueprint.floors
+        .filter((f) => f.index > 0)
+        .flatMap((f) => f.openings.filter((o) => o.kind === 'window').map((o) => ({ o, f })));
+      expect(windows.length).toBeGreaterThan(0);
+      for (const { o, f } of windows) {
+        const clear = f.height - PROPORTIONS.clearHeightAllowance;
+        expect(o.height / clear).toBeGreaterThanOrEqual(row.windowHeight[0] - 0.02);
+        expect(o.sill).toBeGreaterThanOrEqual(row.sill[0] - 0.051);
+        expect(o.sill).toBeLessThanOrEqual(row.sill[1] + 0.051);
+        expect(o.sill + o.height).toBeLessThanOrEqual(clear + 1e-6);
+      }
+    }
+  });
+
+  it('keeps the small deep window on the poor tier alone', async () => {
+    const poor = (await generate(factory, KEYS)).blueprint;
+    expect(poor.facade.style).toBe('megablock');
+    const small = poor.floors.flatMap((f) => f.openings.filter((o) => o.kind === 'window'));
+    expect(small.length).toBeGreaterThan(0);
+    expect(Math.max(...small.map((w) => w.height))).toBeLessThanOrEqual(PROPORTIONS.megablock.windowHeight[1]);
+
+    // The same parcel one tier up drops the scatter and takes the family's share.
+    const mid = (await generate({ ...factory, building: { ...(factory.building as object), tier: 'mid' } }, KEYS)).blueprint;
+    expect(mid.facade.style).not.toBe('megablock');
+    const big = mid.floors.flatMap((f) => f.openings.filter((o) => o.kind === 'window'));
+    expect(Math.min(...big.map((w) => w.height))).toBeGreaterThan(PROPORTIONS.megablock.windowHeight[1]);
   });
 
   it('windows:none produces doors but no windows', async () => {

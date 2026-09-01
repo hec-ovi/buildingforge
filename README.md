@@ -11,7 +11,7 @@ The shell is empty inside except one separator plane per floor, which a floor-fi
 ```
 npm install
 npm test                                              # contract tests
-npm run preview                                       # 3D viewer: orbit, per-floor isolation, opening highlight
+npm run preview                                       # 3D viewer: orbit or street eye, per-floor isolation, opening highlight
 npm run generate -- fixtures/corpo-tower.request.json out   # textured GLB + blueprint
 npm run typecheck
 ```
@@ -37,7 +37,7 @@ npm run generate -- request.json out --keys-only        # material keys, no maps
 - **options**: shape, balconies, fire escape, window style, signage marquee or logo, ad screens, roof artifacts, curtain profile
 - **textures**: `external` map URIs against a base path (default), `embed` for one self-contained file, or `keys` for a consumer that resolves the material keys itself
 
-`schemas/floor-constants.json` publishes the per-type constants (floor height bands, minimum footprint area) and the recipe a caller uses to pick a guaranteed feasible floor count before generating, so a batch never discovers infeasibility halfway through.
+`schemas/floor-constants.json` publishes the per-type constants (floor height bands, minimum footprint area) and the recipe a caller uses to pick a guaranteed feasible floor count before generating, so a batch never discovers infeasibility halfway through. `schemas/proportions.json` publishes the opening sizes: entrance doors 2.4 to 3.2 m tall by family, window heights as a share of each floor's clear height, sill ranges, and the shopfront and megablock exceptions.
 
 ## Out
 
