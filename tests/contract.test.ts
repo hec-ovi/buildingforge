@@ -5,10 +5,20 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { NodeIO } from '@gltf-transform/core';
 import { generate, ExteriorError } from '../src/index.ts';
-import type { Blueprint, Floor, Opening } from '../src/index.ts';
+import type { Blueprint, Floor, GenerateOptions, Opening } from '../src/index.ts';
 
 const fixture = (name: string): Record<string, unknown> =>
   JSON.parse(readFileSync(new URL(`../fixtures/${name}.request.json`, import.meta.url), 'utf8'));
+
+/** Geometry is identical in every texture mode; structural checks read the keys-only GLB. */
+const KEYS: GenerateOptions = { textures: { mode: 'keys' } };
+
+/** The glTF JSON chunk of a GLB: NodeIO refuses to parse external image URIs. */
+function glbJson(glb: Uint8Array): Record<string, any> {
+  const view = new DataView(glb.buffer, glb.byteOffset, glb.byteLength);
+  const jsonLength = view.getUint32(12, true);
+  return JSON.parse(new TextDecoder().decode(glb.subarray(20, 20 + jsonLength)));
+}
 
 const residential = fixture('residential-mid');
 const corpo = fixture('corpo-tower');
@@ -330,7 +340,7 @@ describe('apertures', () => {
 
 describe('GLB shell', () => {
   it('parses as valid binary glTF with the contract node names and materials', async () => {
-    const { glb, blueprint } = await generate(bridged);
+    const { glb, blueprint } = await generate(bridged, KEYS);
     const doc = await new NodeIO().readBinary(glb);
     const root = doc.getRoot();
     const nodeNames = root.listNodes().map((n) => n.getName());
@@ -348,8 +358,8 @@ describe('GLB shell', () => {
   });
 
   it('glb:merged gives one mesh per material key, anchors kept, blueprint unchanged', async () => {
-    const named = await generate(bridged);
-    const merged = await generate({ ...bridged, options: { glb: 'merged' } });
+    const named = await generate(bridged, KEYS);
+    const merged = await generate({ ...bridged, options: { glb: 'merged' } }, KEYS);
     expect(JSON.stringify(merged.blueprint)).toBe(JSON.stringify(named.blueprint));
     const doc = await new NodeIO().readBinary(merged.glb);
     const meshNodes = doc.getRoot().listNodes().filter((n) => n.getMesh());
@@ -360,7 +370,7 @@ describe('GLB shell', () => {
   });
 
   it('faces every ground wall triangle outward', async () => {
-    const { glb, blueprint } = await generate(bridged);
+    const { glb, blueprint } = await generate(bridged, KEYS);
     const doc = await new NodeIO().readBinary(glb);
     const ground = blueprint.floors.find((f) => f.index === 0)!;
     for (let e = 0; e < ground.outline.length; e++) {
@@ -387,6 +397,75 @@ describe('GLB shell', () => {
           expect(nx * out[0]! + nz * out[1]!).toBeGreaterThanOrEqual(-1e-6);
         }
       }
+    }
+  });
+});
+
+describe('textured export', () => {
+  it('defaults to a textured GLB with external map URIs against the materials base path', async () => {
+    const { glb, textures } = await generate(residential, { textures: { baseUrl: '../materials/' } });
+    expect(textures.mode).toBe('external');
+    const json = glbJson(glb);
+    expect(json.images.length).toBeGreaterThan(0);
+    for (const image of json.images) {
+      expect(image.uri).toMatch(/^\.\.\/materials\/themes\/cyberpunk\/assets\/.+\.png$/);
+      expect(image.bufferView).toBeUndefined();
+    }
+    // Every material the building uses carries maps, not just a name.
+    for (const material of json.materials) {
+      expect(material.pbrMetallicRoughness.baseColorTexture).toBeDefined();
+      expect(material.normalTexture).toBeDefined();
+    }
+  });
+
+  it('scales tiled maps by their world size and leaves exact placements untransformed', async () => {
+    const { glb } = await generate(residential);
+    const json = glbJson(glb);
+    const wall = json.materials.find((m: { name: string }) => m.name === 'cyberpunk/wall/mid');
+    const transform = wall.pbrMetallicRoughness.baseColorTexture.extensions.KHR_texture_transform;
+    expect(transform.scale).toEqual([1 / 3, 1 / 3]); // wall tiles cover 3 m
+    const glass = json.materials.find((m: { name: string }) => m.name === 'cyberpunk/window-glass/mid');
+    expect(glass.extensions.KHR_materials_transmission.transmissionFactor).toBeGreaterThan(0);
+    expect(glass.extensions.KHR_materials_ior).toBeDefined();
+  });
+
+  it('--embed packs the maps into one self-contained GLB', async () => {
+    const external = await generate(residential, { textures: { mode: 'external' } });
+    const embedded = await generate(residential, { textures: { mode: 'embed' } });
+    expect(embedded.textures.mode).toBe('embed');
+    const json = glbJson(embedded.glb);
+    for (const image of json.images) {
+      expect(image.uri).toBeUndefined();
+      expect(image.bufferView).toBeGreaterThanOrEqual(0);
+    }
+    expect(embedded.glb.byteLength).toBeGreaterThan(external.glb.byteLength);
+    expect(JSON.stringify(embedded.blueprint)).toBe(JSON.stringify(external.blueprint));
+  });
+
+  it('keys mode keeps the untextured shell the engine runtime resolves itself', async () => {
+    const { glb, blueprint, textures } = await generate(residential, KEYS);
+    expect(textures.mode).toBe('keys');
+    const json = glbJson(glb);
+    expect(json.images).toBeUndefined();
+    expect(json.materials.map((m: { name: string }) => m.name).sort()).toEqual(blueprint.materials);
+  });
+
+  it('degrades to keys with a reason when no materials database is there, and stays deterministic', async () => {
+    const first = await generate(residential, { textures: { source: null } });
+    const second = await generate(residential, { textures: { source: null } });
+    expect(first.textures.mode).toBe('keys');
+    expect(first.textures.reason).toContain('cyberpunk');
+    expect(Buffer.from(first.glb).equals(Buffer.from(second.glb))).toBe(true);
+  });
+
+  it('names the key the theme cannot resolve', async () => {
+    const source = { index: { theme: 'sparse', entries: {} }, readMap: () => null };
+    try {
+      await generate({ ...residential, theme: 'sparse' }, { textures: { source } });
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      expect((err as ExteriorError).code).toBe('E_MATERIAL_UNRESOLVED');
+      expect((err as ExteriorError).message).toContain('sparse/');
     }
   });
 });

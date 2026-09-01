@@ -14,9 +14,9 @@ import { buildBlueprint } from './blueprint/builder.ts';
 import { edgeLength, pointSegmentDistance, type P2 } from './core/polygon.ts';
 import { ExteriorError } from './core/errors.ts';
 import type { Layout } from './layout/model.ts';
-import type { GenerateResult } from './types.ts';
+import type { GenerateOptions, GenerateResult } from './types.ts';
 
-export async function generate(raw: unknown): Promise<GenerateResult> {
+export async function generate(raw: unknown, options: GenerateOptions = {}): Promise<GenerateResult> {
   const req = validateRequest(raw);
   const family = FAMILY[req.building.type];
   const tier = req.building.tier;
@@ -35,9 +35,9 @@ export async function generate(raw: unknown): Promise<GenerateResult> {
   checkInvariants(layout);
 
   const mb = buildMesh(layout);
-  const glb = await writeGlb(layout, mb);
+  const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   const blueprint = buildBlueprint(layout, mb);
-  return { glb, blueprint };
+  return { glb, blueprint, textures };
 }
 
 /**

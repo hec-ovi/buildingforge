@@ -2,19 +2,21 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.8.1, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.9.0, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
 - Outputs share the request footprint's coordinate frame; ground floor walking surface at Y = 0.
-- Determinism: same request, byte-identical GLB and blueprint JSON. No LLM, no wall clock, no environment reads.
+- Determinism: same request, same materials database and same texture options give a byte-identical GLB and blueprint JSON. No LLM, no wall clock, no ambient randomness.
 
 ## In
-`generate(request: BuildingRequest): { glb: Uint8Array, blueprint: Blueprint }`
+`generate(request: BuildingRequest, options?: GenerateOptions): { glb: Uint8Array, blueprint: Blueprint, textures: { mode, reason? } }`
 
 Request: [schemas/building-request.schema.json](schemas/building-request.schema.json). Seed, parcel (footprint, street access point, max height), building (atlas type and tier verbatim, floor count, basements, optional per-floor kind labels), theme slug, required apertures (connections' aperture schema verbatim: face = parcel footprint segment index, absolute base, world-space cut polygon; kinds bridge, ac-tube, tunnel, wire-anchor), options (shape, balconies, fire escape, windows, signage marquee/logo, ad screens, roof artifacts, curtain profile).
 
-CLI: `npm run generate -- <request.json> <outDir>` writes `<buildingId>.glb` and `<buildingId>.blueprint.json`.
+`options.textures`: `{ mode?: "external" | "embed" | "keys", dir?, baseUrl?, source? }`. `dir` is the materials box root (defaults to `URBE_MATERIALS_DIR`, else the sibling `materials` box), `baseUrl` is the URI prefix written into the GLB before `themes/<theme>/assets/...`, and `source` is a preloaded materials source for callers with no filesystem (the browser preview) or `null` to force the keys fallback.
+
+CLI: `npm run generate -- <request.json> <outDir> [--embed | --keys-only] [--materials DIR] [--materials-base URI]` writes `<buildingId>.glb` and `<buildingId>.blueprint.json`; external map URIs are written relative to the output directory by default.
 
 Feasibility: [schemas/floor-constants.json](schemas/floor-constants.json) carries the per-type constants the generator enforces (type-to-family map, min and max floor height, min footprint area) plus the recipe for pre-computing a guaranteed-feasible floor count, with or without apertures.
 
@@ -28,8 +30,14 @@ GLB shell:
 - `options.glb: "merged"` swaps the node scheme for one mesh per material key (`merged:<theme/kind/tier>`), for runtime scale; anchors stay named nodes and the blueprint is identical either way. Default `"named"` is the canonical interchange.
 - Empty inside except one upward-facing separator plane per floor at its elevation. The `floor:<index>/slab` nodes are replaceable: interior re-emits them with stair and elevator holes under the same names.
 - All triangles CCW front, outward normals; windows are overlay units proud of the uncut wall; real holes only for doors and apertures (grid-cut, watertight, no T-junctions).
-- Materials carry no textures; each is named by the canonical key `theme/kind/tier` (lowercase slugs) and resolved by the materials index. Kinds used: wall, wall-trim, column, window-glass, window-frame, curtain, door, door-glass, balcony-slab, balcony-rail, roof, floor-slab, parapet, signage, ad-screen, light-fixture, fire-escape, aperture-frame, roof-artifact.
+- Every material is named by the canonical key `theme/kind/tier` (lowercase slugs). Kinds used: wall, wall-trim, column, window-glass, window-frame, curtain, door, door-glass, balcony-slab, balcony-rail, roof, floor-slab, parapet, signage, ad-screen, light-fixture, fire-escape, aperture-frame, roof-artifact.
 - Tiled materials get world-scale UVs (1 UV unit = 1 tile meter, planar per face, origin at the face's bottom-left, U along the face's own horizontal edge) so textures never stretch; opening and style dimensions are quantized to 0.05 m, positions to millimeters. Exact-placement materials (ad-screen, signage, window glass) get exact 0..1 UVs over their quad, never a partial tile.
+
+Textures. The default export is a finished exterior: every key resolves through ../materials into real maps (basecolor, normal, occlusion, emission where the entry has one, plus its metallic and roughness factors, transmission and IOR for glass). Tiled entries carry a `KHR_texture_transform` scale of 1 / tiling worldSize over the world-meter UVs; exact entries get clamped 0..1 UVs and no transform. The map variant is picked deterministically per material key from the seed. `textures.mode` on the result says which mode the GLB carries:
+- `external` (default): map URIs written against `baseUrl`, nothing embedded.
+- `embed`: the maps packed into one self-contained GLB.
+- `keys`: material names only, for a consumer that resolves them itself (the engine runtime).
+With no materials database at the configured path, output falls back to `keys` and `textures.reason` says so, so the box still runs standalone.
 
 ## Errors
 Thrown as `ExteriorError { code, message, details? }`:
@@ -42,6 +50,7 @@ Thrown as `ExteriorError { code, message, details? }`:
 - `E_APERTURE_INVALID`: cut polygon off its face plane or inconsistent with u/width/height.
 - `E_APERTURE_OVERLAP`: two aperture cuts overlap on the same face.
 - `E_SIGNAGE_TEXT_TOO_LONG`: marquee text exceeds the facade's computed capacity.
+- `E_MATERIAL_UNRESOLVED`: the materials theme has no entry for a key the building uses, or embedded textures were asked for without the database on disk.
 - `E_INVARIANT`: post-generation coherence check failed; exterior bug, report with the request.
 
 ## Invariants

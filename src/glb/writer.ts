@@ -1,28 +1,36 @@
-// GLB assembly with @gltf-transform/core. Materials carry no textures, only
-// the canonical theme/kind/tier name the materials index resolves.
+// GLB assembly with @gltf-transform/core. Materials are named by the canonical
+// theme/kind/tier key and, unless the caller asks for keys only, resolved
+// through the materials box into real maps.
 
-import { Document } from '@gltf-transform/core';
-import type { MeshBuilder } from '../mesh/primitives.ts';
+import { Document, type Material } from '@gltf-transform/core';
+import {
+  KHRMaterialsEmissiveStrength, KHRMaterialsIOR, KHRMaterialsTransmission, KHRTextureTransform,
+} from '@gltf-transform/extensions';
+import { createMaterials, type TextureMode, type TextureOptions } from '../materials/apply.ts';
+import { autoSource } from '../materials/autoSource.ts';
+import { writeBinaryWithUris } from './pack.ts';
+import type { MeshBuilder, Prim } from '../mesh/primitives.ts';
 import type { Layout } from '../layout/model.ts';
 
-export async function writeGlb(layout: Layout, mb: MeshBuilder): Promise<Uint8Array> {
+const EXTENSIONS = [KHRTextureTransform, KHRMaterialsTransmission, KHRMaterialsIOR, KHRMaterialsEmissiveStrength];
+
+export interface GlbOutput {
+  glb: Uint8Array;
+  textures: { mode: TextureMode; reason?: string };
+}
+
+export async function writeGlb(layout: Layout, mb: MeshBuilder, options: TextureOptions = {}): Promise<GlbOutput> {
   const doc = new Document();
   const buffer = doc.createBuffer('data');
   const scene = doc.createScene('scene');
   const root = doc.createNode(`building:${layout.request.buildingId}`);
   scene.addChild(root);
 
-  const materials = new Map<string, ReturnType<Document['createMaterial']>>();
-  const materialOf = (key: string) => {
-    let m = materials.get(key);
-    if (!m) {
-      m = doc.createMaterial(key).setDoubleSided(false).setMetallicFactor(0).setRoughnessFactor(1);
-      materials.set(key, m);
-    }
-    return m;
-  };
+  const source = options.source !== undefined ? options.source : await autoSource(layout.theme, options.dir);
+  const plan = createMaterials(doc, mb.materialKeys(), layout.theme, layout.request.seed, options, source);
+  const materialOf = (key: string): Material => plan.byKey.get(key)!;
 
-  const addPrim = (mesh: ReturnType<Document['createMesh']>, key: string, prim: { positions: number[]; uvs: number[]; indices: number[] }) => {
+  const addPrim = (mesh: ReturnType<Document['createMesh']>, key: string, prim: Prim) => {
     const position = doc.createAccessor()
       .setType('VEC3').setArray(new Float32Array(prim.positions)).setBuffer(buffer);
     const uv = doc.createAccessor()
@@ -40,7 +48,7 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder): Promise<Uint8Ar
 
   if (layout.request.options?.glb === 'merged') {
     // Runtime mode: everything concatenated into one mesh per material key.
-    const byMaterial = new Map<string, { positions: number[]; uvs: number[]; indices: number[] }>();
+    const byMaterial = new Map<string, Prim>();
     for (const part of mb.parts) {
       for (const [key, prim] of part.prims) {
         if (prim.indices.length === 0) continue;
@@ -77,5 +85,7 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder): Promise<Uint8Ar
   // NodeIO touches node:fs; WebIO is the browser twin. Same serializer, same bytes.
   const mod = await import('@gltf-transform/core');
   const io = typeof process !== 'undefined' && process.versions?.node ? new mod.NodeIO() : new mod.WebIO();
-  return io.writeBinary(doc);
+  io.registerExtensions(EXTENSIONS);
+  const glb = await writeBinaryWithUris(io, doc, plan.imageUris);
+  return { glb, textures: { mode: plan.mode, ...(plan.reason ? { reason: plan.reason } : {}) } };
 }

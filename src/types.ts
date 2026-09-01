@@ -1,6 +1,7 @@
 // TypeScript mirrors of schemas/building-request.schema.json and schemas/blueprint.schema.json.
 
 import type { AtlasType, Tier } from './rules/families.ts';
+import type { TextureMode, TextureOptions } from './materials/apply.ts';
 
 export type P2 = [number, number];
 export type P3 = [number, number, number];
@@ -104,4 +105,13 @@ export interface Blueprint {
   materials: string[];
 }
 
-export interface GenerateResult { glb: Uint8Array; blueprint: Blueprint }
+export interface GenerateOptions {
+  textures?: TextureOptions;
+}
+
+export interface GenerateResult {
+  glb: Uint8Array;
+  blueprint: Blueprint;
+  /** which texture mode the GLB actually carries, and why when it is not the one asked for */
+  textures: { mode: TextureMode; reason?: string };
+}
