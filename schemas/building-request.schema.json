@@ -47,29 +47,35 @@
     "apertures": {
       "type": "array",
       "default": [],
+      "description": "connections' aperture schema verbatim (../connections/schemas/aperture.schema.json). Face i = vertical quad over parcel footprint segment i -> i+1; face-local frame origin at vertex i at y=0, U along the segment, V along +Y. Exterior reads id, face, kind, base, cut (u/width/height cross-checked); a floor plate lands exactly at each base. wire-anchor cuts no hole: region kept clear, anchor node emitted.",
       "items": {
         "type": "object",
-        "required": ["id", "kind", "face", "baseY", "cut"],
-        "additionalProperties": false,
+        "required": ["id", "buildingId", "floor", "face", "kind", "u", "base", "width", "height", "shape", "cut", "linkId"],
         "properties": {
-          "id": { "type": "string", "minLength": 1 },
-          "kind": { "enum": ["bridge", "ac-tube", "tunnel"] },
-          "face": {
+          "id": { "type": "string" },
+          "buildingId": { "type": "string" },
+          "floor": { "type": "integer", "description": "advisory; base is authoritative" },
+          "face": { "type": "integer", "minimum": 0, "description": "parcel footprint segment index" },
+          "kind": { "enum": ["bridge", "ac-tube", "wire-anchor", "tunnel"] },
+          "u": { "type": "number", "description": "face-local U of the opening center" },
+          "base": { "type": "number", "description": "absolute y of the opening bottom" },
+          "width": { "type": "number", "exclusiveMinimum": 0 },
+          "height": { "type": "number", "exclusiveMinimum": 0 },
+          "shape": { "enum": ["rect", "circle"] },
+          "cut": {
             "type": "object",
-            "required": ["origin", "normal"],
-            "additionalProperties": false,
+            "required": ["polygon", "axisDir"],
             "properties": {
-              "origin": { "$ref": "#/$defs/point2", "description": "[x, z] point the vertical wall plane passes through" },
-              "normal": { "$ref": "#/$defs/point2", "description": "[x, z] unit outward normal of the wall plane" }
+              "polygon": {
+                "type": "array",
+                "minItems": 3,
+                "items": { "$ref": "#/$defs/point3" },
+                "description": "world-space loop, every vertex on the face plane"
+              },
+              "axisDir": { "$ref": "#/$defs/point3" }
             }
           },
-          "baseY": { "type": "number", "description": "absolute Y of the aperture's walk surface; negative for tunnels. A floor plate lands exactly here." },
-          "cut": {
-            "type": "array",
-            "minItems": 3,
-            "items": { "$ref": "#/$defs/point2" },
-            "description": "CCW polygon in face-plane coords [u, v]: u along the face tangent (normal rotated +90 deg about Y), v up from baseY, origin at (face.origin, baseY)"
-          }
+          "linkId": { "type": "string" }
         }
       }
     },
@@ -124,6 +130,12 @@
       "prefixItems": [{ "type": "number" }, { "type": "number" }],
       "minItems": 2,
       "maxItems": 2
+    },
+    "point3": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "minItems": 3,
+      "maxItems": 3
     }
   }
 }

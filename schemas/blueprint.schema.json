@@ -74,6 +74,21 @@
         }
       }
     },
+    "anchors": {
+      "type": "array",
+      "default": [],
+      "description": "wire-anchor apertures: no hole, wall region kept clear, GLB carries node anchor:<id>",
+      "items": {
+        "type": "object",
+        "required": ["id", "position", "normal"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "request aperture id" },
+          "position": { "$ref": "#/$defs/point3" },
+          "normal": { "$ref": "#/$defs/point2" }
+        }
+      }
+    },
     "signage": {
       "type": "array",
       "default": [],
