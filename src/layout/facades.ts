@@ -22,9 +22,6 @@ const COMPASS: P2[] = [
 
 interface Taken { start: number; end: number }
 
-/** Wall left between a door or aperture head and the transom light above it. */
-const CURTAIN_TRANSOM_GAP = 0.15;
-
 export interface FacadeResult {
   floors: FloorLayout[];
   carved: CarvedAperture[];
@@ -318,48 +315,45 @@ function placeCurtainWallBays(
 
   const blocks = blockedSpans(taken.get(e) ?? [], openings, e).sort((a, b) => a.start - b.start);
   let u = cw.cornerInset;
-  const bays: { start: number; end: number; sill: number }[] = [];
+  const bays: { start: number; end: number }[] = [];
   for (const b of blocks) {
     const stop = Math.min(b.start - OPENING.minPier, L - cw.cornerInset);
-    if (stop - u >= cw.minBay) bays.push({ start: u, end: stop, sill: 0 });
-    // The skin runs over a door or an aperture as a transom light, so the
-    // entrance never punches a blank panel through the glass.
-    const sill = b.top + CURTAIN_TRANSOM_GAP;
-    if (height - sill >= cw.minBay && b.end - b.start >= cw.minBay) {
-      bays.push({ start: b.start, end: b.end, sill });
+    if (stop - u >= cw.minBay) bays.push({ start: u, end: stop });
+    // The skin runs on over a door as that door's transom light, so the entrance
+    // never punches a blank panel through the glass. It belongs to the door
+    // opening: one opening owns one stretch of an edge.
+    if (b.door) {
+      const sill = b.door.sill + b.door.height + cw.transomGap;
+      // Rounded down onto the grid: a transom never grows past the slab above.
+      if (height - sill >= cw.minTransom) b.door.transom = Math.floor((height - sill) * 20) / 20;
     }
     u = Math.max(u, b.end + OPENING.minPier);
   }
-  if (L - cw.cornerInset - u >= cw.minBay) bays.push({ start: u, end: L - cw.cornerInset, sill: 0 });
+  if (L - cw.cornerInset - u >= cw.minBay) bays.push({ start: u, end: L - cw.cornerInset });
 
-  bays.forEach(({ start, end, sill }, i) => {
+  bays.forEach(({ start, end }, i) => {
     const width = quant(end - start);
     if (width < cw.minBay) return;
-    // The sill rounds up to the grid, the height follows it, so the bay still
-    // ends exactly on the slab above.
-    const base = Math.ceil(sill * 20) / 20;
-    const bandHeight = height - base;
-    const band = base === 0 ? spandrel : 0;
     take(taken, e, start, start + width);
     openings.push({
       id: `w:${level.index}:${e}:${i}`, kind: 'window', edge: e,
-      offset: quantOff(start), width, height: bandHeight, sill: base, spandrel: band,
+      offset: quantOff(start), width, height, sill: 0, spandrel,
       state: curtainState(seed, level.index, e, i, dist),
-      panes: paneGrid(width, bandHeight - band, style.glazing),
+      panes: paneGrid(width, height - spandrel, style.glazing),
       material: `${theme}/window-glass/${tier}`,
     });
   });
 }
 
-/** Reserved u-ranges with the height of whatever reserved them, Infinity when it runs the whole band. */
-function blockedSpans(taken: Taken[], openings: Opening[], e: number): { start: number; end: number; top: number }[] {
+/** Reserved u-ranges, with the door that reserved one when a door did. */
+function blockedSpans(taken: Taken[], openings: Opening[], e: number): { start: number; end: number; door?: Opening }[] {
   return taken.map((t) => {
-    let top = -Infinity;
+    let door: Opening | undefined;
     for (const o of openings) {
-      if (o.edge !== e) continue;
-      if (o.offset < t.end && o.offset + o.width > t.start) top = Math.max(top, o.sill + o.height);
+      if (o.edge !== e || (o.kind !== 'door' && o.kind !== 'balconyDoor')) continue;
+      if (o.offset < t.end && o.offset + o.width > t.start) door = o;
     }
-    return { start: t.start, end: t.end, top: top === -Infinity ? Infinity : top };
+    return { start: t.start, end: t.end, ...(door ? { door } : {}) };
   });
 }
 

@@ -149,6 +149,10 @@ export const FACADE = {
     cornerInset: 0.12,
     /** a strip narrower than this is a pier, not a bay */
     minBay: 1.2,
+    /** glass over a door head shorter than this is not worth a transom */
+    minTransom: 0.8,
+    /** wall left between a door head and its transom light */
+    transomGap: 0.15,
   },
   /** megablock cells: the proportion table's small deep openings, semi-irregular inside the panel grid */
   megablockWindow: {

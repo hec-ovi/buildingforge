@@ -5,7 +5,7 @@ import { validateRequest } from './core/validate.ts';
 import { FAMILY } from './rules/families.ts';
 import { FACADE } from './rules/tables.ts';
 import {
-  PROPORTIONS, clearHeight, isStorefrontFloor, minWindowHeight, proportionsOf,
+  PROPORTIONS, clearHeight, isStorefrontFloor, minEntranceHeight, minWindowHeight, proportionsOf,
 } from './rules/proportions.ts';
 import { buildStyle } from './layout/style.ts';
 import { buildMassing } from './layout/massing.ts';
@@ -86,9 +86,35 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
         throw new ExteriorError('E_INVARIANT',
           `opening ${o.id} exceeds edge ${o.edge} on floor ${floor.index} (offset ${o.offset}, width ${o.width}, edge ${edgeLength(floor.outline, Math.min(o.edge, floor.outline.length - 1)).toFixed(2)} m); exterior bug, report with the request`);
       }
-      if (o.sill + o.height > floor.height + 1e-6) {
+      const top = o.sill + o.height + (o.transom ? FACADE.curtainWall.transomGap + o.transom : 0);
+      if (top > floor.height + 1e-6) {
         throw new ExteriorError('E_INVARIANT',
-          `opening ${o.id} spans ${(o.sill + o.height).toFixed(2)} m in a ${floor.height.toFixed(2)} m floor ${floor.index}; exterior bug, report with the request`);
+          `opening ${o.id} spans ${top.toFixed(2)} m in a ${floor.height.toFixed(2)} m floor ${floor.index}; exterior bug, report with the request`);
+      }
+    }
+    checkEdgeRuns(floor);
+  }
+}
+
+/**
+ * One opening owns one stretch of an edge: two openings on the same floor and
+ * edge never share any of it, whatever their heights, and consumers can read the
+ * facade as a run of exclusive intervals.
+ */
+function checkEdgeRuns(floor: Layout['floors'][number]): void {
+  const byEdge = new Map<number, Layout['floors'][number]['openings']>();
+  for (const o of floor.openings) {
+    const list = byEdge.get(o.edge) ?? [];
+    list.push(o);
+    byEdge.set(o.edge, list);
+  }
+  for (const [edge, list] of byEdge) {
+    const sorted = [...list].sort((a, b) => a.offset - b.offset);
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i - 1]!, cur = sorted[i]!;
+      if (cur.offset < prev.offset + prev.width - 1e-6) {
+        throw new ExteriorError('E_INVARIANT',
+          `openings ${prev.id} and ${cur.id} overlap on edge ${edge} of floor ${floor.index}; exterior bug, report with the request`);
       }
     }
   }
@@ -146,7 +172,7 @@ function checkProportions(layout: Layout): void {
     const clear = clearHeight(floor.height);
     for (const o of floor.openings) {
       if (o.id === 'entrance') {
-        const want = Math.min(prop.entrance[0], clear);
+        const want = minEntranceHeight(prop, clear);
         if (o.height < want - 1e-6 || o.height > prop.entrance[1] + 1e-6) {
           fail(`entrance is ${o.height.toFixed(2)} m tall, outside ${want.toFixed(2)}..${prop.entrance[1]} m for ${layout.family}`);
         }

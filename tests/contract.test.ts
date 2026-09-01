@@ -356,6 +356,53 @@ describe('blueprint invariants', () => {
     }
   });
 
+  it('caps the entrance on a squeezed ground floor without breaking its own range (p14 class)', async () => {
+    // A tunnel pinned at 2.65 m squeezes the ground floor under the family's
+    // 2.4 m entrance, so the door takes what the floor holds.
+    const request = {
+      seed: 'urbe-small:p14', buildingId: 'p14',
+      parcel: { footprint: [[0, 0], [36, 0], [36, 9], [0, 9]], accessPoint: [18, -1], maxHeight: 22.2 },
+      building: { type: 'residential', tier: 'high_rich', floors: 6 },
+      theme: 'cyberpunk',
+      apertures: [{
+        id: 'l14a', buildingId: 'p14', floor: 1, face: 0, kind: 'bridge',
+        u: 11.5, base: 2.65, width: 3, height: 2.2, shape: 'rect',
+        cut: { polygon: [[10, 2.65, 0], [13, 2.65, 0], [13, 4.85, 0], [10, 4.85, 0]], axisDir: [0, 0, -1] },
+        linkId: 'L14a',
+      }],
+    };
+    const { blueprint } = await generate(request, KEYS);
+    const ground = blueprint.floors.find((f) => f.index === 0)!;
+    const door = ground.openings.find((o) => o.id === 'entrance')!;
+    const clear = ground.height - PROPORTIONS.clearHeightAllowance;
+    expect(clear).toBeLessThan(PROPORTIONS.families.residential.entrance[0]);
+    expect(door.height).toBeLessThanOrEqual(clear + 1e-9);
+    // Still the tallest 0.05 step the floor can carry, not an arbitrary stump.
+    expect(door.height).toBeGreaterThan(clear - 0.05);
+  });
+
+  it('gives every opening its own run of an edge, doors and apertures included', async () => {
+    for (const req of [residential, corpo, factory, bridged, sliver]) {
+      const { blueprint } = await generate(req, KEYS);
+      for (const floor of blueprint.floors) {
+        const byEdge = new Map<number, Opening[]>();
+        for (const o of floor.openings) {
+          const list = byEdge.get(o.edge) ?? [];
+          list.push(o);
+          byEdge.set(o.edge, list);
+        }
+        for (const [edge, list] of byEdge) {
+          const sorted = [...list].sort((a, b) => a.offset - b.offset);
+          for (let i = 1; i < sorted.length; i++) {
+            const prev = sorted[i - 1]!, cur = sorted[i]!;
+            expect(cur.offset, `${prev.id} and ${cur.id} share edge ${edge} on floor ${floor.index}`)
+              .toBeGreaterThanOrEqual(prev.offset + prev.width - 1e-6);
+          }
+        }
+      }
+    }
+  });
+
   it('keeps the small deep window on the poor tier alone', async () => {
     const poor = (await generate(factory, KEYS)).blueprint;
     expect(poor.facade.style).toBe('megablock');
@@ -809,15 +856,18 @@ describe('facade styles', () => {
     }
   });
 
-  it('runs the curtain wall over the entrance as a transom light', async () => {
+  it('runs the curtain wall over the entrance as that door transom light', async () => {
     const { blueprint } = await generate(corpo, KEYS);
     const ground = blueprint.floors.find((f) => f.index === 0)!;
     const entrance = ground.openings.find((o) => o.id === 'entrance')!;
-    const over = ground.openings.find((o) => o.kind === 'window' && o.edge === entrance.edge
-      && o.sill >= entrance.sill + entrance.height);
-    expect(over, 'glazing continues above the door').toBeDefined();
-    expect(over!.sill + over!.height).toBeCloseTo(ground.height, 6);
-    expect(over!.spandrel).toBe(0); // no slab edge to hide over a door head
+    // The glazing above the head belongs to the door: one opening owns the run.
+    expect(entrance.transom, 'glazing continues above the door').toBeGreaterThan(0);
+    expect(entrance.sill + entrance.height + 0.15 + entrance.transom!).toBeCloseTo(ground.height, 6);
+    for (const o of ground.openings) {
+      if (o === entrance || o.edge !== entrance.edge) continue;
+      const apart = o.offset >= entrance.offset + entrance.width || o.offset + o.width <= entrance.offset;
+      expect(apart, `${o.id} shares the entrance run`).toBe(true);
+    }
   });
 
   it('lands every sign and screen on clear wall, or proud of the relief it crosses', async () => {

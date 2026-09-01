@@ -53,10 +53,19 @@ export function minWindowHeight(spec: FamilyProportions, clear: number): number 
   return Math.min(spec.windowHeight[0] * clear, clear - spec.sill[0]);
 }
 
-/** Entrance door height for a family, capped by what the ground floor can hold. */
+/**
+ * Entrance door height for a family, capped by what the ground floor can hold.
+ * The cap rounds down onto the 0.05 grid, so a short ground floor never gets a
+ * door quantized taller than its clear height.
+ */
 export function entranceHeight(spec: FamilyProportions, pick: number, groundClear: number): number {
   const want = spec.entrance[0] + pick * (spec.entrance[1] - spec.entrance[0]);
-  return q(Math.min(want, groundClear));
+  return Math.min(q(want), qDown(groundClear));
+}
+
+/** The shortest entrance this ground floor may carry: the family minimum, or all it can hold. */
+export function minEntranceHeight(spec: FamilyProportions, groundClear: number): number {
+  return Math.min(spec.entrance[0], qDown(groundClear));
 }
 
 export function proportionsOf(family: Family): FamilyProportions {
@@ -70,3 +79,4 @@ export function isStorefrontFloor(family: Family, kind: string): boolean {
 }
 
 const q = (v: number): number => Math.round(v * 20) / 20;
+const qDown = (v: number): number => Math.floor(v * 20 + 1e-9) / 20;

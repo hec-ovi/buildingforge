@@ -1,5 +1,7 @@
 # Changelog
 
+- 0.19.1: one opening owns one stretch of an edge. A curtain wall's glazing over a door head is that door's `transom` light rather than a separate window, so no two openings on a floor and edge ever share a run, and a machine check proves it (E_INVARIANT). The entrance height cap rounds down onto the 0.05 grid, so a ground floor squeezed under 2.4 m of clear height still gets the tallest door it can carry.
+
 - 0.19: signage and ad screens scan for clear facade. One relief model (ribs, columns, floor bands) now feeds both the mesher and a per-face obstacle map, and a placement scan puts every sign and screen on wall that carries nothing: it steps along the face, shrinks, then relocates to the next face, and where a facade offers no bare wall it mounts proud of the relief or the glazing it crosses. A door, a balcony door and an aperture mouth are never covered, utility boxes keep off the signs, and the blueprint publishes `edge` and `standoff` per plate. A machine check (E_INVARIANT) proves the no-overlap.
 
 - 0.18.1: wall-mounted plates are closed boxes. A marquee, a logo plate and an ad screen carry a solid back panel standing a centimetre off the wall, so a sign shows its face from the street and nothing from behind.

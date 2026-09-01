@@ -5,7 +5,7 @@ import { MeshBuilder, type PartSink, type V3, add, scale } from './primitives.ts
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown } from './caps.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
-import { BALCONY, FIRE_ESCAPE, SIGNAGE } from '../rules/tables.ts';
+import { BALCONY, FACADE, FIRE_ESCAPE, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
@@ -15,6 +15,7 @@ const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
 /** A wall-mounted plate's back panel stands this far off the wall, so the two never share a plane. */
 const PLATE_STANDOFF = 0.012;
+
 
 /** Door assembly sections: casing around the hole, then the swinging leaf itself. */
 const DOOR = {
@@ -61,8 +62,10 @@ export function buildMesh(layout: Layout): MeshBuilder {
       const holes: Hole[] = [];
       for (const o of f.openings) {
         if (o.edge !== e) continue;
-        if (o.kind !== 'aperture') {
-          holes.push(rectHole(o.offset, f.elevation + o.sill, o.width, o.height));
+        if (o.kind === 'aperture') continue;
+        holes.push(rectHole(o.offset, f.elevation + o.sill, o.width, o.height));
+        if (o.transom) {
+          holes.push(rectHole(o.offset, f.elevation + o.sill + o.height + FACADE.curtainWall.transomGap, o.width, o.transom));
         }
       }
       // Apertures force parcel-verbatim massing, so face index == edge index on every floor.
@@ -136,6 +139,17 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
     reveal(frame, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], REVEAL, o.sill > 0.01, mat('wall-trim'));
     doorCasing(frame, fr, u0, u1, yb, yt, mat('wall-trim'));
     doorLeaves(mb, base, fr, u0, u1, yb, yt, o, mat);
+    if (o.transom) {
+      // The glazing carries on over the door head as this door's transom light.
+      const tb = yt + FACADE.curtainWall.transomGap;
+      const light: Opening = {
+        ...o, kind: 'window', sill: o.sill + o.height + FACADE.curtainWall.transomGap, height: o.transom,
+        panes: paneGrid(o.width, o.transom, layout.style.glazing),
+        material: mat('window-glass'),
+      };
+      delete light.spandrel;
+      windowUnit(frame, fr, u0, u1, tb, tb + o.transom, light, layout.style, mat);
+    }
     if (o.kind === 'balconyDoor' && o.balcony) meshBalcony(frame, fr, o, f.elevation, mat);
     return;
   }

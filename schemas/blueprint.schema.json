@@ -63,6 +63,11 @@
                   "maximum": 4,
                   "description": "door and balconyDoor: swinging leaves; the GLB carries one node subtree per leaf, hinged on its own pivot"
                 },
+                "transom": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "door only: glazed transom light carried above the head, part of this opening; it starts 0.15 m above the door head and belongs to the door's run of the edge"
+                },
                 "spandrel": {
                   "type": "number",
                   "minimum": 0,

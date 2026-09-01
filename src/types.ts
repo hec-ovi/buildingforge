@@ -73,6 +73,8 @@ export interface Opening {
   spandrel?: number;
   /** door and balconyDoor: swinging leaves, one node subtree each in the GLB */
   leaves?: number;
+  /** door: glazed transom light carried above the head, part of this opening */
+  transom?: number;
   balcony?: { depth: number; width: number };
   material?: string;
 }
