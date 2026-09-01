@@ -28,8 +28,6 @@ export interface Relief {
   /** by edge index of the ground outline; empty when the outline steps */
   byEdge: FaceRelief[];
   outline: P2[];
-  /** relief only runs when every above-ground floor shares the ground ring */
-  constant: boolean;
 }
 
 export function buildRelief(style: Style, floors: FloorLayout[], carved: CarvedAperture[]): Relief {
@@ -76,6 +74,6 @@ export function buildRelief(style: Style, floors: FloorLayout[], carved: CarvedA
 
   return {
     ribWidth: f.ribWidth, ribDepth: f.ribDepth, columnWidth: style.columnWidth,
-    columnDepth: COLUMN_PROUD, bandDepth: f.bandProud, bands, byEdge, outline, constant,
+    columnDepth: COLUMN_PROUD, bandDepth: f.bandProud, bands, byEdge, outline,
   };
 }

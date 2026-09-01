@@ -112,11 +112,6 @@ export function crossed(rects: Rect[] | undefined, r: Rect, margin = 0): Rect[] 
     r.u0 < o.u1 + margin && r.u1 > o.u0 - margin && r.y0 < o.y1 + margin && r.y1 > o.y0 - margin);
 }
 
-/** The first obstacle a rectangle would sit on, or null when the wall is clear. */
-export function hit(rects: Rect[] | undefined, r: Rect, margin = 0): Rect | null {
-  return crossed(rects, r, margin)[0] ?? null;
-}
-
 /**
  * Scans for a clear rectangle: the wanted size where it was asked for, then
  * stepping outward along the face and up and down, then the same search at
