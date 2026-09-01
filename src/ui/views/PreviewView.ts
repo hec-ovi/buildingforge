@@ -1,38 +1,17 @@
-// Three.js orbit viewer for one generated building: kind-colored materials
-// (no textures until the materials layer), global clip plane for floor
-// inspection, opening highlight boxes from the blueprint.
+// Three.js orbit viewer for one generated building: the textured GLB as it
+// ships, a flat kind-coloured look for reading geometry, a global clip plane for
+// floor inspection, and opening highlight boxes from the blueprint.
 
 import {
-  AmbientLight, Box3, BoxGeometry, Color, DirectionalLight, EdgesGeometry, GridHelper, Group,
-  LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial, PerspectiveCamera, Plane,
-  Scene, Vector3, WebGLRenderer,
+  ACESFilmicToneMapping, AmbientLight, Box3, BoxGeometry, Color, DirectionalLight, EdgesGeometry,
+  GridHelper, Group, HemisphereLight, LineBasicMaterial, LineSegments, Material, Mesh,
+  MeshStandardMaterial, PerspectiveCamera, Plane, Scene, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { flatMaterialFor } from './flatMaterials.ts';
 import { edgeDir, edgeNormal, type P2 } from '../../core/polygon.ts';
 import type { Blueprint } from '../../types.ts';
-
-const KIND_COLORS: Record<string, { color: number; opacity?: number }> = {
-  'wall': { color: 0x8a8a92 },
-  'wall-trim': { color: 0x6a6a74 },
-  'column': { color: 0x74747e },
-  'window-glass': { color: 0x6fc3df, opacity: 0.45 },
-  'window-frame': { color: 0x3a3a44 },
-  'curtain': { color: 0xd8cfa8 },
-  'door': { color: 0x5a4a3a },
-  'door-glass': { color: 0x9fd8ef, opacity: 0.5 },
-  'balcony-slab': { color: 0x7e7e88 },
-  'balcony-rail': { color: 0x4a4a54 },
-  'roof': { color: 0x55555e },
-  'floor-slab': { color: 0x63636d },
-  'parapet': { color: 0x77777f },
-  'signage': { color: 0xffcf5a },
-  'ad-screen': { color: 0x64e0ff },
-  'light-fixture': { color: 0xfff0c0 },
-  'fire-escape': { color: 0x40342c },
-  'aperture-frame': { color: 0xc06040 },
-  'roof-artifact': { color: 0x60606a },
-};
 
 export class PreviewView {
   readonly root: HTMLElement;
@@ -46,25 +25,32 @@ export class PreviewView {
   private buildingTop = 50;
   private wireframe = false;
   private highlightOn = false;
+  private flat = false;
+  /** shipped material and inspection material per mesh, so the toggle is lossless */
+  private readonly looks = new Map<Mesh, { textured: Material; flat: Material }>();
 
   constructor(container: HTMLElement) {
     this.root = container;
     this.renderer = new WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.clippingPlanes = [this.clipPlane];
+    this.renderer.toneMapping = ACESFilmicToneMapping;
     this.scene.background = new Color(0x101014);
     this.camera = new PerspectiveCamera(55, 1, 0.1, 2000);
     this.camera.position.set(50, 40, 50);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     container.appendChild(this.renderer.domElement);
 
-    this.scene.add(new AmbientLight(0xffffff, 0.55));
-    const sun = new DirectionalLight(0xffffff, 1.5);
-    sun.position.set(60, 100, 40);
+    // Facades are vertical, so the key light sits low: an overhead sun lights the
+    // slabs and leaves the walls black.
+    this.scene.add(new AmbientLight(0xffffff, 0.3));
+    this.scene.add(new HemisphereLight(0x9fb8d8, 0x2a2a30, 0.8));
+    const sun = new DirectionalLight(0xffffff, 2.4);
+    sun.position.set(90, 45, 60);
     this.scene.add(sun);
     // Fill from the opposite quadrant so shadow-side facades keep readable shading.
-    const fill = new DirectionalLight(0x8090b0, 0.7);
-    fill.position.set(-50, 40, -70);
+    const fill = new DirectionalLight(0x8090b0, 1.1);
+    fill.position.set(-70, 25, -60);
     this.scene.add(fill);
     const grid = new GridHelper(200, 40, 0x2a2a34, 0x1c1c24);
     this.scene.add(grid);
@@ -92,20 +78,13 @@ export class PreviewView {
     const gltf = await new GLTFLoader().parseAsync(
       glb.buffer.slice(glb.byteOffset, glb.byteOffset + glb.byteLength) as ArrayBuffer, '');
     this.building = gltf.scene;
+    this.looks.clear();
     this.building.traverse((obj) => {
       if (!(obj instanceof Mesh)) return;
-      const name: string = (obj.material as { name?: string }).name ?? '';
-      const kind = name.split('/')[1] ?? 'wall';
-      const spec = KIND_COLORS[kind] ?? { color: 0xff00ff };
-      obj.material = new MeshStandardMaterial({
-        color: spec.color,
-        transparent: spec.opacity !== undefined,
-        opacity: spec.opacity ?? 1,
-        wireframe: this.wireframe,
-        metalness: 0.1,
-        roughness: 0.85,
-      });
+      const textured = obj.material as Material;
+      this.looks.set(obj, { textured, flat: flatMaterialFor(textured.name) });
     });
+    this.applyLook();
     this.scene.add(this.building);
 
     this.highlights = buildHighlights(blueprint);
@@ -116,8 +95,12 @@ export class PreviewView {
     const box = new Box3().setFromObject(this.building);
     const center = box.getCenter(new Vector3());
     this.controls.target.copy(center);
-    const radius = Math.max(box.getSize(new Vector3()).length() * 0.6, 20);
-    this.camera.position.set(center.x + radius, center.y + radius * 0.7, center.z + radius);
+    // Stand outside the bounding sphere and fit it in the field of view, so the
+    // first look is the whole building from the street side, never from inside it.
+    const radius = box.getSize(new Vector3()).length() / 2;
+    const distance = (radius / Math.sin((this.camera.fov * Math.PI) / 360)) * 1.1;
+    const eye = new Vector3(1, 0.55, 1).normalize().multiplyScalar(distance);
+    this.camera.position.copy(center).add(eye);
   }
 
   setClip(fraction: number): void {
@@ -126,9 +109,21 @@ export class PreviewView {
 
   setWireframe(on: boolean): void {
     this.wireframe = on;
-    this.building?.traverse((obj) => {
-      if (obj instanceof Mesh) (obj.material as MeshStandardMaterial).wireframe = on;
-    });
+    this.applyLook();
+  }
+
+  /** Flat kind colours instead of the shipped textures, for reading geometry. */
+  setFlat(on: boolean): void {
+    this.flat = on;
+    this.applyLook();
+  }
+
+  private applyLook(): void {
+    for (const [mesh, look] of this.looks) {
+      const material = this.flat ? look.flat : look.textured;
+      (material as MeshStandardMaterial).wireframe = this.wireframe;
+      mesh.material = material;
+    }
   }
 
   setHighlight(on: boolean): void {

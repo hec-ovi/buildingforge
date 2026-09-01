@@ -25,9 +25,12 @@ export function buildMesh(layout: Layout): MeshBuilder {
   const topFloor = floors[floors.length - 1]!;
   const top = topFloor.elevation + topFloor.height;
 
-  // Floor separator planes.
+  // Floor separator planes, faced both ways: seen from below through the glazing
+  // a one-sided slab is invisible and the shell reads hollow.
   for (const f of floors) {
-    capUp(mb.part(`floor:${f.index}/slab`), mat('floor-slab'), f.outline, f.elevation);
+    const sink = mb.part(`floor:${f.index}/slab`);
+    capUp(sink, mat('floor-slab'), f.outline, f.elevation);
+    capDown(sink, mat('floor-slab'), f.outline, f.elevation);
   }
 
   // Terrace rings where the outline steps inward.
@@ -62,8 +65,10 @@ export function buildMesh(layout: Layout): MeshBuilder {
     for (const o of f.openings) meshOpening(mb, layout, f, o, mat);
   }
 
-  // Roof, parapet, bottom cap.
-  capUp(mb.part('roof'), mat('roof'), topFloor.outline, top);
+  // Roof, parapet, bottom cap. The roof is the top floor's ceiling too.
+  const roofSink = mb.part('roof');
+  capUp(roofSink, mat('roof'), topFloor.outline, top);
+  capDown(roofSink, mat('floor-slab'), topFloor.outline, top);
   capDown(mb.part('base'), mat('floor-slab'), lowest.outline, lowest.elevation);
   const parapet = mb.part('parapet');
   for (let e = 0; e < topFloor.outline.length; e++) {

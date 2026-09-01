@@ -369,6 +369,19 @@ describe('GLB shell', () => {
     expect(merged.glb.byteLength).toBeLessThan(named.glb.byteLength);
   });
 
+  it('faces every floor slab both ways so the shell never reads hollow from below', async () => {
+    const { glb, blueprint } = await generate(residential, KEYS);
+    const doc = await new NodeIO().readBinary(glb);
+    for (const floor of blueprint.floors) {
+      const node = doc.getRoot().listNodes().find((n) => n.getName() === `floor:${floor.index}/slab`)!;
+      const normals = node.getMesh()!.listPrimitives()
+        .flatMap((p) => [...(p.getAttribute('NORMAL')!.getArray() as Float32Array)]);
+      const ys = new Set<number>();
+      for (let i = 1; i < normals.length; i += 3) ys.add(Math.round(normals[i] as number));
+      expect([...ys].sort(), `floor ${floor.index} slab`).toEqual([-1, 1]);
+    }
+  });
+
   it('gives every mesh a NORMAL attribute agreeing with its winding', async () => {
     for (const req of [residential, bridged]) {
       const { glb } = await generate(req, KEYS);
