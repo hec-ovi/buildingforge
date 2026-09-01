@@ -820,6 +820,49 @@ describe('facade styles', () => {
     expect(over!.spandrel).toBe(0); // no slab edge to hide over a door head
   });
 
+  it('lands every sign and screen on clear wall, or proud of the relief it crosses', async () => {
+    const cases = [
+      factory,
+      corpo,
+      { ...residential, seed: 'sign-scan', options: { signage: { mode: 'marquee', text: 'KIRINO' } } },
+      { ...factory, seed: 'sign-scan-2', options: { signage: { mode: 'logo', ratio: '3:2' }, adScreens: 'on' } },
+    ];
+    for (const req of cases) {
+      const { blueprint } = await generate(req, KEYS);
+      const ground = blueprint.floors.find((f) => f.index === 0)!;
+      const overlays = [
+        ...blueprint.signage.map((s) => ({ ...s, what: 'signage' })),
+        ...blueprint.screens.map((s) => ({ ...s, what: 'screen' })),
+      ];
+      expect(overlays.length).toBeGreaterThan(0);
+
+      for (const o of overlays) {
+        const u = uOnEdge(ground.outline, o.edge, o.center[0], o.center[2]);
+        const box = { u0: u - o.width / 2, u1: u + o.width / 2, y0: o.center[1] - o.height / 2, y1: o.center[1] + o.height / 2 };
+        // Never over a door, a balcony door or an aperture; glazing may be
+        // crossed only by a plate standing proud of it.
+        for (const floor of blueprint.floors) {
+          for (const op of floor.openings) {
+            if (op.edge !== o.edge) continue;
+            const hits = box.u0 < op.offset + op.width && box.u1 > op.offset
+              && box.y0 < floor.elevation + op.sill + op.height && box.y1 > floor.elevation + op.sill;
+            if (!hits) continue;
+            expect(op.kind, `${o.what} covers ${op.id}`).toBe('window');
+            expect(o.standoff, `${o.what} sinks into ${op.id}`).toBeGreaterThan(0);
+          }
+        }
+        // Where it crosses a floor band, it stands further off the wall than the band.
+        const band = blueprint.facade.style === 'megablock' || blueprint.facade.style === 'panel';
+        if (band) {
+          const crossesBand = blueprint.floors.some((f) => f.index > 0
+            && box.y0 < f.elevation + 0.2 && box.y1 > f.elevation - 0.2);
+          if (crossesBand) expect(o.standoff).toBeGreaterThan(0);
+        }
+        expect(o.standoff).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
   it('leaves glass facades free of ribs and utility boxes', async () => {
     const { blueprint } = await generate(corpo, KEYS);
     expect(blueprint.facadeArtifacts).toHaveLength(0);
@@ -1037,6 +1080,14 @@ function coplanarOverlap(A: [number, number, number][], B: [number, number, numb
     }
   }
   return true;
+}
+
+/** u of a world point along an outline edge. */
+function uOnEdge(outline: [number, number][], edge: number, x: number, z: number): number {
+  const [vx, vz] = outline[edge]!;
+  const [nx, nz] = outline[(edge + 1) % outline.length]!;
+  const len = Math.hypot(nx - vx, nz - vz) || 1;
+  return ((x - vx) * (nx - vx) + (z - vz) * (nz - vz)) / len;
 }
 
 function edgeLen(outline: [number, number][], e: number): number {

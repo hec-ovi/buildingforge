@@ -122,6 +122,8 @@ export interface Blueprint {
   anchors: { id: string; position: P3; normal: P2 }[];
   signage: {
     mode: 'marquee' | 'logo';
+    /** ground outline edge the sign is mounted on */
+    edge: number;
     /** marquee only: horizontal band over the entrance, or a blade sign edge-on to the facade */
     orientation?: 'horizontal' | 'vertical';
     text?: string;
@@ -134,9 +136,11 @@ export interface Blueprint {
     height: number;
     /** how far the sign stands out from the wall face */
     depth?: number;
+    /** where its back plane sits, clear of any relief it crosses */
+    standoff: number;
     normal: P2;
   }[];
-  screens: { center: P3; width: number; height: number; normal: P2 }[];
+  screens: { edge: number; center: P3; width: number; height: number; standoff: number; normal: P2 }[];
   lights: { kind: 'entrance' | 'accent'; position: P3; normal: P2 }[];
   facade: { style: 'megablock' | 'panel' | 'glass' | 'curtain-wall'; panelModule: number };
   facadeArtifacts: FacadeArtifact[];

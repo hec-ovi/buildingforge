@@ -11,6 +11,8 @@ import { buildStyle } from './layout/style.ts';
 import { buildMassing } from './layout/massing.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
 import { buildFacades } from './layout/facades.ts';
+import { buildRelief } from './layout/relief.ts';
+import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.ts';
 import { buildFeatures } from './layout/features.ts';
 import { buildMesh } from './mesh/mesher.ts';
 import { writeGlb } from './glb/writer.ts';
@@ -18,7 +20,7 @@ import { buildBlueprint } from './blueprint/builder.ts';
 import { edgeLength, pointSegmentDistance, type P2 } from './core/polygon.ts';
 import { ExteriorError } from './core/errors.ts';
 import type { Layout } from './layout/model.ts';
-import type { GenerateOptions, GenerateResult } from './types.ts';
+import type { GenerateOptions, GenerateResult, P3 } from './types.ts';
 
 export async function generate(raw: unknown, options: GenerateOptions = {}): Promise<GenerateResult> {
   const req = validateRequest(raw);
@@ -29,14 +31,17 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   const stack = buildFloorStack(req, family, tier, style);
   const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
   const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
-  const features = buildFeatures(req, family, tier, style, massing, stack.top, facades.floors, streetEdges[0] as number);
+  const relief = buildRelief(style, facades.floors, facades.carved);
+  const obstacles = faceObstacles(facades.floors, facades.carved, relief, stack.top);
+  const features = buildFeatures(
+    req, family, tier, style, massing, stack.top, facades.floors, streetEdges, obstacles);
 
   const layout: Layout = {
-    request: req, family, tier, theme: req.theme, style,
+    request: req, family, tier, theme: req.theme, style, relief,
     floors: facades.floors, carved: facades.carved, anchors: facades.anchors,
     ...features,
   };
-  checkInvariants(layout);
+  checkInvariants(layout, obstacles);
 
   const mb = buildMesh(layout);
   const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
@@ -69,8 +74,9 @@ function entranceCandidates(outline: P2[], point: P2): number[] {
  * floor, and every opening the proportion table covers is the size that table
  * promises.
  */
-function checkInvariants(layout: Layout): void {
+function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
   checkProportions(layout);
+  checkOverlays(layout, obstacles);
   for (const floor of layout.floors) {
     for (const o of floor.openings) {
       const ok = o.edge < floor.outline.length
@@ -86,6 +92,35 @@ function checkInvariants(layout: Layout): void {
       }
     }
   }
+}
+
+/**
+ * Nothing overlaid on a facade sits on its structure: every sign and every ad
+ * screen keeps clear of the columns, ribs, floor bands and openings already on
+ * that face.
+ */
+function checkOverlays(layout: Layout, obstacles: Map<number, Rect[]>): void {
+  const ground = layout.floors.find((f) => f.index === 0);
+  if (!ground) return;
+  const check = (what: string, edge: number, center: P3, width: number, height: number, standoff: number) => {
+    const u = edgeU(ground.outline, edge, center[0], center[2]);
+    const rect: Rect = {
+      u0: u - width / 2, u1: u + width / 2, y0: center[1] - height / 2, y1: center[1] + height / 2,
+      what, kind: 'relief', depth: standoff,
+    };
+    for (const o of crossed(obstacles.get(edge), rect)) {
+      if (o.kind === 'opening') {
+        throw new ExteriorError('E_INVARIANT',
+          `${what} on edge ${edge} covers ${o.what}; exterior bug, report with the request`);
+      }
+      if (standoff < o.depth - 1e-6) {
+        throw new ExteriorError('E_INVARIANT',
+          `${what} on edge ${edge} stands ${standoff.toFixed(2)} m off the wall and runs into ${o.what} at ${o.depth.toFixed(2)} m; exterior bug, report with the request`);
+      }
+    }
+  };
+  layout.signage.forEach((s, i) => check(`signage:${i}`, s.edge, s.center, s.width, s.height, s.standoff));
+  layout.screens.forEach((s, i) => check(`screen:${i}`, s.edge, s.center, s.width, s.height, s.standoff));
 }
 
 /**

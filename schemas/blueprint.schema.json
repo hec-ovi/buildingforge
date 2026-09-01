@@ -115,10 +115,11 @@
       "default": [],
       "items": {
         "type": "object",
-        "required": ["mode", "center", "width", "height", "normal"],
+        "required": ["mode", "edge", "center", "width", "height", "standoff", "normal"],
         "additionalProperties": false,
         "properties": {
           "mode": { "enum": ["marquee", "logo"] },
+          "edge": { "type": "integer", "minimum": 0, "description": "ground outline edge the sign is mounted on" },
           "orientation": {
             "enum": ["horizontal", "vertical"],
             "description": "marquee only: a band over the entrance, or a blade sign protruding edge-on from the facade"
@@ -134,7 +135,8 @@
           "center": { "$ref": "#/$defs/point3" },
           "width": { "type": "number", "exclusiveMinimum": 0, "description": "extent along the facade" },
           "height": { "type": "number", "exclusiveMinimum": 0 },
-          "depth": { "type": "number", "minimum": 0, "description": "how far the sign stands out from the wall face" },
+          "depth": { "type": "number", "minimum": 0, "description": "how far the front face stands out from the wall" },
+          "standoff": { "type": "number", "minimum": 0, "description": "where the back plane sits: 0 on clear wall, otherwise past the deepest relief or glazing it crosses" },
           "normal": { "$ref": "#/$defs/point2", "description": "[x, z] outward normal of the carrying face" }
         }
       }
@@ -144,12 +146,14 @@
       "default": [],
       "items": {
         "type": "object",
-        "required": ["center", "width", "height", "normal"],
+        "required": ["edge", "center", "width", "height", "standoff", "normal"],
         "additionalProperties": false,
         "properties": {
+          "edge": { "type": "integer", "minimum": 0, "description": "ground outline edge the screen is mounted on" },
           "center": { "$ref": "#/$defs/point3" },
           "width": { "type": "number", "exclusiveMinimum": 0 },
           "height": { "type": "number", "exclusiveMinimum": 0 },
+          "standoff": { "type": "number", "minimum": 0, "description": "where the back plane sits: 0 on clear wall, otherwise past the deepest relief or glazing it crosses" },
           "normal": { "$ref": "#/$defs/point2" }
         }
       }

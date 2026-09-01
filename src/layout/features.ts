@@ -4,7 +4,8 @@ import { ExteriorError } from '../core/errors.ts';
 import { Rng } from '../core/rng.ts';
 import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, ROOF_ACCESS, ROOF_ARTIFACTS, OPENING } from '../rules/tables.ts';
 import { edgeLength, edgeDir, edgeNormal, orientedBoundingBox, pointInPolygon, centroid, quant, type P2 } from '../core/polygon.ts';
-import type { Blueprint, BuildingRequest, P3, RoofArtifact } from '../types.ts';
+import { edgeU, findClearRect, type Rect } from './obstructions.ts';
+import type { Blueprint, BuildingRequest, P3, RoofArtifact, Signage } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
 import type { FloorLayout, Style } from './model.ts';
@@ -20,24 +21,33 @@ export interface Features {
 
 export function buildFeatures(
   req: BuildingRequest, family: Family, tier: Tier, style: Style,
-  massing: Massing, top: number, floors: FloorLayout[], streetEdge: number,
+  massing: Massing, top: number, floors: FloorLayout[], faces: number[],
+  obstacles: Map<number, Rect[]>,
 ): Features {
+  const streetEdge = faces[0] as number;
   const ground = massing.groundOutline;
   const groundFloor = floors.find((f) => f.index === 0)!;
   const signage: Blueprint['signage'] = [];
   const screens: Blueprint['screens'] = [];
   const lights: Blueprint['lights'] = [];
 
-  const blockedU = blockedIntervalsByFace(req, ground);
-
-  placeSignage(req, family, ground, streetEdge, groundFloor.height, top, signage, blockedU);
-  placeScreens(req, family, tier, ground, streetEdge, groundFloor.height, top, signage.length > 0, screens, blockedU);
+  placeSignage(req, family, ground, faces, groundFloor, top, signage, obstacles);
+  placeScreens(req, family, tier, ground, faces, groundFloor.height, top, signage, screens, obstacles);
   placeLights(req, family, ground, streetEdge, groundFloor, lights);
-  const facadeArtifacts = placeFacadeArtifacts(req, style, floors);
+  const facadeArtifacts = placeFacadeArtifacts(req, style, floors, ground, signage, screens);
   const fireEscape = placeFireEscape(req, family, tier, massing, floors, streetEdge);
   const roof = buildRoof(req, family, massing, top, style, floors);
 
   return { signage, screens, lights, facadeArtifacts, fireEscape, roof };
+}
+
+/** The rectangle a placed sign or screen occupies on its face. */
+function placedRect(outline: P2[], edge: number, center: P3, width: number, height: number): Rect {
+  const u = edgeU(outline, edge, center[0], center[2]);
+  return {
+    u0: u - width / 2, u1: u + width / 2, y0: center[1] - height / 2, y1: center[1] + height / 2,
+    what: 'sign', kind: 'relief', depth: 0,
+  };
 }
 
 /**
@@ -45,9 +55,16 @@ export function buildFeatures(
  * floor, placed on wall clear of every opening. Dense on the megablock tier,
  * sparse on the panel tier, absent on glass.
  */
-function placeFacadeArtifacts(req: BuildingRequest, style: Style, floors: FloorLayout[]): Blueprint['facadeArtifacts'] {
+function placeFacadeArtifacts(
+  req: BuildingRequest, style: Style, floors: FloorLayout[], ground: P2[],
+  signage: Blueprint['signage'], screens: Blueprint['screens'],
+): Blueprint['facadeArtifacts'] {
   const out: Blueprint['facadeArtifacts'] = [];
   if (style.facade.utilityChance <= 0) return out;
+  const overlays: Rect[] = [
+    ...signage.map((s) => placedRect(ground, s.edge, s.center, s.width, s.height)),
+    ...screens.map((s) => placedRect(ground, s.edge, s.center, s.width, s.height)),
+  ];
   const module = style.facade.panelModule;
   const box = FACADE.utilityBox;
 
@@ -68,40 +85,14 @@ function placeFacadeArtifacts(req: BuildingRequest, style: Style, floors: FloorL
         const clear = onEdge.every((o) => offset + w <= o.offset - 0.15 || offset >= o.offset + o.width + 0.15
           || sill + h <= o.sill - 0.15 || sill >= o.sill + o.height + 0.15);
         if (!clear) continue;
+        const y = floor.elevation + sill;
+        const onSign = overlays.some((r) => offset + w > r.u0 - 0.15 && offset < r.u1 + 0.15 && y + h > r.y0 - 0.15 && y < r.y1 + 0.15);
+        if (onSign) continue;
         out.push({ kind: 'utility-box', floor: floor.index, edge: e, offset, sill, size: [w, h, d] });
       }
     }
   }
   return out;
-}
-
-/** u-intervals per parcel face that apertures demand kept clear (whole building height matters for overlays). */
-function blockedIntervalsByFace(req: BuildingRequest, ground: P2[]): Map<number, [number, number, number, number][]> {
-  const map = new Map<number, [number, number, number, number][]>();
-  for (const a of req.apertures ?? []) {
-    if (a.face >= ground.length) continue;
-    const [vx, vz] = ground[a.face] as P2;
-    const d = edgeDir(ground, a.face);
-    let minU = Infinity, maxU = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const [px, py, pz] of a.cut.polygon) {
-      const u = (px - vx) * d[0] + (pz - vz) * d[1];
-      if (u < minU) minU = u;
-      if (u > maxU) maxU = u;
-      if (py < minY) minY = py;
-      if (py > maxY) maxY = py;
-    }
-    const list = map.get(a.face) ?? [];
-    list.push([minU - 0.3, maxU + 0.3, minY - 0.3, maxY + 0.3]);
-    map.set(a.face, list);
-  }
-  return map;
-}
-
-function rectClear(blocked: Map<number, [number, number, number, number][]>, face: number, u0: number, u1: number, y0: number, y1: number): boolean {
-  for (const [bu0, bu1, by0, by1] of blocked.get(face) ?? []) {
-    if (u0 < bu1 && u1 > bu0 && y0 < by1 && y1 > by0) return false;
-  }
-  return true;
 }
 
 function facePoint(outline: P2[], edge: number, u: number, y: number): P3 {
@@ -115,18 +106,53 @@ function facePoint(outline: P2[], edge: number, u: number, y: number): P3 {
  * marquee band over the entrance or as a blade sign protruding edge-on from the
  * facade. Orientation is decided by what fits, then by building family and the
  * facade's own proportions, so the same building always gets the same sign.
+ * Where it lands is a scan for clear wall: never on a column, a rib, a floor
+ * band or an opening, shrinking and moving until it is clear or giving up.
  */
 function placeSignage(
-  req: BuildingRequest, family: Family, ground: P2[], streetEdge: number, groundHeight: number, top: number,
-  out: Blueprint['signage'], blocked: Map<number, [number, number, number, number][]>,
+  req: BuildingRequest, family: Family, ground: P2[], faces: number[],
+  groundFloor: FloorLayout, top: number,
+  out: Blueprint['signage'], obstacles: Map<number, Rect[]>,
 ): void {
   const spec = req.options?.signage;
   if (!spec) return;
-  const e = streetEdge;
+  const street = faces[0] as number;
+  if (spec.mode === 'marquee') capacityCheck(spec.text, ground, street, groundFloor.height, top);
+  // The street face first; when nothing clear fits there the sign relocates to
+  // the next face the entrance ranking prefers.
+  for (const face of faces) {
+    if (signOnFace(req, spec, family, ground, face, groundFloor, top, out, obstacles)) return;
+  }
+}
+
+/** A text longer than the street facade holds either way round is a request error. */
+function capacityCheck(text: string, ground: P2[], e: number, groundHeight: number, top: number): void {
+  const L = edgeLength(ground, e);
+  const bandWidthLimit = (L - 2 * OPENING.cornerMargin) * 0.9;
+  const bladeRoom = Math.max(0, top - 0.8 - (groundHeight + 0.6));
+  const horizontalMax = Math.floor(bandWidthLimit / SIGNAGE.minCellSize);
+  const verticalMax = Math.floor((bladeRoom - 2 * SIGNAGE.framePad) / SIGNAGE.minCellSize);
+  if (text.length > Math.max(horizontalMax, verticalMax)) {
+    throw new ExteriorError('E_SIGNAGE_TEXT_TOO_LONG',
+      `"${text}" is ${text.length} letter cells; this facade holds ${horizontalMax} across or ${verticalMax} stacked`);
+  }
+}
+
+function signOnFace(
+  req: BuildingRequest, spec: NonNullable<Signage>, family: Family, ground: P2[], e: number,
+  groundFloor: FloorLayout, top: number,
+  out: Blueprint['signage'], obstacles: Map<number, Rect[]>,
+): boolean {
   const L = edgeLength(ground, e);
   const usable = L - 2 * OPENING.cornerMargin;
   const normal = edgeNormal(ground, e);
   const rng = new Rng(req.seed, 'signage');
+  const rects = obstacles.get(e);
+  const groundHeight = groundFloor.height;
+  // Over the entrance when there is one on this face: that is where a marquee belongs.
+  const door = groundFloor.openings.find((o) => o.kind === 'door' && o.edge === e);
+  const doorU = door ? door.offset + door.width / 2 : L / 2;
+  const doorHead = door ? door.sill + door.height : 0;
 
   if (spec.mode === 'marquee') {
     const cells = spec.text.length;
@@ -134,55 +160,73 @@ function placeSignage(
     // A blade hangs from just above the entrance to just under the parapet.
     const bladeBottom = groundHeight + 0.6;
     const bladeRoom = Math.max(0, top - 0.8 - bladeBottom);
-    const horizontalMax = Math.floor(bandWidthLimit / SIGNAGE.minCellSize);
-    const verticalMax = Math.floor((bladeRoom - 2 * SIGNAGE.framePad) / SIGNAGE.minCellSize);
-    if (cells > Math.max(horizontalMax, verticalMax)) {
-      throw new ExteriorError('E_SIGNAGE_TEXT_TOO_LONG',
-        `"${spec.text}" is ${cells} letter cells; this facade holds ${horizontalMax} across or ${verticalMax} stacked`);
-    }
-
     let cell = quant(rng.range(...SIGNAGE.cellSize));
     const fitsWide = (c: number) => cells * c <= bandWidthLimit;
     const fitsTall = (c: number) => cells * c + 2 * SIGNAGE.framePad <= bladeRoom;
     const vertical = chooseVertical(rng, family, L, top, cells, cell, fitsWide, fitsTall);
     while (cell > SIGNAGE.minCellSize && !(vertical ? fitsTall(cell) : fitsWide(cell))) cell = quant(cell - 0.05);
-    const letterHeight = quant(cell * SIGNAGE.glyphFill);
 
     if (vertical) {
       const height = quant(cells * cell + 2 * SIGNAGE.framePad);
       const depth = quant(rng.range(...SIGNAGE.bladeDepth));
-      const y = quant(bladeBottom + height / 2);
-      const uc = quant(Math.min(Math.max(OPENING.cornerMargin + 1, L * 0.22), L - OPENING.cornerMargin - 1));
-      if (!rectClear(blocked, e, uc - 1, uc + 1, y - height / 2, y + height / 2)) return;
-      out.push({
-        mode: 'marquee', orientation: 'vertical', text: spec.text, cellSize: cell, letterHeight,
-        center: facePoint(ground, e, uc, y), width: SIGNAGE.bladeThickness, height, depth, normal,
+      // A blade only touches the wall on a thin strip, so that strip is what has to be clear.
+      const spot = findClearRect(rects, {
+        width: SIGNAGE.bladeThickness, height, u: L * 0.22, y: bladeBottom + height / 2,
+        uMin: SIGNAGE.edgeMargin, uMax: L - SIGNAGE.edgeMargin,
+        yMin: bladeBottom, yMax: Math.max(bladeBottom + height, top - 0.8),
+        margin: SIGNAGE.clearance, minScale: 0.6,
       });
-      return;
+      if (!spot) return false;
+      const cellSize = quant(Math.min(cell, (spot.height - 2 * SIGNAGE.framePad) / cells));
+      out.push({
+        mode: 'marquee', orientation: 'vertical', text: spec.text, edge: e,
+        cellSize, letterHeight: quant(cellSize * SIGNAGE.glyphFill),
+        center: facePoint(ground, e, quant(spot.u), quant(spot.y)),
+        width: SIGNAGE.bladeThickness, height: quant(cells * cellSize + 2 * SIGNAGE.framePad),
+        standoff: quant(spot.standoff), depth: quant(spot.standoff + depth), normal,
+      });
+      return true;
     }
 
-    const width = quant(cells * cell);
-    const height = quant(cell + 2 * SIGNAGE.framePad);
-    const y = Math.min(Math.max(2.6, groundHeight - height * 0.5), Math.max(2.6, top - height));
-    const uc = L / 2;
-    if (!rectClear(blocked, e, uc - width / 2, uc + width / 2, y, y + height)) return;
-    out.push({
-      mode: 'marquee', orientation: 'horizontal', text: spec.text, cellSize: cell, letterHeight,
-      center: facePoint(ground, e, uc, quant(y + height / 2)),
-      width, height, depth: SIGNAGE.marqueeProud, normal,
+    const wantWidth = cells * cell;
+    const wantHeight = cell + 2 * SIGNAGE.framePad;
+    const yWanted = doorHead > 0 ? doorHead + 0.35 + wantHeight / 2 : groundHeight * 0.75;
+    const spot = findClearRect(rects, {
+      width: wantWidth, height: wantHeight, u: doorU, y: yWanted,
+      uMin: SIGNAGE.edgeMargin, uMax: L - SIGNAGE.edgeMargin,
+      yMin: SIGNAGE.minMarqueeSill, yMax: Math.max(SIGNAGE.minMarqueeSill + wantHeight, Math.min(top - 0.5, groundHeight + 4)),
+      margin: SIGNAGE.clearance, minScale: SIGNAGE.minCellSize / cell,
     });
-    return;
+    if (!spot) return false;
+    const cellSize = quant(Math.max(SIGNAGE.minCellSize, spot.width / cells));
+    out.push({
+      mode: 'marquee', orientation: 'horizontal', text: spec.text, edge: e,
+      cellSize, letterHeight: quant(cellSize * SIGNAGE.glyphFill),
+      center: facePoint(ground, e, quant(spot.u), quant(spot.y)),
+      width: quant(cells * cellSize), height: quant(cellSize + 2 * SIGNAGE.framePad),
+      standoff: quant(spot.standoff), depth: quant(spot.standoff + SIGNAGE.marqueeProud), normal,
+    });
+    return true;
   }
 
   const ratio = SIGNAGE.logoRatios[spec.ratio] as number;
   const width = quant(Math.min(Math.max(L * 0.3, 1.5), 8));
   const height = quant(width / ratio);
   const tall = top > groundHeight * 4;
-  const y = tall ? top - height - 2 : groundHeight + 0.3;
-  const uc = L / 2;
-  if (y < groundHeight * 0.5 || y + height > top) return;
-  if (!rectClear(blocked, e, uc - width / 2, uc + width / 2, y, y + height)) return;
-  out.push({ mode: 'logo', ratio: spec.ratio, center: facePoint(ground, e, uc, y + height / 2), width, height, normal });
+  const spot = findClearRect(rects, {
+    width, height, u: L / 2, y: tall ? top - 2 - height / 2 : groundHeight + 0.3 + height / 2,
+    uMin: SIGNAGE.edgeMargin, uMax: L - SIGNAGE.edgeMargin,
+    yMin: Math.max(groundHeight * 0.5, height / 2), yMax: top - height / 2,
+    margin: SIGNAGE.clearance, minScale: 0.6,
+  });
+  if (!spot) return false;
+  out.push({
+    mode: 'logo', ratio: spec.ratio, edge: e,
+    center: facePoint(ground, e, quant(spot.u), quant(spot.y)),
+    width: quant(spot.width), height: quant(spot.height),
+    standoff: quant(spot.standoff), depth: quant(spot.standoff + SIGNAGE.marqueeProud), normal,
+  });
+  return true;
 }
 
 /**
@@ -204,10 +248,11 @@ function chooseVertical(
 }
 
 function placeScreens(
-  req: BuildingRequest, family: Family, tier: Tier, ground: P2[], streetEdge: number,
-  groundHeight: number, top: number, signagePresent: boolean,
-  out: Blueprint['screens'], blocked: Map<number, [number, number, number, number][]>,
+  req: BuildingRequest, family: Family, tier: Tier, ground: P2[], faces: number[],
+  groundHeight: number, top: number, signage: Blueprint['signage'],
+  out: Blueprint['screens'], obstacles: Map<number, Rect[]>,
 ): void {
+  const streetEdge = faces[0] as number;
   const opt = req.options?.adScreens ?? 'auto';
   if (opt === 'off') return;
   const floorsTall = top / 3.5;
@@ -215,26 +260,38 @@ function placeScreens(
   const rng = new Rng(req.seed, 'ad-screen');
   if (opt === 'auto' && (!eligible || !rng.chance(0.5))) return;
 
-  // Street facade unless signage sits there; then the longest other face.
-  let e = streetEdge;
-  if (signagePresent) {
-    let len = 0;
-    for (let i = 0; i < ground.length; i++) {
-      if (i === streetEdge) continue;
-      const L = edgeLength(ground, i);
-      if (L > len) { len = L; e = i; }
-    }
-  }
-  const L = edgeLength(ground, e);
-  const width = quant(Math.min(L - 2, L * rng.range(...AD_SCREEN.widthFraction)));
-  if (width < 2) return;
+  // Street facade unless signage sits there; then the longest other face, then
+  // any face with clear wall for it.
+  const preferred: number[] = [];
+  if (signage.length === 0) preferred.push(streetEdge);
+  const others = ground.map((_, i) => i).filter((i) => i !== streetEdge)
+    .sort((a, b) => edgeLength(ground, b) - edgeLength(ground, a));
+  preferred.push(...others, streetEdge);
   const ratio = rng.pick(AD_SCREEN.ratios);
-  const height = quant(width / ratio);
-  const yc = Math.min(Math.max(top * 0.55, groundHeight + 2 + height / 2), top - 2 - height / 2);
-  if (yc - height / 2 < groundHeight) return;
-  const uc = L / 2;
-  if (!rectClear(blocked, e, uc - width / 2, uc + width / 2, yc - height / 2, yc + height / 2)) return;
-  out.push({ center: facePoint(ground, e, uc, yc), width, height, normal: edgeNormal(ground, e) });
+  const fraction = rng.range(...AD_SCREEN.widthFraction);
+
+  for (const e of preferred) {
+    const L = edgeLength(ground, e);
+    const width = quant(Math.min(L - 2, L * fraction));
+    if (width < AD_SCREEN.minWidth) continue;
+    const height = quant(width / ratio);
+    const rects = [...(obstacles.get(e) ?? [])];
+    for (const s of signage) if (s.edge === e) rects.push(placedRect(ground, e, s.center, s.width, s.height));
+
+    const spot = findClearRect(rects, {
+      width, height, u: L / 2, y: Math.max(top * 0.55, groundHeight + 2 + height / 2),
+      uMin: 1, uMax: L - 1,
+      yMin: groundHeight + height / 2, yMax: top - 1 - height / 2,
+      margin: AD_SCREEN.clearance, minScale: AD_SCREEN.minWidth / width,
+    });
+    if (!spot) continue;
+    out.push({
+      edge: e, center: facePoint(ground, e, quant(spot.u), quant(spot.y)),
+      width: quant(spot.width), height: quant(spot.height),
+      standoff: quant(spot.standoff), normal: edgeNormal(ground, e),
+    });
+    return;
+  }
 }
 
 function placeLights(

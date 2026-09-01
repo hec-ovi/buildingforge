@@ -382,23 +382,20 @@ function meshBalcony(sink: PartSink, fr: Frame, o: Opening, elevation: number, m
  */
 function meshFacadeRelief(mb: MeshBuilder, layout: Layout, above: FloorLayout[], top: number, mat: (k: string) => string): void {
   const f = layout.style.facade;
+  const relief = layout.relief;
   if (f.ribWidth <= 0 || above.length === 0) return;
   const sink = mb.part('facade-relief');
   const material = mat('wall-trim');
-  const ground = above[0]!;
-  const constantOutline = above.every((fl) => fl.outline === ground.outline);
 
-  if (constantOutline) {
-    for (let e = 0; e < ground.outline.length; e++) {
-      const fr = frame(ground.outline, e);
-      for (let u = f.panelModule; u < fr.len - f.ribWidth / 2; u += f.panelModule) {
-        sink.box(material, at(fr, [u, top / 2], f.ribDepth / 2),
-          [fr.dir[0] * f.ribWidth / 2, 0, fr.dir[1] * f.ribWidth / 2],
-          [0, top / 2, 0],
-          [fr.n[0] * f.ribDepth / 2, 0, fr.n[1] * f.ribDepth / 2]);
-      }
+  relief.byEdge.forEach((face, e) => {
+    const fr = frame(relief.outline, e);
+    for (const u of face.ribs) {
+      sink.box(material, at(fr, [u, top / 2], f.ribDepth / 2),
+        [fr.dir[0] * f.ribWidth / 2, 0, fr.dir[1] * f.ribWidth / 2],
+        [0, top / 2, 0],
+        [fr.n[0] * f.ribDepth / 2, 0, fr.n[1] * f.ribDepth / 2]);
     }
-  }
+  });
 
   for (const fl of above) {
     if (fl.index === 0) continue; // the ground band would sit on the pavement
@@ -430,24 +427,16 @@ function meshFacadeArtifacts(mb: MeshBuilder, layout: Layout, mat: (k: string) =
 }
 
 function meshColumns(mb: MeshBuilder, layout: Layout, above: FloorLayout[], top: number, mat: (k: string) => string): void {
-  if (!layout.style.showColumns) return;
-  const ground = above[0]!;
-  if (above.some((f) => f.outline !== ground.outline)) return;
+  if (!layout.style.showColumns || above.length === 0) return;
+  const relief = layout.relief;
   const sink = mb.part('columns');
   const w = layout.style.columnWidth;
-  for (let e = 0; e < ground.outline.length; e++) {
-    const fr = frame(ground.outline, e);
-    const forbidden: [number, number][] = [];
-    for (const f of above) for (const o of f.openings) if (o.edge === e) forbidden.push([o.offset - 0.2, o.offset + o.width + 0.2]);
-    for (const c of layout.carved) if (c.aperture.face === e) {
-      const us = c.facePoly.map((p) => p[0]);
-      forbidden.push([Math.min(...us) - 0.2, Math.max(...us) + 0.2]);
-    }
-    for (let u = layout.style.columnSpacing; u < fr.len - w; u += layout.style.columnSpacing) {
-      if (forbidden.some(([a, b]) => u + w / 2 > a && u - w / 2 < b)) continue;
+  relief.byEdge.forEach((face, e) => {
+    const fr = frame(relief.outline, e);
+    for (const u of face.columns) {
       sink.box(mat('column'), at(fr, [u, top / 2], 0.06), [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2], [0, top / 2, 0], [fr.n[0] * 0.06, 0, fr.n[1] * 0.06]);
     }
-  }
+  });
 }
 
 /** World corners of the stair-head cutout, in the plate's own axis frame. */
@@ -494,7 +483,7 @@ function meshRoofArtifacts(mb: MeshBuilder, layout: Layout, top: number, mat: (k
 
 function meshFeatures(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {
   layout.signage.forEach((s, i) => meshSign(mb.part(`signage:${i}`), s, mat));
-  layout.screens.forEach((s, i) => plate(mb.part(`screen:${i}`), s.center, s.normal, s.width, s.height, 0.1, mat('ad-screen')));
+  layout.screens.forEach((s, i) => plate(mb.part(`screen:${i}`), s.center, s.normal, s.width, s.height, s.standoff + 0.1, mat('ad-screen'), s.standoff));
   layout.lights.forEach((l, i) => {
     const c = add(l.position, [l.normal[0] * 0.1, 0, l.normal[1] * 0.1]);
     mb.part(`light:${i}`).aabox(mat('light-fixture'), c, 0.16, 0.16, 0.28);
@@ -517,7 +506,7 @@ function meshSign(sink: PartSink, s: Blueprint['signage'][number], mat: (k: stri
 
   if (s.mode === 'logo' || s.orientation !== 'vertical') {
     const depth = s.depth ?? 0.06;
-    plate(sink, s.center, s.normal, s.width, s.height, depth, frame);
+    plate(sink, s.center, s.normal, s.width, s.height, depth, frame, s.standoff);
     if (!cell) return;
     // Glyph cells left to right across the band, standing just off the plate face.
     const face = add(s.center, scale(n, depth + 0.01));
@@ -533,9 +522,10 @@ function meshSign(sink: PartSink, s: Blueprint['signage'][number], mat: (k: stri
 
   // Blade: a box standing out from the wall, letters stacked down both sides.
   const depth = s.depth ?? 1;
+  const back = s.standoff;
   const half = s.width / 2;
-  const center = add(s.center, scale(n, depth / 2));
-  sink.box(frame, center, scale(right, half), scale(up, s.height / 2), scale(n, depth / 2));
+  const center = add(s.center, scale(n, (back + depth) / 2));
+  sink.box(frame, center, scale(right, half), scale(up, s.height / 2), scale(n, (depth - back) / 2));
   if (!cell) return;
   const size = Math.min(cell * SIGNAGE.glyphFill, depth * 0.8);
   for (let i = 0; i < text.length; i++) {
@@ -571,11 +561,13 @@ function glyphQuad(
  * painted on, four thin sides, and a solid back so nothing reads through the
  * plate from behind. The back stands a centimetre off the wall, never on it.
  */
-function plate(sink: PartSink, center: V3, normal: P2, w: number, h: number, depth: number, material: string): void {
+function plate(
+  sink: PartSink, center: V3, normal: P2, w: number, h: number, depth: number, material: string, standoff = 0,
+): void {
   const n: V3 = [normal[0], 0, normal[1]];
   const right: V3 = [normal[1], 0, -normal[0]];
   const up: V3 = [0, 1, 0];
-  const back = PLATE_STANDOFF;
+  const back = standoff + PLATE_STANDOFF;
   const corner = (su: number, sv: number, proud: number): V3 =>
     add(add(add(center, scale(right, su * w / 2)), scale(up, sv * h / 2)), scale(n, proud));
   sink.quadFacing(material, corner(-1, -1, depth), corner(1, -1, depth), corner(1, 1, depth), corner(-1, 1, depth), n, [[0, 1], [1, 1], [1, 0], [0, 0]]);

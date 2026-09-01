@@ -218,6 +218,12 @@ export const SIGNAGE = {
   framePad: 0.12,
   glyphFill: 0.72,
   marqueeProud: 0.16,
+  /** clear wall kept around a sign: it never sits on a column, rib, band or opening */
+  clearance: 0.12,
+  /** a marquee band hangs above head height */
+  minMarqueeSill: 2.6,
+  /** wall a surface-mounted sign keeps to the corner: a bracket, not a pier */
+  edgeMargin: 0.2,
   bladeDepth: [0.8, 1.4] as [number, number],
   bladeThickness: 0.22,
   /** families that hang a blade sign when the facade is not much wider than it is tall */
@@ -321,4 +327,6 @@ export const AD_SCREEN = {
   tiers: ['mid', 'rich', 'high_rich'] as string[],
   widthFraction: [0.35, 0.6] as [number, number],
   ratios: [16 / 9, 4 / 1, 3 / 2],
+  minWidth: 2,
+  clearance: 0.15,
 };

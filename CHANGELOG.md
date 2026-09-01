@@ -1,5 +1,7 @@
 # Changelog
 
+- 0.19: signage and ad screens scan for clear facade. One relief model (ribs, columns, floor bands) now feeds both the mesher and a per-face obstacle map, and a placement scan puts every sign and screen on wall that carries nothing: it steps along the face, shrinks, then relocates to the next face, and where a facade offers no bare wall it mounts proud of the relief or the glazing it crosses. A door, a balcony door and an aperture mouth are never covered, utility boxes keep off the signs, and the blueprint publishes `edge` and `standoff` per plate. A machine check (E_INVARIANT) proves the no-overlap.
+
 - 0.18.1: wall-mounted plates are closed boxes. A marquee, a logo plate and an ad screen carry a solid back panel standing a centimetre off the wall, so a sign shows its face from the street and nothing from behind.
 
 - 0.18: doors are assemblies. Each swinging leaf is one node subtree (`door:<id>/leaf:<n>`, `balcony:<id>/leaf:<n>`) holding every mesh that moves with it, glass pane included, with the node origin on the hinge so the game turns it about its own Y; the blueprint publishes `leaves`. The casing (`door:<id>/frame`) is a mitred ring of three members that never share a plane, machine-checked by a contract test, and merged GLBs keep leaf nodes out of the merge so they can still swing.
