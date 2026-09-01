@@ -33,7 +33,8 @@ export function cutWall(length: number, y0: number, y1: number, holes: Hole[]): 
     const um = (u0 + u1) / 2;
     const hole = bounded.find((h) => um > h.minU && um < h.maxU);
     if (!hole) {
-      pieces.push(piece(u0, u1, y0, y1, y0, y1));
+      // Full-height strip: bottom edge flat at y0, top edge flat at y1.
+      pieces.push(piece(u0, u1, y0, y0, y1, y1));
       continue;
     }
     const [lo0, hi0] = yRangeAt(hole.poly, u0);

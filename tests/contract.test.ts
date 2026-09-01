@@ -443,6 +443,39 @@ describe('GLB shell', () => {
     }
   });
 
+  it('builds every wall band as real surface, no degenerate quads', async () => {
+    for (const req of [residential, corpo, factory, bridged]) {
+      const { glb, blueprint } = await generate(req, KEYS);
+      const doc = await new NodeIO().readBinary(glb);
+      for (const floor of blueprint.floors) {
+        for (let e = 0; e < floor.outline.length; e++) {
+          const node = doc.getRoot().listNodes().find((n) => n.getName() === `wall:${floor.index}/${e}`)!;
+          let area = 0;
+          for (const prim of node.getMesh()!.listPrimitives()) {
+            const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
+            const idx = prim.getIndices()!.getArray() as Uint32Array;
+            for (let i = 0; i + 2 < idx.length; i += 3) {
+              const p = [0, 1, 2].map((k) => [pos[idx[i + k]! * 3]!, pos[idx[i + k]! * 3 + 1]!, pos[idx[i + k]! * 3 + 2]!]);
+              const ab = [p[1]![0]! - p[0]![0]!, p[1]![1]! - p[0]![1]!, p[1]![2]! - p[0]![2]!];
+              const ac = [p[2]![0]! - p[0]![0]!, p[2]![1]! - p[0]![1]!, p[2]![2]! - p[0]![2]!];
+              area += Math.hypot(
+                ab[1]! * ac[2]! - ab[2]! * ac[1]!,
+                ab[2]! * ac[0]! - ab[0]! * ac[2]!,
+                ab[0]! * ac[1]! - ab[1]! * ac[0]!,
+              ) / 2;
+            }
+          }
+          // The band minus the openings cut out of it.
+          const holes = floor.openings
+            .filter((o) => o.edge === e)
+            .reduce((sum, o) => sum + o.width * o.height, 0);
+          const band = edgeLen(floor.outline, e) * floor.height;
+          expect(area, `wall:${floor.index}/${e}`).toBeGreaterThan(band - holes - 0.5);
+        }
+      }
+    }
+  });
+
   it('gives every mesh a NORMAL attribute agreeing with its winding', async () => {
     for (const req of [residential, bridged]) {
       const { glb } = await generate(req, KEYS);

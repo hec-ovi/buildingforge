@@ -49,7 +49,7 @@ export function buildMesh(layout: Layout): MeshBuilder {
       const holes: Hole[] = [];
       for (const o of f.openings) {
         if (o.edge !== e) continue;
-        if (o.kind === 'door' || o.kind === 'balconyDoor') {
+        if (o.kind !== 'aperture') {
           holes.push(rectHole(o.offset, f.elevation + o.sill, o.width, o.height));
         }
       }
@@ -152,10 +152,11 @@ function windowUnit(
   const g0 = u0 + fw, g1 = u1 - fw, gb = yb + fw, gt = yt - fw;
   const frameMat = mat('window-frame');
 
-  // Deep-set styles sink the whole unit into the wall behind a reveal ring.
+  // The wall is cut at the opening; the reveal ring lines it back to the unit,
+  // which the facade style sets deeper the poorer the tier.
   const recess = style.facade.windowRecess;
   const z = -recess;
-  if (recess > 0.02) {
+  if (recess > 0.01) {
     reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], recess, true, mat('wall-trim'));
   }
   const proud = g.frameProud + z;

@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.15.0, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.15.1, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -31,7 +31,7 @@ GLB shell:
 - Binary glTF 2.0, one scene, named nodes: `floor:<index>/slab`, `wall:<floor>/<edge>`, `facade-relief`, `facade-artifacts`, `window:<opening-id>`, `door:<opening-id>`, `balcony:<opening-id>`, `aperture:<id>`, `anchor:<id>`, `roof`, `parapet`, `terrace:<floor>` (setback rings), `columns`, `roof-artifacts`, `bulkhead`, `base` (bottom cap), `signage:<n>`, `screen:<n>`, `light:<n>`, `fire-escape`.
 - `options.glb: "merged"` swaps the node scheme for one mesh per material key (`merged:<theme/kind/tier>`), for runtime scale; anchors stay named nodes and the blueprint is identical either way. Default `"named"` is the canonical interchange.
 - Empty inside except one separator plane per floor at its elevation, faced both ways (a one-sided slab is invisible through the glazing from below and the shell reads hollow). The `floor:<index>/slab` nodes are replaceable: interior re-emits them with stair and elevator holes under the same names.
-- All triangles CCW front, outward normals; every mesh carries a NORMAL attribute (flat per face, matching the winding) so it shades correctly in any viewer. Windows are overlay units on the uncut wall; real holes only for doors and apertures (grid-cut, watertight, no T-junctions).
+- All triangles CCW front, outward normals; every mesh carries a NORMAL attribute (flat per face, matching the winding) so it shades correctly in any viewer. Every opening is a real hole in the wall band (grid-cut, watertight, no T-junctions), lined by a reveal back to the unit that fills it.
 - A window unit is a frame profile with real reveal depth, a mullion grid splitting the opening into `panes.cols` x `panes.rows` panes, and the glass recessed behind the profile. Profile sections and pane limits are seeded once per building, so a facade is consistent and buildings differ.
 - Facade style follows the tier and is published as `facade.style`. `glass` (rich, high_rich): clean mullioned glazing nearly flush with the panels. `panel` (mid): the unit sits back behind a reveal, thin ribs and floor bands, a few utility boxes. `megablock` (poor): heavy ribs on the panel grid with floor bands, many small windows scattered semi-irregularly inside the cells and deeply set, surface-mounted utility boxes. `facade.panelModule` is the panel width and the wall material's tile size at once, so the joints painted in the map land on the geometry that sits on the same grid; ribs and megablock cells run in whole modules from the face origin. Utility boxes are published as `facadeArtifacts` (edge, offset, sill, size) and use the `roof-artifact` material.
 - The roof plane carries a stair-head cutout, `roof.bulkhead`: a rectangle on the plate's own axis (center, unit `axis`, width, depth) with the housing that covers it and its door onto the roof. Interior lands its stair head there; roof artifacts and the walk space around the housing stay clear of it. Null when the plate is too small for access plus clearance.
