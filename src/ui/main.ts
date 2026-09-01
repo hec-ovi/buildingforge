@@ -1,5 +1,6 @@
 import './components/styles.css';
 import { el } from './components/dom.ts';
+import { ToastManager, toast } from './components/Toast.ts';
 import { PreviewView } from './views/PreviewView.ts';
 import { RequestPanel } from './widgets/RequestPanel.ts';
 import { InspectPanel } from './widgets/InspectPanel.ts';
@@ -22,7 +23,17 @@ for (const [path, mod] of Object.entries(fixtureModules)) {
 const app = document.getElementById('app')!;
 const viewport = el('div', { class: 'viewport' });
 const panel = el('div', { class: 'panel' });
-app.append(viewport, panel);
+
+const hud = el(
+  'div',
+  { class: 'viewport-hud' },
+  el('div', { class: 'hud-item' }, el('span', { class: 'hud-key' }, 'LMB'), 'Rotate'),
+  el('div', { class: 'hud-item' }, el('span', { class: 'hud-key' }, 'Wheel'), 'Zoom'),
+  el('div', { class: 'hud-item' }, el('span', { class: 'hud-key' }, 'RMB'), 'Pan'),
+);
+viewport.appendChild(hud);
+
+app.append(viewport, panel, ToastManager.get().root);
 
 const view = new PreviewView(viewport);
 const inspect = new InspectPanel({
@@ -52,6 +63,10 @@ async function run(req: unknown): Promise<void> {
     });
     inspect.showBlueprint(blueprint, glb.byteLength, textures.reason ?? textures.mode);
     await view.showBuilding(glb, blueprint);
+    toast(
+      `Building ${blueprint.buildingId}: ${blueprint.floors.length} floors (${(glb.byteLength / 1024).toFixed(0)} KiB)`,
+      { type: 'success', durationMs: 2500 },
+    );
   } catch (err) {
     request.showError(err instanceof ExteriorError ? `${err.code}: ${err.message}` : String(err));
   }

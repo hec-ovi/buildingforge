@@ -15,18 +15,40 @@ export interface InspectEvents {
 export class InspectPanel {
   readonly root: HTMLElement;
   private readonly stats: HTMLElement;
+  private readonly clipSlider: HTMLInputElement;
+  private readonly clipValueLabel: HTMLElement;
 
   constructor(events: InspectEvents) {
-    const clip = el('input', { type: 'range', min: '0', max: '100', value: '100' });
-    clip.addEventListener('input', () => events.onClip(Number(clip.value) / 100));
-    const view = el('select');
-    view.append(el('option', { value: 'orbit' }, 'orbit'), el('option', { value: 'eye' }, 'street eye 1.7 m'));
+    this.clipSlider = el('input', {
+      type: 'range',
+      min: '0',
+      max: '100',
+      value: '100',
+      'aria-label': 'Clip height fraction',
+    });
+    this.clipValueLabel = el('span', { class: 'field-value' }, '100%');
+
+    this.clipSlider.addEventListener('input', () => {
+      const val = Number(this.clipSlider.value);
+      this.clipValueLabel.textContent = `${val}%`;
+      events.onClip(val / 100);
+    });
+
+    const view = el('select', { 'aria-label': 'Camera view preset' });
+    view.append(
+      el('option', { value: 'orbit' }, 'orbit'),
+      el('option', { value: 'eye' }, 'street eye 1.7 m'),
+    );
     view.addEventListener('change', () => events.onView(view.value as ViewMode));
+
     this.stats = el('div', { class: 'stats' });
-    this.root = el('div', { class: 'panel-section' },
+
+    this.root = el(
+      'div',
+      { class: 'panel-section' },
       el('h2', {}, 'inspect'),
       field('camera', view),
-      field('clip height', clip),
+      field('clip height', this.clipSlider, this.clipValueLabel),
       toggle('flat colors', events.onFlat),
       toggle('wireframe', events.onWireframe),
       toggle('highlight openings', events.onHighlight),

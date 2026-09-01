@@ -3,6 +3,7 @@
 // given, one is rolled and shown.
 
 import { el, field } from '../components/dom.ts';
+import { toast } from '../components/Toast.ts';
 import { randomSeed } from '../../core/seed.ts';
 
 export interface RequestPanelEvents {
@@ -19,13 +20,19 @@ export class RequestPanel {
 
   constructor(fixtures: Record<string, unknown>, events: RequestPanelEvents) {
     this.fixtures = fixtures;
-    this.select = el('select');
+    this.select = el('select', { 'aria-label': 'Select fixture' });
     for (const name of Object.keys(fixtures).sort()) {
       this.select.append(el('option', { value: name }, name));
     }
-    this.seedInput = el('input', { type: 'text', placeholder: 'seed' });
-    const generateBtn = el('button', {}, 'generate');
-    const randomBtn = el('button', {}, 'random seed');
+    this.seedInput = el('input', {
+      type: 'text',
+      placeholder: 'hex seed or string',
+      spellcheck: 'false',
+      'aria-label': 'Building generation seed',
+    });
+    const generateBtn = el('button', { class: 'btn-primary', type: 'button' }, 'generate');
+    const randomBtn = el('button', { type: 'button' }, 'random seed');
+    const btnRow = el('div', { class: 'button-row' }, generateBtn, randomBtn);
     this.errorBox = el('div', { class: 'error' });
 
     const fire = () => {
@@ -36,23 +43,35 @@ export class RequestPanel {
         this.showError(err instanceof Error ? err.message : String(err));
       }
     };
+
     generateBtn.addEventListener('click', fire);
     randomBtn.addEventListener('click', () => {
-      this.seedInput.value = randomSeed();
+      const rolled = randomSeed();
+      this.seedInput.value = rolled;
+      toast(`Rolled seed ${rolled}`, { type: 'info', durationMs: 2000 });
       fire();
     });
+
     // A new fixture brings its own seed back into the field.
     this.select.addEventListener('change', () => {
       this.seedInput.value = '';
       fire();
     });
 
-    this.root = el('div', { class: 'panel-section' },
+    this.seedInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        fire();
+      }
+    });
+
+    this.root = el(
+      'div',
+      { class: 'panel-section' },
       el('h2', {}, 'request'),
       field('fixture', this.select),
       field('seed', this.seedInput),
-      generateBtn,
-      randomBtn,
+      btnRow,
       this.errorBox,
     );
   }
@@ -68,5 +87,6 @@ export class RequestPanel {
 
   showError(message: string): void {
     this.errorBox.textContent = message;
+    toast(message, { type: 'error', durationMs: 4500 });
   }
 }

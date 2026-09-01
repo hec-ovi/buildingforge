@@ -39,16 +39,26 @@ export class PreviewView {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.clippingPlanes = [this.clipPlane];
     this.renderer.toneMapping = ACESFilmicToneMapping;
-    this.scene.background = new Color(0x101014);
+    this.scene.background = new Color(0x0a0d13);
     this.camera = new PerspectiveCamera(55, 1, 0.1, 2000);
     this.camera.position.set(50, 40, 50);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.08;
+
+    this.controls.addEventListener('start', () => {
+      container.classList.add('is-dragging');
+    });
+    this.controls.addEventListener('end', () => {
+      container.classList.remove('is-dragging');
+    });
+
     container.appendChild(this.renderer.domElement);
 
     // Facades are vertical, so the key light sits low: an overhead sun lights the
     // slabs and leaves the walls black.
-    this.scene.add(new AmbientLight(0xffffff, 0.3));
-    this.scene.add(new HemisphereLight(0x9fb8d8, 0x2a2a30, 0.8));
+    this.scene.add(new AmbientLight(0xffffff, 0.35));
+    this.scene.add(new HemisphereLight(0x9fb8d8, 0x2a2a30, 0.85));
     const sun = new DirectionalLight(0xffffff, 2.4);
     sun.position.set(90, 45, 60);
     this.scene.add(sun);
@@ -57,7 +67,7 @@ export class PreviewView {
     fill.position.set(-70, 25, -60);
     this.scene.add(fill);
     // Ground reference, kept just below Y=0 so it never fights the building's bottom cap.
-    const grid = new GridHelper(200, 40, 0x2a2a34, 0x1c1c24);
+    const grid = new GridHelper(200, 40, 0x232b3a, 0x141822);
     grid.position.y = -0.05;
     this.scene.add(grid);
 
