@@ -1,20 +1,20 @@
 {
   "$id": "urbe/exterior/proportions",
-  "description": "Proportion table, the same values the generator enforces, so a consumer can predict opening sizes without reading the GLB. Units meters. A floor's clear height is its floor-to-floor height minus clearHeightAllowance (slab plus ceiling zone). A standard-family window is windowHeight (a fraction of that clear height) tall on a sill inside the family's sill range; when the sill plus the height would pass the clear height, the sill drops to its minimum first and the height is trimmed last, never below the fraction's lower bound unless the floor itself is too short. An entrance door is entrance[0]..entrance[1] tall, capped by the ground floor's clear height. security and industrial are the documented small-window exceptions; poor tier keeps the megablock scatter (small, deep, semi-irregular) whatever the family says. A ground floor that is a venue or a lobby uses the storefront row instead of its family row.",
+  "description": "Proportion table, the same values the generator enforces, so a consumer can predict opening sizes without reading the GLB. Units meters. A floor's clear height is its floor-to-floor height minus clearHeightAllowance (slab plus ceiling zone). A standard-family window is windowHeight (a fraction of that clear height) tall on a sill inside the family's sill range; when the sill plus the height would pass the clear height, the sill drops to the row's minimum first and the height is trimmed last, never below the fraction's lower bound unless the floor itself is too short. An entrance is entrance[0]..entrance[1] tall, capped by the ground floor's clear height; the ground floor grows to hold the row's shortest entrance whenever the envelope leaves room over the other floors' minimum. Every entrance is entranceWidth.standard wide, a grand entrance (hotel, corpo and venues at rich and high_rich) entranceWidth.grand, an edge too short for that giving what it holds. A ground floor that is a venue or a lobby takes the storefront row: glass from a sill inside storefront.sill up to the clear height, one run per bay (per panel cell on a megablock). security and industrial are the documented small-window exceptions; poor tier keeps the megablock scatter (small, deep, semi-irregular) above the ground floor whatever the family says.",
   "clearHeightAllowance": 0.35,
-  "entranceRange": [2.4, 3.2],
+  "entranceRange": [2.4, 6.0],
   "standardFamilies": ["residential", "hotel", "office", "corpo", "hospital", "commerce"],
   "families": {
-    "residential": { "entrance": [2.4, 2.7], "windowHeight": [0.55, 0.68], "sill": [0.7, 0.9], "windowWidth": [1.1, 1.7] },
-    "hotel": { "entrance": [2.8, 3.2], "windowHeight": [0.55, 0.7], "sill": [0.7, 0.9], "windowWidth": [1.4, 2.0] },
-    "office": { "entrance": [2.8, 3.2], "windowHeight": [0.62, 0.78], "sill": [0.35, 0.55], "windowWidth": [1.6, 2.6] },
-    "corpo": { "entrance": [2.9, 3.2], "windowHeight": [0.7, 0.85], "sill": [0.15, 0.4], "windowWidth": [1.5, 2.2] },
-    "hospital": { "entrance": [2.6, 3.0], "windowHeight": [0.5, 0.62], "sill": [0.8, 0.95], "windowWidth": [1.4, 2.0] },
-    "security": { "entrance": [2.4, 2.7], "windowHeight": [0.28, 0.4], "sill": [1.4, 1.8], "windowWidth": [0.7, 1.0] },
-    "industrial": { "entrance": [2.6, 3.0], "windowHeight": [0.2, 0.32], "sill": [2.5, 4.0], "windowWidth": [2.0, 3.2] },
-    "commerce": { "entrance": [2.8, 3.2], "windowHeight": [0.6, 0.78], "sill": [0.4, 0.7], "windowWidth": [1.8, 2.6] }
+    "residential": { "entrance": [2.4, 2.9], "windowHeight": [0.7, 0.82], "sill": [0.4, 0.6], "windowWidth": [1.4, 2.0] },
+    "hotel": { "entrance": [3.6, 4.4], "windowHeight": [0.72, 0.85], "sill": [0.35, 0.55], "windowWidth": [1.6, 2.2] },
+    "office": { "entrance": [3.6, 4.4], "windowHeight": [0.78, 0.9], "sill": [0.3, 0.45], "windowWidth": [1.8, 2.6] },
+    "corpo": { "entrance": [4.0, 6.0], "windowHeight": [0.8, 0.9], "sill": [0.3, 0.4], "windowWidth": [1.6, 2.4] },
+    "hospital": { "entrance": [3.2, 3.8], "windowHeight": [0.7, 0.8], "sill": [0.45, 0.6], "windowWidth": [1.6, 2.2] },
+    "security": { "entrance": [2.6, 3.0], "windowHeight": [0.28, 0.4], "sill": [1.4, 1.8], "windowWidth": [0.7, 1.0] },
+    "industrial": { "entrance": [2.8, 3.4], "windowHeight": [0.2, 0.32], "sill": [2.5, 4.0], "windowWidth": [2.0, 3.2] },
+    "commerce": { "entrance": [3.2, 3.8], "windowHeight": [0.75, 0.9], "sill": [0.3, 0.5], "windowWidth": [2.0, 2.8] }
   },
-  "storefront": { "windowHeight": [0.62, 0.8], "sill": [0.2, 0.45] },
+  "storefront": { "sill": [0, 0.3] },
   "megablock": { "tier": "poor", "windowHeight": [0.6, 1.05], "windowWidth": [0.55, 0.95], "minSill": 0.8 },
-  "entranceWidth": { "single": [1.6, 1.9], "double": [1.9, 2.4], "grand": [2.6, 4.2] }
+  "entranceWidth": { "standard": [2.6, 3.2], "grand": [3.2, 4.8] }
 }

@@ -319,18 +319,41 @@ describe('blueprint invariants', () => {
     }
   });
 
-  it('gives every entrance the height its family row publishes, inside 2.4 to 3.2 m', async () => {
+  it('gives every entrance its family row, 2.4 to 6 m tall by family and at least 2.6 m wide', async () => {
+    // 6 residential floors in 16 m: every storey at the 2.6 m minimum except the
+    // ground, which keeps the room for its row's 2.4 m door.
+    const squeezed = { ...residential, seed: 'urbe-res-squeezed', parcel: { ...(residential.parcel as object), maxHeight: 16 } };
     const cases: [Record<string, unknown>, keyof typeof PROPORTIONS.families][] = [
-      [residential, 'residential'], [corpo, 'corpo'], [factory, 'industrial'], [sliver, 'office'],
+      [residential, 'residential'], [corpo, 'corpo'], [factory, 'industrial'], [sliver, 'office'], [squeezed, 'residential'],
     ];
     for (const [req, family] of cases) {
       const { blueprint } = await generate(req, KEYS);
-      const door = blueprint.floors.find((f) => f.index === 0)!.openings.find((o) => o.id === 'entrance')!;
+      const ground = blueprint.floors.find((f) => f.index === 0)!;
+      const door = ground.openings.find((o) => o.id === 'entrance')!;
       const row = PROPORTIONS.families[family];
+      const clear = ground.height - PROPORTIONS.clearHeightAllowance;
       expect(door.height).toBeGreaterThanOrEqual(row.entrance[0] - 1e-6);
-      expect(door.height).toBeLessThanOrEqual(row.entrance[1] + 1e-6);
+      expect(door.height).toBeLessThanOrEqual(Math.min(row.entrance[1], clear) + 1e-6);
       expect(door.height).toBeGreaterThanOrEqual(PROPORTIONS.entranceRange[0] - 1e-6);
       expect(door.height).toBeLessThanOrEqual(PROPORTIONS.entranceRange[1] + 1e-6);
+      expect(door.width).toBeGreaterThanOrEqual(PROPORTIONS.entranceWidth.standard[0] - 1e-6);
+      expect(door.width).toBeLessThanOrEqual(PROPORTIONS.entranceWidth.grand[1] + 1e-6);
+    }
+  });
+
+  it('glazes a venue or lobby ground floor from a low sill to the head band, the megablock included', async () => {
+    for (const [type, tier] of [['restaurant', 'mid'], ['commerce', 'poor'], ['hotel', 'rich']] as const) {
+      const req = { ...residential, seed: `store-${type}-${tier}`, building: { type, tier, floors: 4 } };
+      const { blueprint } = await generate(req, KEYS);
+      const ground = blueprint.floors.find((f) => f.index === 0)!;
+      const clear = ground.height - PROPORTIONS.clearHeightAllowance;
+      const glass = ground.openings.filter((o) => o.kind === 'window');
+      expect(glass.length, `${type} ${tier}`).toBeGreaterThan(0);
+      for (const o of glass) {
+        expect(o.sill).toBeLessThanOrEqual(PROPORTIONS.storefront.sill[1] + 1e-6);
+        expect(o.sill + o.height).toBeGreaterThanOrEqual(clear - 0.051);
+        expect(o.sill + o.height).toBeLessThanOrEqual(clear + 1e-6);
+      }
     }
   });
 
@@ -356,9 +379,9 @@ describe('blueprint invariants', () => {
     }
   });
 
-  it('caps the entrance on a squeezed ground floor without breaking its own range (p14 class)', async () => {
-    // A tunnel pinned at 2.65 m squeezes the ground floor under the family's
-    // 2.4 m entrance, so the door takes what the floor holds.
+  it('caps the entrance on a pinned ground floor without breaking its own range (p14 class)', async () => {
+    // A bridge pinned at 2.65 m holds the ground floor under the room its row's
+    // 2.4 m entrance needs, so the door takes what the floor holds.
     const request = {
       seed: 'urbe-small:p14', buildingId: 'p14',
       parcel: { footprint: [[0, 0], [36, 0], [36, 9], [0, 9]], accessPoint: [18, -1], maxHeight: 22.2 },

@@ -4,7 +4,7 @@
 import { Rng } from '../core/rng.ts';
 import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist } from '../rules/tables.ts';
 import {
-  PROPORTIONS, clearHeight, entranceHeight, fitWindow, isStorefrontFloor, proportionsOf,
+  clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
 } from '../rules/proportions.ts';
 import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
 import { paneGrid } from './glazing.ts';
@@ -126,9 +126,14 @@ export function buildFacades(
       if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
     }
 
-    // 3. Windows and balcony doors: a curtain wall glazes each face whole,
-    // megablock scatters small openings inside the panel grid, every other style
-    // fills bays.
+    // 3. Windows and balcony doors, sized by the proportion table and fitted
+    // once to this floor's clear height: a storefront ground floor glazes from
+    // its sill to the head band, a curtain wall glazes each face whole, a
+    // megablock scatters small openings inside its panel grid, every other
+    // style fills bays.
+    const clear = clearHeight(level.height);
+    const storefront = isGround && isStorefrontFloor(family, level.kind);
+    const fit = storefront ? fitStorefront(style.storefrontSill, clear) : fitWindow(prop, style.windowFraction, style.sill, clear);
     if (!noWindows && style.facade.kind === 'curtain-wall') {
       for (let e = 0; e < outline.length; e++) {
         const normal = edgeNormal(outline, e);
@@ -142,7 +147,8 @@ export function buildFacades(
         const sunFacing = normal[0] * sun[0] + normal[1] * sun[1] > 0;
         const dist = (CURTAINS[profile] as { sunFacing: CurtainDist; shaded: CurtainDist })[sunFacing ? 'sunFacing' : 'shaded'];
         const stacked = balconiesOn && !isGround && outline === massing.groundOutline;
-        placeMegablockCells(seed, req.theme, tier, style, outline, e, level, openings, takenByEdge, dist, stacked);
+        placeMegablockCells(seed, req.theme, tier, style, outline, e, level, openings, takenByEdge, dist, stacked,
+          storefront ? fit : null);
       }
     } else if (!noWindows) {
       for (let e = 0; e < outline.length; e++) {
@@ -163,14 +169,15 @@ export function buildFacades(
           const isBalcony = !isGround && stacks?.has(b) === true;
 
           if (isBalcony) {
+            // The balcony door rises to the window head, so the floor reads as one glazed line.
             const doorW = 0.95;
-            const doorH = Math.min(2.05, level.height - 0.5);
+            const doorH = quant(Math.min(clear, Math.max(2.05, fit ? fit.sill + fit.height : 0)));
             if (!fits(takenByEdge, e, bayCenter - doorW / 2, bayCenter + doorW / 2)) continue;
             const balconyW = quant(Math.max(doorW + 0.4, Math.min(bayW - 0.4, style.balconyWidth)));
             take(takenByEdge, e, bayCenter - doorW / 2, bayCenter + doorW / 2);
             openings.push({
               id: `bd:${level.index}:${e}:${b}`, kind: 'balconyDoor', edge: e,
-              offset: quantOff(bayCenter - doorW / 2), width: doorW, height: quant(doorH), sill: 0,
+              offset: quantOff(bayCenter - doorW / 2), width: doorW, height: doorH, sill: 0,
               leaves: leafCount(doorW), state: curtainState(seed, level.index, e, b, dist),
               balcony: { depth: style.balconyDepth, width: balconyW },
               material: `${req.theme}/door-glass/${tier}`,
@@ -178,33 +185,23 @@ export function buildFacades(
             continue;
           }
 
-          // Window bay. Curtain-wall styles glaze every bay wide; punched windows
-          // roll density. Sizes come from the proportion table, fitted to this
-          // floor's clear height.
-          const clear = clearHeight(level.height);
-          const storefront = isGround && isStorefrontFloor(family, level.kind);
-          const fit = fitWindow(
-            storefront ? { ...prop, sill: PROPORTIONS.storefront.sill, windowHeight: PROPORTIONS.storefront.windowHeight } : prop,
-            storefront ? style.storefrontFraction : style.windowFraction,
-            storefront ? style.storefrontSill : style.sill,
-            clear,
-          );
+          // Window bay: a storefront takes the bay whole, a punched window its
+          // family width, rolled by the window-to-wall density.
           if (!fit) continue;
-          const w = Math.min(style.windowWidth, bayW - OPENING.minPier);
-          const h = fit.height;
-          const sill = fit.sill;
-          if (w < 0.4 || h < 0.5) continue;
-          const p = Math.min(1, Math.max(0.05, (style.wwr * bayW * level.height) / (w * h)));
-          const rng = new Rng(seed, `win:${level.index}:${e}:${b}`);
-          if (!rng.chance(p)) continue;
+          const w = storefront ? bayW - OPENING.minPier : Math.min(style.windowWidth, bayW - OPENING.minPier);
+          if (w < 0.4) continue;
+          if (!storefront) {
+            const p = Math.min(1, Math.max(0.05, (style.wwr * bayW * level.height) / (w * fit.height)));
+            if (!new Rng(seed, `win:${level.index}:${e}:${b}`).chance(p)) continue;
+          }
           if (!fits(takenByEdge, e, bayCenter - w / 2, bayCenter + w / 2)) continue;
           take(takenByEdge, e, bayCenter - w / 2, bayCenter + w / 2);
-          const width = quant(w), height = quant(h);
+          const width = quant(w);
           openings.push({
             id: `w:${level.index}:${e}:${b}`, kind: 'window', edge: e,
-            offset: quantOff(bayCenter - w / 2), width, height, sill: quant(sill),
+            offset: quantOff(bayCenter - w / 2), width, height: fit.height, sill: fit.sill,
             state: curtainState(seed, level.index, e, b, dist),
-            panes: paneGrid(width, height, style.glazing),
+            panes: paneGrid(width, fit.height, style.glazing),
             material: `${req.theme}/window-glass/${tier}`,
           });
         }
@@ -230,12 +227,14 @@ function leafCount(width: number): number {
  * Megablock facade: the panel grid runs from the face origin in whole modules,
  * the same grid the wall material tiles on. Each cell rolls for a small window,
  * placed with a seeded jitter inside the cell so the field reads scattered
- * rather than a regular office lattice.
+ * rather than a regular office lattice. A storefront ground floor glazes each
+ * cell whole instead, rib to rib.
  */
 function placeMegablockCells(
   seed: string, theme: string, tier: Tier, style: Style, outline: P2[], e: number,
   level: { index: number; elevation: number; height: number },
   openings: Opening[], taken: Map<number, Taken[]>, dist: CurtainDist, balconies: boolean,
+  storefront: WindowFit | null,
 ): void {
   const L = edgeLength(outline, e);
   const module = style.facade.panelModule;
@@ -248,6 +247,20 @@ function placeMegablockCells(
     const start = c * module + inset;
     const end = (c + 1) * module - inset;
     if (start < OPENING.cornerMargin || end > L - OPENING.cornerMargin || end - start < w[0]) continue;
+
+    if (storefront) {
+      const width = quant(end - start);
+      if (!fits(taken, e, start, start + width)) continue;
+      take(taken, e, start, start + width);
+      openings.push({
+        id: `w:${level.index}:${e}:${c}`, kind: 'window', edge: e,
+        offset: quantOff(start), width, height: storefront.height, sill: storefront.sill,
+        state: curtainState(seed, level.index, e, c, dist),
+        panes: paneGrid(width, storefront.height, style.glazing),
+        material: `${theme}/window-glass/${tier}`,
+      });
+      continue;
+    }
 
     // Balcony cells are chosen per stack, not per floor, so they line up vertically.
     if (balconies && new Rng(seed, `mega-balcony:${e}:${c}`).chance(0.35)) {
@@ -320,7 +333,7 @@ function placeCurtainWallBays(
     if (b.door) {
       const sill = b.door.sill + b.door.height + cw.transomGap;
       // Rounded down onto the grid: a transom never grows past the slab above.
-      if (height - sill >= cw.minTransom) b.door.transom = Math.floor((height - sill) * 20) / 20;
+      if (height - sill >= cw.minTransom) b.door.transom = Math.floor((height - sill) * 20 + 1e-9) / 20;
     }
     u = Math.max(u, b.end + OPENING.minPier);
   }
@@ -366,9 +379,10 @@ function fits(map: Map<number, Taken[]>, edge: number, start: number, end: numbe
 }
 
 /**
- * The entrance: 2.4 to 3.2 m tall by the family's row in the proportion table
- * (venue and lobby entrances at the top of it), as wide as its leaf count needs,
- * capped only by a ground floor too short to hold it.
+ * The entrance: as tall as the family's row in the proportion table says
+ * (residential lowest, venues and lobbies tall, corpo a double-height lobby
+ * door), capped only by a ground floor too short to hold it, and at least the
+ * standard width, grand on rich hotels, corpo and venues.
  */
 function placeEntrance(
   req: BuildingRequest, family: Family, tier: Tier, style: Style,
@@ -381,10 +395,7 @@ function placeEntrance(
 
   const grand = (family === 'corpo' || family === 'hotel' || family === 'commerce')
     && (tier === 'rich' || tier === 'high_rich');
-  const widthRange = grand ? DOORS.width.grand
-    : family === 'residential' && tier === 'poor' ? DOORS.width.single
-    : DOORS.width.double;
-  const wWant = quant(rng.range(...widthRange));
+  const wWant = quant(rng.range(...(grand ? DOORS.width.grand : DOORS.width.standard)));
   const h = entranceHeight(prop, style.entrancePick, clearHeight(groundHeight));
 
   for (const e of candidates) {

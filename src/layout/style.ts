@@ -34,7 +34,6 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
     windowWidth: quant(rng.range(...p.windowWidth)),
     windowFraction: rng.range(...p.windowHeight),
     sill: quant(rng.range(...p.sill)),
-    storefrontFraction: rng.range(...PROPORTIONS.storefront.windowHeight),
     storefrontSill: quant(rng.range(...PROPORTIONS.storefront.sill)),
     entrancePick: rng.next(),
     bayModule: quant(rng.range(...r.bayModule)),

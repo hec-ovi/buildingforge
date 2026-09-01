@@ -12,8 +12,7 @@ export interface Style {
   /** window height as a fraction of a floor's clear height (schemas/proportions.json) */
   windowFraction: number;
   sill: number;
-  /** ground-floor shopfront glazing: taller, on a lower sill */
-  storefrontFraction: number;
+  /** ground-floor storefront: the sill its glass stands on, the glass reaching the head band */
   storefrontSill: number;
   /** where this building sits inside its family's entrance height range, 0..1 */
   entrancePick: number;

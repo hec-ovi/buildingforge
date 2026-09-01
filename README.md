@@ -37,7 +37,7 @@ npm run generate -- request.json out --keys-only        # material keys, no maps
 - **options**: shape, balconies, fire escape, window style, signage marquee or logo, ad screens, roof artifacts, curtain profile
 - **textures**: `external` map URIs against a base path (default), `embed` for one self-contained file, or `keys` for a consumer that resolves the material keys itself
 
-`schemas/floor-constants.json` publishes the per-type constants (floor height bands, minimum footprint area) and the recipe a caller uses to pick a guaranteed feasible floor count before generating, so a batch never discovers infeasibility halfway through. `schemas/proportions.json` publishes the opening sizes: entrance doors 2.4 to 3.2 m tall by family, window heights as a share of each floor's clear height, sill ranges, and the shopfront and megablock exceptions.
+`schemas/floor-constants.json` publishes the per-type constants (floor height bands, minimum footprint area) and the recipe a caller uses to pick a guaranteed feasible floor count before generating, so a batch never discovers infeasibility halfway through. `schemas/proportions.json` publishes the opening sizes: entrance heights by family (2.4 m residential up to 6 m corpo lobbies) and widths, window heights as a share of each floor's clear height with sill ranges, and the storefront and megablock rows.
 
 ## Out
 

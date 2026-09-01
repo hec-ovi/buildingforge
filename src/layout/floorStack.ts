@@ -7,6 +7,7 @@
 import { ExteriorError } from '../core/errors.ts';
 import { Rng } from '../core/rng.ts';
 import { RULES } from '../rules/tables.ts';
+import { groundFloorNeed } from '../rules/proportions.ts';
 import { quant } from '../core/polygon.ts';
 import type { BuildingRequest } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
@@ -26,6 +27,7 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
   const basements = req.building.basements ?? 0;
   const maxHeight = req.parcel.maxHeight;
   const basementHeight = quant(Math.min(3.5, Math.max(2.8, style.floorHeight)));
+  const groundNeed = groundFloorNeed(family);
 
   const walkable = (req.apertures ?? []).filter((a) => a.kind !== 'wire-anchor');
   const basesPos = [...new Set(walkable.map((a) => a.base).filter((b) => b > 1e-9))].sort((a, b) => a - b);
@@ -38,8 +40,8 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
   }
 
   const elevAbove = basesPos.length === 0
-    ? nominalStack(floors, style, rules.minFloorHeight, maxHeight, reqH.get(0) ?? 0)
-    : solveSplit(floors, basesPos, rules.minFloorHeight, rules.maxFloorHeight, style.floorHeight, maxHeight, reqH);
+    ? nominalStack(floors, style, rules.minFloorHeight, maxHeight, reqH.get(0) ?? 0, groundNeed)
+    : solveSplit(floors, basesPos, rules.minFloorHeight, rules.maxFloorHeight, style.floorHeight, maxHeight, reqH, groundNeed);
 
   const elevBelow = basementElevations(basements, basesNeg, basementHeight, reqH);
 
@@ -60,11 +62,14 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
 
 /**
  * No pins: nominal heights (taller ground floor), scaled down to the envelope.
- * Scaling rounds DOWN to the 0.05 grid so quantization can never push the total
- * back over maxHeight; a deterministic shave absorbs clamp interactions.
+ * The ground floor keeps what its family's shortest entrance needs while the
+ * envelope leaves that room over the other floors' minimum. Scaling rounds DOWN
+ * to the 0.05 grid so quantization can never push the total back over
+ * maxHeight; a deterministic shave absorbs clamp interactions.
  */
-function nominalStack(floors: number, style: Style, minH: number, maxHeight: number, groundReq: number): number[] {
-  const minOf = (i: number) => (i === 0 ? Math.max(minH, groundReq) : minH);
+function nominalStack(floors: number, style: Style, minH: number, maxHeight: number, groundReq: number, groundNeed: number): number[] {
+  const room = quantDown(maxHeight - (floors - 1) * minH);
+  const minOf = (i: number) => (i === 0 ? Math.max(minH, groundReq, Math.min(groundNeed, room)) : minH);
   const heights: number[] = [];
   for (let i = 0; i < floors; i++) {
     heights.push(Math.max(minOf(i), i === 0 ? style.groundFloorHeight : style.floorHeight));
@@ -96,10 +101,11 @@ function nominalStack(floors: number, style: Style, minH: number, maxHeight: num
  * Pinned bases above ground: choose how many floors land between consecutive
  * bases, then a tail above the top base. The first floor of each segment starts
  * at a pinned base and must contain the tallest aperture there (height >= reqH),
- * so it goes tall and the rest of the segment splits uniformly. Returns
+ * so it goes tall and the rest of the segment splits uniformly; the ground floor
+ * also keeps its entrance row's need when its segment has the room. Returns
  * floors+1 elevations (last = roof top).
  */
-function solveSplit(floors: number, bases: number[], minH: number, maxH: number, nominal: number, maxHeight: number, reqAll: Map<number, number>): number[] {
+function solveSplit(floors: number, bases: number[], minH: number, maxH: number, nominal: number, maxHeight: number, reqAll: Map<number, number>, groundNeed: number): number[] {
   const anchors = [0, ...bases];
   const k = bases.length;
   const req = anchors.map((a) => reqAll.get(a) ?? 0);
@@ -164,8 +170,9 @@ function solveSplit(floors: number, bases: number[], minH: number, maxH: number,
     const count = m[j] as number;
     const anchor = anchors[j] as number;
     const span = spans[j] as number;
-    // First floor tall enough for its aperture, the rest uniform.
-    const h1 = Math.max(req[j] as number, span / count);
+    // First floor tall enough for its aperture (at ground, for its entrance too), the rest uniform.
+    const need = j === 0 ? Math.min(groundNeed, span - (count - 1) * minH) : 0;
+    const h1 = Math.max(req[j] as number, span / count, need);
     elev.push(anchor);
     for (let i = 1; i < count; i++) elev.push(anchor + h1 + ((span - h1) * (i - 1)) / (count - 1));
   }

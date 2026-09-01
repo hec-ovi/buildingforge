@@ -153,8 +153,9 @@ function checkOverlays(layout: Layout, obstacles: Map<number, Rect[]>): void {
 
 /**
  * The proportion table is a promise: entrance doors stand in their family's
- * height range, punched windows reach their share of the floor's clear height on
- * a sill inside the range, and the small deep megablock window is the poor
+ * height range at the standard width, punched windows reach their share of the
+ * floor's clear height on a sill inside the range, a storefront reaches the
+ * head band on a low sill, and the small deep megablock window is the poor
  * tier's alone.
  */
 function checkProportions(layout: Layout): void {
@@ -172,11 +173,16 @@ function checkProportions(layout: Layout): void {
   for (const floor of layout.floors) {
     if (floor.index < 0) continue;
     const clear = clearHeight(floor.height);
+    const storefront = floor.index === 0 && isStorefrontFloor(layout.family, floor.kind);
     for (const o of floor.openings) {
       if (o.id === 'entrance') {
         const want = minEntranceHeight(prop, clear);
         if (o.height < want - 1e-6 || o.height > prop.entrance[1] + 1e-6) {
           fail(`entrance is ${o.height.toFixed(2)} m tall, outside ${want.toFixed(2)}..${prop.entrance[1]} m for ${layout.family}`);
+        }
+        const minWidth = Math.min(PROPORTIONS.entranceWidth.standard[0], edgeLength(floor.outline, o.edge) - 0.3);
+        if (o.width < minWidth - 0.051) {
+          fail(`entrance is ${o.width.toFixed(2)} m wide, under the ${minWidth.toFixed(2)} m its edge allows`);
         }
         continue;
       }
@@ -192,16 +198,21 @@ function checkProportions(layout: Layout): void {
         }
         continue;
       }
-      if (megablock) continue;
-      const storefront = floor.index === 0 && isStorefrontFloor(layout.family, floor.kind);
-      const spec = storefront
-        ? { ...prop, sill: PROPORTIONS.storefront.sill, windowHeight: PROPORTIONS.storefront.windowHeight }
-        : prop;
-      if (o.height < minWindowHeight(spec, clear) - 0.051) {
-        fail(`window ${o.id} is ${o.height.toFixed(2)} m in a ${clear.toFixed(2)} m clear floor, under the ${spec.windowHeight[0]} share`);
+      if (storefront) {
+        if (o.sill > PROPORTIONS.storefront.sill[1] + 1e-6) {
+          fail(`storefront window ${o.id} sits on a ${o.sill.toFixed(2)} m sill, over the ${PROPORTIONS.storefront.sill[1]} m limit`);
+        }
+        if (o.sill + o.height < clear - 0.051) {
+          fail(`storefront window ${o.id} stops at ${(o.sill + o.height).toFixed(2)} m in a ${clear.toFixed(2)} m clear floor instead of reaching the head band`);
+        }
+        continue;
       }
-      if (o.sill > spec.sill[1] + 0.051) {
-        fail(`window ${o.id} sits on a ${o.sill.toFixed(2)} m sill, over the ${spec.sill[1]} m limit`);
+      if (megablock) continue;
+      if (o.height < minWindowHeight(prop, clear) - 0.051) {
+        fail(`window ${o.id} is ${o.height.toFixed(2)} m in a ${clear.toFixed(2)} m clear floor, under the ${prop.windowHeight[0]} share`);
+      }
+      if (o.sill > prop.sill[1] + 0.051) {
+        fail(`window ${o.id} sits on a ${o.sill.toFixed(2)} m sill, over the ${prop.sill[1]} m limit`);
       }
     }
   }

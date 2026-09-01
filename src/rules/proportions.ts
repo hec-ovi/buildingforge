@@ -1,7 +1,8 @@
 // The proportion table (schemas/proportions.json) and the fit it defines:
-// how tall a window is on a floor of a given height, and how tall an entrance
-// door is. One module owns the arithmetic so the facade builder and the
-// machine check can never drift apart.
+// how tall a window is on a floor of a given height, how a storefront reaches
+// its head band, and how tall an entrance door is. One module owns the
+// arithmetic so the facade builder, the floor stack and the machine check can
+// never drift apart.
 
 import table from '../../schemas/proportions.json' with { type: 'json' };
 import type { Family, Tier } from './families.ts';
@@ -19,9 +20,9 @@ export const PROPORTIONS = table as unknown as {
   entranceRange: [number, number];
   standardFamilies: Family[];
   families: Record<Family, FamilyProportions>;
-  storefront: { windowHeight: [number, number]; sill: [number, number] };
+  storefront: { sill: [number, number] };
   megablock: { tier: Tier; windowHeight: [number, number]; windowWidth: [number, number]; minSill: number };
-  entranceWidth: { single: [number, number]; double: [number, number]; grand: [number, number] };
+  entranceWidth: { standard: [number, number]; grand: [number, number] };
 };
 
 /** Floor-to-floor minus the slab and ceiling zone: the height a person sees. */
@@ -48,6 +49,13 @@ export function fitWindow(spec: FamilyProportions, fraction: number, sill: numbe
   return { height: q(h), sill: q(s) };
 }
 
+/** Storefront glazing: from its sill up to the clear height, the head band above. */
+export function fitStorefront(sill: number, clear: number): WindowFit | null {
+  const height = qDown(clear - sill);
+  if (height < 0.5) return null;
+  return { height, sill: q(sill) };
+}
+
 /** The smallest height fitWindow can return on this floor: what the invariant asserts. */
 export function minWindowHeight(spec: FamilyProportions, clear: number): number {
   return Math.min(spec.windowHeight[0] * clear, clear - spec.sill[0]);
@@ -66,6 +74,11 @@ export function entranceHeight(spec: FamilyProportions, pick: number, groundClea
 /** The shortest entrance this ground floor may carry: the family minimum, or all it can hold. */
 export function minEntranceHeight(spec: FamilyProportions, groundClear: number): number {
   return Math.min(spec.entrance[0], qDown(groundClear));
+}
+
+/** The ground floor that holds the family's shortest entrance under its ceiling zone. */
+export function groundFloorNeed(family: Family): number {
+  return PROPORTIONS.families[family].entrance[0] + PROPORTIONS.clearHeightAllowance;
 }
 
 export function proportionsOf(family: Family): FamilyProportions {
