@@ -528,10 +528,31 @@ function spanZ(outline: P2[]): number {
 /** The interior's stair constants, as it publishes them for consumers (../interior/schemas/core-feasibility.json). */
 const STAIR_CONSTANTS = readStairConstants();
 
-function readStairConstants(): { columnWidth: number; riser: number; tread: number; maxRisersPerFlight: number; landing: number; snap: number } | null {
+interface StairConstants {
+  columnWidth: number;
+  riserMin: number;
+  riserIdeal: number;
+  riserMax: number;
+  tread: number;
+  maxRisersPerFlight: number;
+  landing: number;
+  wallThickness: number;
+}
+
+function readStairConstants(): StairConstants | null {
   try {
     const c = JSON.parse(readFileSync(new URL('../../../interior/schemas/core-feasibility.json', import.meta.url), 'utf8')).constants;
-    return { columnWidth: c.stairColumnWidth, riser: c.stairRiser, tread: c.stairTread, maxRisersPerFlight: c.maxRisersPerFlight, landing: c.stairLanding, snap: c.snap };
+    const values: StairConstants = {
+      columnWidth: c.stairColumnWidth,
+      riserMin: c.stairRiserMin,
+      riserIdeal: c.stairRiserIdeal,
+      riserMax: c.stairRiserMax,
+      tread: c.stairTread,
+      maxRisersPerFlight: c.maxRisersPerFlight,
+      landing: c.stairLanding,
+      wallThickness: c.wallThickness,
+    };
+    return Object.values(values).every((v) => Number.isFinite(v) && v > 0) ? values : null;
   } catch {
     return null;
   }
@@ -540,8 +561,9 @@ function readStairConstants(): { columnWidth: number; riser: number; tread: numb
 /**
  * The side of the square the stair head needs: the stair column width or the
  * shaft depth, whichever is longer, by the interior's own recipe (step 5 of
- * its core feasibility: the worst risers per flight over every one- or
- * two-storey climb, times the tread, plus two landings, rounded up to its snap).
+ * its core feasibility: the worst comfortable riser count per flight over
+ * every one- or two-storey climb, times the tread, plus two landings and the
+ * dividing wall, rounded up to a decimetre).
  */
 function stairHeadSide(floorHeights: number[]): number | null {
   const c = STAIR_CONSTANTS;
@@ -550,11 +572,18 @@ function stairHeadSide(floorHeights: number[]): number | null {
   for (let i = 0; i + 1 < floorHeights.length; i++) climbs.push(floorHeights[i]! + floorHeights[i + 1]!);
   let worst = 0;
   for (const climb of climbs) {
-    const totalRisers = Math.ceil(climb / c.riser);
-    const flights = 2 * Math.ceil(totalRisers / (2 * c.maxRisersPerFlight));
-    worst = Math.max(worst, Math.ceil(totalRisers / flights));
+    const idealRisers = climb / c.riserIdeal;
+    const flights = 2 * Math.ceil(idealRisers / (2 * c.maxRisersPerFlight));
+    const minTotal = Math.ceil(climb / c.riserMax - 1e-9);
+    const maxTotal = Math.floor(climb / c.riserMin + 1e-9);
+    const minMultiple = Math.ceil(minTotal / flights) * flights;
+    const maxMultiple = Math.floor(maxTotal / flights) * flights;
+    if (minMultiple > maxMultiple) return null;
+    const nearest = Math.round(idealRisers / flights) * flights;
+    const totalRisers = Math.max(minMultiple, Math.min(maxMultiple, nearest));
+    worst = Math.max(worst, totalRisers / flights);
   }
-  const depth = Math.ceil((worst * c.tread + 2 * c.landing) / c.snap - 1e-9) * c.snap;
+  const depth = Math.ceil((worst * c.tread + 2 * c.landing + c.wallThickness) * 10 - 1e-9) / 10;
   return quant(Math.max(c.columnWidth, depth) + STAIR_HEAD_MARGIN);
 }
 
