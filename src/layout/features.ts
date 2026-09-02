@@ -1,5 +1,6 @@
 // Facade and roof features: signage, ad screens, lights, fire escape, roof artifacts.
 
+import { readFileSync } from 'node:fs';
 import { ExteriorError } from '../core/errors.ts';
 import { cellCentre } from './module.ts';
 import { Rng } from '../core/rng.ts';
@@ -366,7 +367,7 @@ function buildRoof(
   const topFloor = floors[floors.length - 1]!;
   const outline = topFloor.outline;
   const artifacts: RoofArtifact[] = [];
-  const bulkhead = placeBulkhead(req, outline);
+  const bulkhead = placeBulkhead(req, outline, floors.map((f) => f.height));
   if ((req.options?.roofArtifacts ?? 'auto') !== 'off') {
     const rng = new Rng(req.seed, 'roof');
     const placed: { cx: number; cz: number; hw: number; hd: number }[] = [];
@@ -397,10 +398,13 @@ function buildRoof(
  * and the engine can walk the roof around it; null when the plate is too small
  * to hold the housing plus its walk space.
  */
-function placeBulkhead(req: BuildingRequest, outline: P2[]): Blueprint['roof']['bulkhead'] {
+function placeBulkhead(req: BuildingRequest, outline: P2[], floorHeights: number[]): Blueprint['roof']['bulkhead'] {
   const rng = new Rng(req.seed, 'roof-access');
-  const width = quant(rng.range(...ROOF_ACCESS.width));
-  const depth = quant(rng.range(...ROOF_ACCESS.depth));
+  // The cutout is the interior stair head's own size, square so either stair orientation lands
+  // in it, from the stair constants the interior publishes; without them the table's ranges.
+  const side = stairHeadSide(floorHeights);
+  const width = side ?? quant(rng.range(...ROOF_ACCESS.width));
+  const depth = side ?? quant(rng.range(...ROOF_ACCESS.depth));
   const center = centroid(outline).map(quant) as P2;
   const axis = orientedBoundingBox(outline).axisU;
   const cross: P2 = [-axis[1], axis[0]];
@@ -463,3 +467,39 @@ function spanZ(outline: P2[]): number {
   for (const [, z] of outline) { if (z < min) min = z; if (z > max) max = z; }
   return max - min;
 }
+
+/** The interior's stair constants, as it publishes them for consumers (../interior/schemas/core-feasibility.json). */
+const STAIR_CONSTANTS = readStairConstants();
+
+function readStairConstants(): { columnWidth: number; riser: number; tread: number; maxRisersPerFlight: number; landing: number; snap: number } | null {
+  try {
+    const c = JSON.parse(readFileSync(new URL('../../../interior/schemas/core-feasibility.json', import.meta.url), 'utf8')).constants;
+    return { columnWidth: c.stairColumnWidth, riser: c.stairRiser, tread: c.stairTread, maxRisersPerFlight: c.maxRisersPerFlight, landing: c.stairLanding, snap: c.snap };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The side of the square the stair head needs: the stair column width or the
+ * shaft depth, whichever is longer, by the interior's own recipe (step 5 of
+ * its core feasibility: the worst risers per flight over every one- or
+ * two-storey climb, times the tread, plus two landings, rounded up to its snap).
+ */
+function stairHeadSide(floorHeights: number[]): number | null {
+  const c = STAIR_CONSTANTS;
+  if (!c || floorHeights.length === 0) return null;
+  const climbs = [...floorHeights];
+  for (let i = 0; i + 1 < floorHeights.length; i++) climbs.push(floorHeights[i]! + floorHeights[i + 1]!);
+  let worst = 0;
+  for (const climb of climbs) {
+    const totalRisers = Math.ceil(climb / c.riser);
+    const flights = 2 * Math.ceil(totalRisers / (2 * c.maxRisersPerFlight));
+    worst = Math.max(worst, Math.ceil(totalRisers / flights));
+  }
+  const depth = Math.ceil((worst * c.tread + 2 * c.landing) / c.snap - 1e-9) * c.snap;
+  return quant(Math.max(c.columnWidth, depth) + STAIR_HEAD_MARGIN);
+}
+
+/** Room around the stair head inside the housing, so a stair a little off the housing centre still lands in it. */
+const STAIR_HEAD_MARGIN = 1.0;

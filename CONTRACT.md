@@ -68,6 +68,7 @@ Thrown as `ExteriorError { code, message, details? }`:
 - `E_INVARIANT`: post-generation coherence check failed; exterior bug, report with the request.
 
 ## Invariants
+- Roof housing: sized from ../interior/schemas/core-feasibility.json (stair column width or shaft depth by the interior's recipe, square, plus a metre), placed at the top plate's centroid on its long axis; the interior centres its stair under it.
 - Module grid: `MODULE` (0.5 m, src/rules/tables.ts) sizes every storey (where the envelope allows), bay, window width and height, sill, balcony door and corner margin, and the head band (clearHeightAllowance) is one module; wall UVs start at each facade's corner and storey line, so a panel pattern whose panel is a module frames every opening without a cut tile. Proportion invariants are met to the nearest half module.
 
 - Face i is the vertical quad over parcel footprint segment i -> i+1 (connections convention). Every face carrying an aperture keeps its wall exactly on that segment; shape variation (octagon, cylinder, pyramid, inset) applies to aperture-free buildings, setbacks only above the topmost aperture.
