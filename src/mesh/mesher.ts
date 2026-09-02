@@ -707,8 +707,8 @@ function meshFireEscape(mb: MeshBuilder, layout: Layout, above: FloorLayout[], m
   const sink = mb.part('fire-escape');
   const ground = above[0]!;
   const fr = frame(ground.outline, fe.edge);
-  const uc = fr.len / 2;
-  const halfLen = FIRE_ESCAPE.platformLength / 2;
+  const uc = fe.offset + fe.width / 2;
+  const halfLen = fe.width / 2;
   const pw = FIRE_ESCAPE.platformWidth;
   const m = mat('fire-escape');
   const elevOf = new Map(above.map((f) => [f.index, f.elevation]));

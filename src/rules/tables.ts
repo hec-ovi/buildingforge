@@ -280,6 +280,10 @@ export const FIRE_ESCAPE = {
   platformLength: 2.4,
   allowedFamilies: ['residential', 'industrial'] as string[],
   allowedTiers: ['poor', 'mid'] as string[],
+  /** how often an eligible building wears one on `auto`: the exception, not the rule */
+  chance: { poor: 0.45, mid: 0.25 } as Record<Tier, number>,
+  /** a platform serves a window when it shares at least this much of its run */
+  minServed: 0.6,
 };
 
 export const LIGHTING = {

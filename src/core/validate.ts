@@ -149,8 +149,10 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   out.adScreens = oneOf(o.adScreens, ['auto', 'on', 'off'], 'options.adScreens') as never;
   out.roofArtifacts = oneOf(o.roofArtifacts, ['auto', 'off'], 'options.roofArtifacts') as never;
   if (o.fireEscape !== undefined) {
-    if (typeof o.fireEscape !== 'boolean') fail('options.fireEscape', 'expected boolean');
-    out.fireEscape = o.fireEscape;
+    const v = o.fireEscape;
+    const ok = typeof v === 'boolean' || v === 'auto' || v === 'on' || v === 'off';
+    if (!ok) fail('options.fireEscape', 'expected true, false, "auto", "on" or "off"');
+    out.fireEscape = v as boolean | 'auto' | 'on' | 'off';
   }
   if (o.signage !== undefined && o.signage !== null) {
     const s = o.signage as Record<string, unknown>;

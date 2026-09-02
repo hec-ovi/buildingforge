@@ -350,12 +350,16 @@ function placeFireEscape(
   req: BuildingRequest, family: Family, tier: Tier, massing: Massing,
   floors: FloorLayout[], streetEdge: number,
 ): Blueprint['fireEscape'] {
-  if (!req.options?.fireEscape) return null;
+  const want = req.options?.fireEscape ?? 'auto';
+  if (want === false || want === 'off') return null;
   const above = floors.filter((f) => f.index >= 0);
   if (above.length < 2 || above.length > FIRE_ESCAPE.maxFloors) return null;
   if (!FIRE_ESCAPE.allowedFamilies.includes(family) || !FIRE_ESCAPE.allowedTiers.includes(tier)) return null;
   // Constant outline only (no setbacks): every floor must share the ground ring.
   if (above.some((f) => f.outline !== massing.groundOutline)) return null;
+  // On `auto` only a seeded few of the eligible buildings wear one.
+  if (want === 'auto' && !new Rng(req.seed, 'fire-escape').chance(FIRE_ESCAPE.chance[tier] ?? 0)) return null;
+
   const ground = massing.groundOutline;
   let e = -1, len = 0;
   for (let i = 0; i < ground.length; i++) {
@@ -364,7 +368,49 @@ function placeFireEscape(
     if (L > len) { len = L; e = i; }
   }
   if (e < 0 || len < FIRE_ESCAPE.platformLength + 1) return null;
-  return { edge: e, fromFloor: 1, toFloor: above.length - 1 };
+
+  const seat = servingSeat(above, e, len);
+  if (!seat) return null;
+  return { edge: e, fromFloor: 1, toFloor: seat.toFloor, offset: seat.u, width: FIRE_ESCAPE.platformLength };
+}
+
+/**
+ * Where the stack of platforms stands on the face, and how far up it runs: the
+ * module line whose platforms step out of a real opening on every floor they
+ * pass, windows before balcony doors (a balcony carries its own rail). A run
+ * stops at the first floor it could not serve, and a face that serves no two
+ * floors in a row carries no escape at all.
+ */
+function servingSeat(above: FloorLayout[], edge: number, len: number): { u: number; toFloor: number } | null {
+  const w = FIRE_ESCAPE.platformLength;
+  const middle = (len - w) / 2;
+  const serves = (floor: FloorLayout, u: number): number => {
+    let best = 0;
+    for (const o of floor.openings) {
+      if (o.edge !== edge || (o.kind !== 'window' && o.kind !== 'balconyDoor')) continue;
+      if (Math.min(o.offset + o.width, u + w) - Math.max(o.offset, u) < FIRE_ESCAPE.minServed) continue;
+      best = Math.max(best, o.kind === 'window' ? 2 : 1);
+    }
+    return best;
+  };
+
+  let best: { u: number; toFloor: number; score: number } | null = null;
+  for (let u = MODULE_U; u <= len - w - MODULE_U + 1e-9; u = quant(u + MODULE_U)) {
+    let score = 0, top = 0;
+    for (const floor of above) {
+      if (floor.index < 1) continue;
+      const hit = serves(floor, u);
+      if (hit === 0) break;
+      score += hit;
+      top = floor.index;
+    }
+    if (top < 2) continue; // an escape has to join at least two floors
+    const better = !best || top > best.toFloor
+      || (top === best.toFloor && score > best.score)
+      || (top === best.toFloor && score === best.score && Math.abs(u - middle) < Math.abs(best.u - middle));
+    if (better) best = { u, toFloor: top, score };
+  }
+  return best ? { u: best.u, toFloor: best.toFloor } : null;
 }
 
 function buildRoof(

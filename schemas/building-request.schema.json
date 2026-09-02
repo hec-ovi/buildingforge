@@ -86,7 +86,7 @@
         "shape": { "enum": ["auto", "box", "octagon", "cylinder", "pyramid", "setback"], "default": "auto" },
         "glb": { "enum": ["named", "merged"], "default": "named", "description": "named = contract node per part (canonical, inspectable); merged = one mesh per material key for runtime scale. Same blueprint either way." },
         "balconies": { "enum": ["auto", "on", "off"], "default": "auto" },
-        "fireEscape": { "type": "boolean", "default": false },
+        "fireEscape": { "oneOf": [{ "type": "boolean" }, { "enum": ["auto", "on", "off"] }], "default": "auto", "description": "auto lets the rule decide (a seeded few of the eligible buildings wear one); on forces it where the building is eligible, off never" },
         "windows": { "enum": ["auto", "none"], "default": "auto" },
         "signage": {
           "oneOf": [

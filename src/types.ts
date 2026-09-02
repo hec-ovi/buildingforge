@@ -45,7 +45,7 @@ export interface BuildingRequest {
     shape?: 'auto' | 'box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
     glb?: 'named' | 'merged';
     balconies?: 'auto' | 'on' | 'off';
-    fireEscape?: boolean;
+    fireEscape?: boolean | 'auto' | 'on' | 'off';
     windows?: 'auto' | 'none';
     signage?: Signage;
     adScreens?: 'auto' | 'on' | 'off';
@@ -158,7 +158,7 @@ export interface Blueprint {
     slabBand: { below: number; above: number };
   };
   facadeArtifacts: FacadeArtifact[];
-  fireEscape: { edge: number; fromFloor: number; toFloor: number } | null;
+  fireEscape: { edge: number; fromFloor: number; toFloor: number; offset: number; width: number } | null;
   roof: {
     elevation: number;
     outline: P2[];

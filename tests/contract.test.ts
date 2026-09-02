@@ -876,6 +876,39 @@ describe('GLB shell', () => {
   });
 });
 
+describe('fire escapes', () => {
+  it('steps out of a real opening on every floor the run passes', async () => {
+    const { glb, blueprint } = await generate(
+      { ...residential, options: { ...(residential as any).options, fireEscape: 'on' } }, KEYS);
+    const fe = blueprint.fireEscape;
+    expect(fe, 'an eligible building forced on wears one').toBeTruthy();
+
+    for (const floor of blueprint.floors) {
+      if (floor.index < fe!.fromFloor || floor.index > fe!.toFloor) continue;
+      const served = floor.openings.some((o) => o.edge === fe!.edge
+        && (o.kind === 'window' || o.kind === 'balconyDoor')
+        && Math.min(o.offset + o.width, fe!.offset + fe!.width) - Math.max(o.offset, fe!.offset) >= 0.6);
+      expect(served, `floor ${floor.index} has no opening onto its platform`).toBe(true);
+    }
+
+    const doc = await new NodeIO().readBinary(glb);
+    expect(doc.getRoot().listNodes().some((n) => n.getName() === 'fire-escape')).toBe(true);
+  });
+
+  it('is the exception: never on a glass tower, and only some of the eligible on auto', async () => {
+    const forced = await generate({ ...corpo, options: { ...(corpo as any).options, fireEscape: 'on' } }, KEYS);
+    expect(forced.blueprint.fireEscape, 'a rich corpo tower is not eligible').toBeNull();
+
+    let worn = 0;
+    for (let i = 0; i < 12; i++) {
+      const { blueprint } = await generate({ ...residential, seed: `fe-auto-${i}` }, KEYS);
+      if (blueprint.fireEscape) worn++;
+    }
+    expect(worn, 'auto puts one on some eligible buildings').toBeGreaterThan(0);
+    expect(worn, 'auto keeps it exceptional').toBeLessThan(12);
+  });
+});
+
 describe('slab bands', () => {
   it('keeps the glass clear of the band at every floor line, in the blueprint and in the glass itself', async () => {
     for (const req of [corpo, residential, factory]) {

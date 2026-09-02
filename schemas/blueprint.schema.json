@@ -235,12 +235,14 @@
     "fireEscape": {
       "type": ["object", "null"],
       "default": null,
-      "required": ["edge", "fromFloor", "toFloor"],
+      "required": ["edge", "fromFloor", "toFloor", "offset", "width"],
       "additionalProperties": false,
       "properties": {
         "edge": { "type": "integer", "minimum": 0, "description": "ground outline edge it hangs on" },
         "fromFloor": { "type": "integer" },
-        "toFloor": { "type": "integer" }
+        "toFloor": { "type": "integer" },
+        "offset": { "type": "number", "minimum": 0, "description": "u of the platform stack's left edge along that edge" },
+        "width": { "type": "number", "minimum": 0, "description": "platform length along the edge" }
       }
     },
     "roof": {
