@@ -16,12 +16,13 @@ import { buildFacades } from './layout/facades.ts';
 import { buildRelief } from './layout/relief.ts';
 import { mountAnchors } from './layout/anchors.ts';
 import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.ts';
+import { bestCoreFit, coreRects, facadeDepth } from './layout/core.ts';
 import { acClusterName } from './layout/acUnits.ts';
 import { buildFeatures } from './layout/features.ts';
 import { buildMesh } from './mesh/mesher.ts';
 import { writeGlb } from './glb/writer.ts';
 import { buildBlueprint } from './blueprint/builder.ts';
-import { edgeLength, pointSegmentDistance, type P2 } from './core/polygon.ts';
+import { area, edgeLength, pointSegmentDistance, type P2 } from './core/polygon.ts';
 import { ExteriorError } from './core/errors.ts';
 import type { FloorLayout, Layout } from './layout/model.ts';
 import type { GenerateOptions, GenerateResult, P3 } from './types.ts';
@@ -31,7 +32,8 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   const family = FAMILY[req.building.type];
   const tier = req.building.tier;
   const style = buildStyle(req.seed, family, tier, req.building.floors);
-  const massing = buildMassing(req, family, tier, style.balconyDepth);
+  const facadeInset = facadeDepth(style.facade.kind);
+  const massing = buildMassing(req, family, tier, style.balconyDepth, facadeInset);
   const stack = buildFloorStack(req, family, tier, style);
   const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
   const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
@@ -50,7 +52,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
 
   const mb = buildMesh(layout);
   const blueprint = buildBlueprint(layout, mb);
-  checkPlateDepth(layout.floors, blueprint.facade.wallDepth);
+  checkCorePlate(layout.floors, facadeInset, layout.floors.filter((f) => f.index >= 0).length);
   const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   return { glb, blueprint, textures };
 }
@@ -104,20 +106,21 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
 }
 
 /**
- * Every plate holds a core: a setback or terrace keeps the core depth behind
- * the wall across the core's axis, read once the wall depth is measured on the
- * built units; a plate that is the ground outline is the parcel's own depth.
+ * Every plate holds a core: the interior lays its stairs, lifts and risers in
+ * one rectangle behind the facade, so every floor, ground and setbacks alike,
+ * has to host the rectangle its type and floor count call for. A lot that
+ * cannot is named here rather than at assembly.
  */
-function checkPlateDepth(floors: FloorLayout[], wallDepth: number): void {
+function checkCorePlate(floors: FloorLayout[], facadeInset: number, aboveGround: number): void {
   const ground = floors.find((f) => f.index === 0)!.outline;
   const axis = coreAxis(ground);
+  const rects = coreRects(aboveGround, area(ground));
   for (const floor of floors) {
-    if (floor.outline === ground) continue;
-    const depth = plateDepth(floor.outline, axis) - 2 * (wallDepth + CORE_PLATE.lining);
-    if (depth < CORE_PLATE.minDepth - 1e-6) {
-      throw new ExteriorError('E_INVARIANT',
-        `floor ${floor.index} keeps ${depth.toFixed(2)} m of plate behind the wall across the core axis, under the ${CORE_PLATE.minDepth} m a core needs; exterior bug, report with the request`);
-    }
+    const { fits, reached } = bestCoreFit(floor.outline, axis, facadeInset, rects);
+    if (fits) continue;
+    throw new ExteriorError('E_CORE_PLATE',
+      `floor ${floor.index} reaches ${reached.band.toFixed(2)} m of plate at ${reached.rect.depth} m deep behind the facade, under the ${reached.rect.length} x ${reached.rect.depth} m a ${reached.rect.mode} needs`,
+      { floor: floor.index, band: reached.band, needs: [reached.rect.length, reached.rect.depth], mode: reached.rect.mode });
   }
 }
 

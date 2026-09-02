@@ -7,12 +7,13 @@
 
 import { Rng } from '../core/rng.ts';
 import {
-  insetConvex, isConvex, orientedBoundingBox, pointInPolygon, edgeLength, quant, type P2,
+  area, insetConvex, isConvex, orientedBoundingBox, pointInPolygon, edgeLength, quant, type P2,
 } from '../core/polygon.ts';
 import type { BuildingRequest } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import { CORE_PLATE, FACADE } from '../rules/tables.ts';
 import { MIN_PLATE_DEPTH, coreAxis, plateDepth } from './plate.ts';
+import { bestCoreFit, coreRects } from './core.ts';
 
 // 16-gon unit ring, precomputed so no trig runs at generation time.
 const RING16: P2[] = [
@@ -32,11 +33,18 @@ export interface Massing {
   groundOutline: P2[];
 }
 
-export function buildMassing(req: BuildingRequest, family: Family, tier: Tier, balconyInset: number): Massing {
+export function buildMassing(
+  req: BuildingRequest, family: Family, tier: Tier, balconyInset: number, facadeInset: number,
+): Massing {
   const rng = new Rng(req.seed, 'massing');
   const parcel = req.parcel.footprint;
   const floors = req.building.floors;
   const hasApertures = (req.apertures ?? []).length > 0;
+  // Every plate has to host the interior's core rectangle; the massing picks a
+  // box that does rather than leaving the assembler to find out it cannot.
+  const rects = coreRects(floors, area(parcel), true);
+  const holdsCore = (ring: P2[], axis?: P2) =>
+    bestCoreFit(ring, axis ?? coreAxis(ring), facadeInset, rects).fits !== null;
 
   let shape = (req.options?.shape ?? 'auto') as Shape | 'auto';
   if (hasApertures) {
@@ -48,14 +56,14 @@ export function buildMassing(req: BuildingRequest, family: Family, tier: Tier, b
 
   // Balconies protrude beyond the outline but must stay inside the parcel.
   const needInset = balconyInset > 0 && !hasApertures;
-  const base = baseOutline(shape, parcel, rng, needInset ? balconyInset + 0.1 : 0, hasApertures);
+  const base = baseOutline(shape, parcel, rng, needInset ? balconyInset + 0.1 : 0, hasApertures, holdsCore);
 
   if (shape === 'setback' && floors >= 8) {
     const axis = coreAxis(base);
     const t1 = Math.max(2, Math.round(floors * rng.range(0.3, 0.45)));
     const t2 = Math.max(t1 + 2, Math.round(floors * rng.range(0.65, 0.8)));
-    const mid = stepIn(base, axis, rng);
-    const top = mid ? stepIn(mid, axis, rng) : null;
+    const mid = stepIn(base, axis, rng, holdsCore);
+    const top = mid ? stepIn(mid, axis, rng, holdsCore) : null;
     if (mid) {
       return {
         groundOutline: base,
@@ -74,7 +82,7 @@ export function buildMassing(req: BuildingRequest, family: Family, tier: Tier, b
     const per = quant(Math.max(0.4, totalInset / floors));
     for (let f = 1; f < floors; f++) {
       const next = isConvex(current) ? insetConvex(current, per) : null;
-      if (!next || plateDepth(next, axis) < MIN_PLATE_DEPTH - 1e-9) break;
+      if (!next || !holdsCore(next, axis)) break;
       steps.push(next);
       current = next;
     }
@@ -92,13 +100,18 @@ function coreRoom(ring: P2[], axis: P2): number {
   return (plateDepth(ring, axis) - MIN_PLATE_DEPTH) / 2;
 }
 
-/** One setback in from a convex plate, capped by its core room, or none. */
-function stepIn(ring: P2[], axis: P2, rng: Rng): P2[] | null {
+/** One setback in from a convex plate, as deep as still leaves a core, or none. */
+function stepIn(ring: P2[], axis: P2, rng: Rng, holdsCore: (ring: P2[], axis?: P2) => boolean): P2[] | null {
   if (!isConvex(ring)) return null;
   const [min, max] = CORE_PLATE.setback;
   const cap = Math.floor(Math.min(max, coreRoom(ring, axis)) * 20) / 20;
   if (cap < min) return null;
-  return insetConvex(ring, quant(rng.range(min, cap)));
+  const wanted = quant(rng.range(min, cap));
+  for (let d = wanted; d >= min - 1e-9; d = quant(d - 0.5)) {
+    const next = insetConvex(ring, d);
+    if (next && holdsCore(next, axis)) return next;
+  }
+  return null;
 }
 
 function pickShape(rng: Rng, family: Family, tier: Tier, floors: number): Shape {
@@ -116,30 +129,36 @@ function pickShape(rng: Rng, family: Family, tier: Tier, floors: number): Shape 
   return 'box';
 }
 
-function baseOutline(shape: Shape, parcel: P2[], rng: Rng, inset: number, keepParcel: boolean): P2[] {
+function baseOutline(
+  shape: Shape, parcel: P2[], rng: Rng, inset: number, keepParcel: boolean,
+  holdsCore: (ring: P2[], axis?: P2) => boolean,
+): P2[] {
   // A face carrying an aperture has to sit on its parcel segment, so that
   // building takes the parcel verbatim, slivers and all.
   if (keepParcel) return clone(parcel);
-  if (shape === 'box' || shape === 'setback' || shape === 'pyramid') {
-    // Whole panels corner to corner: a box's sides are whole wall panels, so no
-    // face ends on a cut tile and every rib stands on a painted joint. A parcel
-    // that holds no such box keeps its own outline.
-    const snapped = fitRing(parcel, rng, (hu, hv) => rect(onPanel(hu), onPanel(hv)), inset);
-    if (snapped && plateDepth(snapped, coreAxis(snapped)) >= MIN_PLATE_DEPTH - 1e-9) return snapped;
-    if (inset > 0) return (isConvex(parcel) ? insetConvex(parcel, inset) : null) ?? snapped ?? clone(parcel);
+
+  // Whole panels corner to corner: a box's sides are whole wall panels, so no
+  // face ends on a cut tile and every rib stands on a painted joint. A shape
+  // that leaves no core falls back to the box, and a parcel that holds no such
+  // box keeps its own outline.
+  const boxed = (): P2[] => {
+    const snapped = fitRing(parcel, rng, (hu, hv) => rect(onPanel(hu), onPanel(hv)), inset, holdsCore);
+    if (snapped) return snapped;
+    if (inset > 0) return (isConvex(parcel) ? insetConvex(parcel, inset) : null) ?? clone(parcel);
     return clone(parcel);
-  }
+  };
+
   if (shape === 'octagon') {
-    return fitInObb(parcel, rng, (hu, hv) => {
-      const cut = Math.min(hu, hv) * rng.range(0.3, 0.5);
-      return octagon(hu, hv, cut);
-    }, inset);
+    return fitRing(parcel, rng, (hu, hv) => octagon(hu, hv, Math.min(hu, hv) * rng.range(0.3, 0.5)), inset, holdsCore)
+      ?? boxed();
   }
-  // cylinder
-  return fitInObb(parcel, rng, (hu, hv) => {
-    const radius = Math.min(hu, hv);
-    return RING16.map(([x, z]) => [x * radius, z * radius] as P2);
-  }, inset);
+  if (shape === 'cylinder') {
+    return fitRing(parcel, rng, (hu, hv) => {
+      const radius = Math.min(hu, hv);
+      return RING16.map(([x, z]) => [x * radius, z * radius] as P2);
+    }, inset, holdsCore) ?? boxed();
+  }
+  return boxed();
 }
 
 /** Half a side, snapped down so the whole side is a whole number of wall panels. */
@@ -148,17 +167,15 @@ function onPanel(half: number): number {
   return (Math.max(1, panels) * FACADE.panelModule) / 2;
 }
 
-/** Place a parametric ring (built in OBB-local coords) inside the parcel, or the parcel itself. */
-function fitInObb(parcel: P2[], rng: Rng, make: (halfU: number, halfV: number) => P2[], inset: number): P2[] {
-  return fitRing(parcel, rng, make, inset) ?? clone(parcel);
-}
-
 function clone(ring: P2[]): P2[] {
   return ring.map((p) => [...p] as P2);
 }
 
-/** The same fit, null when no scale of the ring lands inside the parcel. */
-function fitRing(parcel: P2[], rng: Rng, make: (halfU: number, halfV: number) => P2[], inset: number): P2[] | null {
+/** Place a parametric ring (built in OBB-local coords) inside the parcel; null when no scale fits. */
+function fitRing(
+  parcel: P2[], rng: Rng, make: (halfU: number, halfV: number) => P2[], inset: number,
+  accept: (ring: P2[]) => boolean = () => true,
+): P2[] | null {
   const obb = orientedBoundingBox(parcel);
   const margin = inset > 0 ? inset : 0.2;
   for (let scale = 1; scale >= 0.3; scale = quant(scale - 0.05)) {
@@ -170,7 +187,7 @@ function fitRing(parcel: P2[], rng: Rng, make: (halfU: number, halfV: number) =>
       obb.center[0] + obb.axisU[0] * u + obb.axisV[0] * v,
       obb.center[1] + obb.axisU[1] * u + obb.axisV[1] * v,
     ]);
-    if (world.every((p) => pointInPolygon(parcel, p)) && edgeMidpointsInside(parcel, world)) return world;
+    if (world.every((p) => pointInPolygon(parcel, p)) && edgeMidpointsInside(parcel, world) && accept(world)) return world;
   }
   return null;
 }

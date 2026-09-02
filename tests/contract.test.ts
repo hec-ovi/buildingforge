@@ -283,7 +283,7 @@ describe('blueprint invariants', () => {
   it('stacks the same text into a protruding blade sign on a narrow facade', async () => {
     const request = {
       seed: 'urbe-hotel-1', buildingId: 'p700',
-      parcel: { footprint: [[0, 0], [14, 0], [14, 22], [0, 22]], accessPoint: [7, -2], maxHeight: 40 },
+      parcel: { footprint: [[0, 0], [14, 0], [14, 34], [0, 34]], accessPoint: [7, -2], maxHeight: 40 },
       building: { type: 'hotel', tier: 'mid', floors: 10 },
       theme: 'cyberpunk',
       options: { signage: { mode: 'marquee', text: 'HOTEL' } },
@@ -329,7 +329,7 @@ describe('blueprint invariants', () => {
     for (const type of ['coffee_shop', 'commerce']) {
       const { blueprint } = await generate({
         seed: `urbe-venue-${type}`, buildingId: 'p900',
-        parcel: { footprint: [[0, 0], [8, 0], [8, 6], [0, 6]], accessPoint: [4, -1], maxHeight: 12 },
+        parcel: { footprint: [[0, 0], [14, 0], [14, 12], [0, 12]], accessPoint: [7, -1], maxHeight: 12 },
         building: { type, tier: 'mid', floors: 2 },
         theme: 'cyberpunk',
         options: { signage: null },
@@ -872,6 +872,46 @@ describe('GLB shell', () => {
           expect(coplanarOverlap(tris[i]!, tris[j]!), `${name} triangles ${i} and ${j} share a plane`).toBe(false);
         }
       }
+    }
+  });
+});
+
+describe('core plate', () => {
+  it('masses a box the interior can core, on a lot whose bounding box flatters it', async () => {
+    // A commerce lot of about 680 m2 set on the diagonal: the old massing took a
+    // shallow slice of it and the interior could not fit its core rectangle.
+    const { blueprint } = await generate({
+      seed: 'urbe-core:p3', buildingId: 'p3',
+      parcel: { footprint: [[0, 14], [20, 0], [40, 14], [20, 34]], accessPoint: [0, 15], maxHeight: 14 },
+      building: { type: 'commerce', tier: 'mid', floors: 2 },
+      theme: 'cyberpunk', options: { signage: null },
+    }, KEYS);
+
+    const inset = 0.42; // ../interior/schemas/core-feasibility.json facadeDepth, panel style
+    for (const floor of blueprint.floors) {
+      const sides = floor.outline.map((_, e) => {
+        const a = floor.outline[e]!, b = floor.outline[(e + 1) % floor.outline.length]!;
+        return Math.hypot(b[0] - a[0], b[1] - a[1]);
+      }).sort((x, y) => y - x);
+      expect(sides[0]! - 2 * inset, `floor ${floor.index} band`).toBeGreaterThanOrEqual(9.4);
+      expect(sides[1]! - 2 * inset, `floor ${floor.index} depth`).toBeGreaterThanOrEqual(8);
+    }
+  });
+
+  it('names the plate it could reach when a lot is too thin to core', async () => {
+    const thin = {
+      seed: 'urbe-core:thin', buildingId: 'p34',
+      parcel: { footprint: [[0, 0], [30, 0], [30, 8], [0, 8]], accessPoint: [15, -1], maxHeight: 14 },
+      building: { type: 'commerce', tier: 'mid', floors: 2 },
+      theme: 'cyberpunk', options: { signage: null },
+    };
+    expect(await code(thin)).toBe('E_CORE_PLATE');
+    try {
+      await generate(thin, KEYS);
+    } catch (err) {
+      const e = err as { message: string };
+      expect(e.message).toMatch(/reaches [\d.]+ m of plate/);
+      expect(e.message).toMatch(/9\.4 x 8 m a walkup needs/);
     }
   });
 });

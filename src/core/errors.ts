@@ -8,6 +8,7 @@ export type ErrorCode =
   | 'E_APERTURE_INVALID'
   | 'E_APERTURE_OVERLAP'
   | 'E_SIGNAGE_TEXT_TOO_LONG'
+  | 'E_CORE_PLATE'
   | 'E_MATERIAL_UNRESOLVED'
   | 'E_INVARIANT';
 
