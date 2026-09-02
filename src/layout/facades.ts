@@ -175,7 +175,7 @@ export function buildFacades(
 
           if (isBalcony) {
             // The balcony door rises to the window head, so the floor reads as one glazed line.
-            const doorW = MODULE_U;
+            const doorW = 2 * MODULE_U; // a balcony door is a double door
             const doorH = onModule(Math.min(clear, Math.max(2.05, fit ? fit.sill + fit.height : 0)), 'down');
             const doorStart = bayStart + onModule((bayW - doorW) / 2, 'down', MODULE_U);
             if (!fits(takenByEdge, e, doorStart, doorStart + doorW)) continue;
@@ -290,7 +290,7 @@ function placeMegablockCells(
 
     // Balcony cells are chosen per stack, not per floor, so they line up vertically.
     if (balconies && new Rng(seed, `mega-balcony:${e}:${c}`).chance(0.35)) {
-      const doorW = MODULE_U;
+      const doorW = 2 * MODULE_U; // a balcony door is a double door
       const doorH = onModule(Math.min(2.05, level.height - 0.5), 'down');
       const doorStart = start + onModule((end - start - doorW) / 2, 'down', MODULE_U);
       if (doorH >= 1.5 && fits(taken, e, doorStart, doorStart + doorW)) {
