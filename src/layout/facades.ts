@@ -261,8 +261,10 @@ function placeMegablockCells(
   storefront: WindowFit | null,
 ): void {
   const L = edgeLength(outline, e);
-  const module = style.facade.panelModule;
-  const inset = style.facade.ribWidth / 2 + 0.2;
+  // cells are whole metres, ribs stand on their seams, and every window edge inside a cell is on the
+  // metre grid; a window may start on the seam itself, where the rib then gives way
+  const module = Math.max(2 * MODULE_U, onModule(style.facade.panelModule, 'near', MODULE_U));
+  const inset = 0;
   const cells = Math.floor(L / module);
   const w = FACADE.megablockWindow.width;
   const h = FACADE.megablockWindow.height;
@@ -288,14 +290,14 @@ function placeMegablockCells(
 
     // Balcony cells are chosen per stack, not per floor, so they line up vertically.
     if (balconies && new Rng(seed, `mega-balcony:${e}:${c}`).chance(0.35)) {
-      const doorW = 0.95;
-      const doorH = quant(Math.min(2.05, level.height - 0.5));
-      const uc = (start + end) / 2;
-      if (doorH >= 1.8 && fits(taken, e, uc - doorW / 2, uc + doorW / 2)) {
-        take(taken, e, uc - doorW / 2, uc + doorW / 2);
+      const doorW = MODULE_U;
+      const doorH = onModule(Math.min(2.05, level.height - 0.5), 'down');
+      const doorStart = start + onModule((end - start - doorW) / 2, 'down', MODULE_U);
+      if (doorH >= 1.5 && fits(taken, e, doorStart, doorStart + doorW)) {
+        take(taken, e, doorStart, doorStart + doorW);
         openings.push({
           id: `bd:${level.index}:${e}:${c}`, kind: 'balconyDoor', edge: e,
-          offset: quantOff(uc - doorW / 2), width: doorW, height: doorH, sill: 0,
+          offset: quantOff(doorStart), width: doorW, height: doorH, sill: 0,
           leaves: leafCount(doorW), state: curtainState(seed, level.index, e, c, dist),
           balcony: { depth: style.balconyDepth, width: quant(Math.max(doorW + 0.4, Math.min(module - 0.4, style.balconyWidth))) },
           material: `${theme}/door-glass/${tier}`,
@@ -306,12 +308,15 @@ function placeMegablockCells(
 
     const rng = new Rng(seed, `mega:${level.index}:${e}:${c}`);
     if (!rng.chance(FACADE.megablockWindow.density)) continue;
-    const width = quant(Math.min(rng.range(...w), end - start));
-    const height = quant(Math.min(rng.range(...h), level.height - 1.1));
-    if (width < 0.4 || height < 0.4) continue;
-    const u = quantOff(start + rng.next() * (end - start - width));
-    const minSill = FACADE.megablockWindow.minSill;
-    const sill = quant(minSill + rng.next() * Math.max(0, level.height - height - minSill - 0.6));
+    const width = Math.min(onModule(rng.range(...w), 'near', MODULE_U), onModule(end - start, 'down', MODULE_U));
+    const height = onModule(Math.min(rng.range(...h), level.height - 1.0), 'near');
+    if (width < MODULE_U || height < MODULE) continue;
+    // the seeded scatter picks a whole-metre slot inside the cell and a half-metre sill
+    const slots = Math.floor((end - start - width) / MODULE_U + 1e-9) + 1;
+    const u = quantOff(start + Math.floor(rng.next() * slots) * MODULE_U);
+    const minSill = onModule(FACADE.megablockWindow.minSill, 'near');
+    const room = Math.max(0, level.height - height - minSill - MODULE);
+    const sill = quant(minSill + Math.floor(rng.next() * (Math.floor(room / MODULE + 1e-9) + 1)) * MODULE);
     if (!fits(taken, e, u, u + width)) continue;
     take(taken, e, u, u + width);
     openings.push({
@@ -338,7 +343,7 @@ function placeCurtainWallBays(
 ): void {
   const cw = FACADE.curtainWall;
   const L = edgeLength(outline, e);
-  const spandrel = quant(Math.min(style.facade.spandrelHeight, level.height * 0.35));
+  const spandrel = Math.max(MODULE, onModule(Math.min(style.facade.spandrelHeight, level.height * 0.35), 'near'));
   // The bay spans its floor exactly: quantizing here would leave a wall sliver
   // under every slab and break the continuity a curtain wall reads by.
   const height = level.height;
