@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.25, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.29, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
