@@ -92,6 +92,21 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
   checkFacadeArtifacts(layout, obstacles);
   for (const floor of layout.floors) {
     for (const o of floor.openings) {
+      const isDoor = o.kind === 'door' || o.kind === 'balconyDoor';
+      if (isDoor !== (o.door !== undefined)) {
+        throw new ExteriorError('E_INVARIANT',
+          `opening ${o.id} has an inconsistent door assembly on floor ${floor.index}; exterior bug, report with the request`);
+      }
+      if (o.door) {
+        const expectedClear = o.door.motion.kind === 'swing' ? o.width / Math.max(1, o.leaves ?? 1) : 0;
+        const valid = o.door.frameWidth > 0 && o.door.frameDepth > 0 && o.door.recessDepth >= 0
+          && o.door.thresholdHeight === o.sill
+          && Math.abs(o.door.motion.clearDepth - expectedClear) <= 0.051;
+        if (!valid) {
+          throw new ExteriorError('E_INVARIANT',
+            `door ${o.id} has a frame or movement envelope inconsistent with its opening; exterior bug, report with the request`);
+        }
+      }
       const ok = o.edge < floor.outline.length
         && o.offset >= -1e-6
         && o.offset + o.width <= edgeLength(floor.outline, o.edge) + 1e-6;

@@ -173,6 +173,33 @@ describe('blueprint invariants', () => {
     }
   });
 
+  it('publishes one fitted frame set and movement envelope on every door', async () => {
+    for (const req of [residential, corpo, factory]) {
+      const { blueprint } = await generate(req, KEYS);
+      const doors = blueprint.floors.flatMap((f) => f.openings
+        .filter((o) => o.kind === 'door' || o.kind === 'balconyDoor'));
+      expect(doors.length).toBeGreaterThan(0);
+      for (const door of doors) {
+        expect(door.door).toBeDefined();
+        expect(door.door!.frameWidth).toBeGreaterThan(0);
+        expect(door.door!.frameDepth).toBeGreaterThan(0);
+        expect(door.door!.thresholdHeight).toBe(door.sill);
+        const clearDepth = door.door!.motion.kind === 'swing'
+          ? door.width / door.leaves!
+          : 0;
+        expect(door.door!.motion.clearDepth).toBeCloseTo(clearDepth, 1);
+      }
+    }
+
+    const corpoDoor = (await generate(corpo, KEYS)).blueprint.floors[0]!.openings
+      .find((o) => o.id === 'entrance')!;
+    expect(corpoDoor.door!.set).toBe('illuminated');
+    const factoryDoors = (await generate(factory, KEYS)).blueprint.floors[0]!.openings
+      .filter((o) => o.kind === 'door');
+    expect(factoryDoors.every((o) => o.door!.set === 'industrial-ribbed')).toBe(true);
+    expect(factoryDoors.find((o) => o.id.startsWith('loading:'))!.door!.motion.kind).toBe('roller');
+  });
+
   it('entrance avoids sliver edges and every opening fits its edge (p1640 class)', async () => {
     const { blueprint } = await generate(sliver);
     const ground = blueprint.floors.find((f) => f.index === 0)!;
@@ -860,7 +887,8 @@ describe('GLB shell', () => {
             .map((p) => p.getMaterial()!.getName().split('/')[1]));
           // Everything that swings is in this one subtree, the glass with it.
           if ((o.material ?? '').includes('door-glass')) expect(kinds).toContain('door-glass');
-          expect([...kinds].every((k) => k === 'door' || k === 'door-glass')).toBe(true);
+          expect([...kinds].every((k) => k === 'door' || k === 'door-glass'
+            || (o.door?.set === 'industrial-ribbed' && k === 'window-frame'))).toBe(true);
         }
       }
     }
@@ -907,6 +935,21 @@ describe('GLB shell', () => {
         .map((p) => p.getMaterial()!.getName().split('/')[1]));
       expect(kinds).toEqual(new Set(['window-frame']));
     }
+  });
+
+  it('builds the selected illuminated and industrial door details into their fixed or moving nodes', async () => {
+    const lit = await generate(corpo, KEYS);
+    const litDoc = await new NodeIO().readBinary(lit.glb);
+    const litFrame = litDoc.getRoot().listNodes().find((n) => n.getName() === 'door:entrance/frame')!.getMesh()!;
+    const litKinds = new Set(litFrame.listPrimitives().map((p) => p.getMaterial()!.getName().split('/')[1]));
+    expect(litKinds).toContain('window-frame');
+    expect(litKinds).toContain('light-fixture');
+
+    const ribbed = await generate(factory, KEYS);
+    const ribbedDoc = await new NodeIO().readBinary(ribbed.glb);
+    const leaf = ribbedDoc.getRoot().listNodes().find((n) => n.getName() === 'door:entrance/leaf:0')!.getMesh()!;
+    const ribbedKinds = new Set(leaf.listPrimitives().map((p) => p.getMaterial()!.getName().split('/')[1]));
+    expect(ribbedKinds).toContain('window-frame');
   });
 });
 

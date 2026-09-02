@@ -10,7 +10,7 @@ import {
 import { edgeLength, edgeDir, edgeNormal, ringInsidePolygon, quant, type P2 } from '../core/polygon.ts';
 import { modulePanes } from './glazing.ts';
 import { anchorSeat, type AnchorSeat } from './anchors.ts';
-import type { Aperture, BuildingRequest, CurtainState, Opening } from '../types.ts';
+import type { Aperture, BuildingRequest, CurtainState, DoorAssembly, DoorSet, Opening } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
 import type { Stack } from './floorStack.ts';
@@ -186,6 +186,7 @@ export function buildFacades(
                 id: `bd:${level.index}:${e}:${b}`, kind: 'balconyDoor', edge: e,
                 offset: quantOff(doorStart), width: doorW, height: doorH, sill: 0,
                 leaves: leafCount(doorW), state: curtainState(seed, level.index, e, b, dist),
+                door: doorAssembly('glazed-grid', doorW, doorH),
                 balcony: { depth: style.balconyDepth, width: balconyW },
                 material: `${req.theme}/door-glass/${tier}`,
               });
@@ -312,6 +313,7 @@ function placeMegablockCells(
           id: `bd:${level.index}:${e}:${c}`, kind: 'balconyDoor', edge: e,
           offset: quantOff(doorStart), width: doorW, height: doorH, sill: 0,
           leaves: leafCount(doorW), state: curtainState(seed, level.index, e, c, dist),
+          door: doorAssembly('glazed-grid', doorW, doorH),
           balcony: { depth: style.balconyDepth, width: balconyW },
           material: `${theme}/door-glass/${tier}`,
         });
@@ -498,6 +500,7 @@ function placeEntrance(
       openings.push({
         id: 'entrance', kind: 'door', edge: e, offset: onModule(t - w / 2, 'near', MODULE_U),
         width: w, height: quant(h), sill: 0, leaves: leafCount(w),
+        door: doorAssembly(entranceDoorSet(req.seed, family, tier, rules.entranceGlass), w, h),
         material: `${req.theme}/${rules.entranceGlass ? 'door-glass' : 'door'}/${tier}`,
       });
       return;
@@ -530,8 +533,36 @@ function placeLoadingDoors(
     openings.push({
       id: `loading:${i}`, kind: 'door', edge: e, offset: quantOff(t - w / 2),
       width: w, height: h, sill: 0, leaves: 1, material: `${theme}/door/${tier}`,
+      door: doorAssembly('industrial-ribbed', w, h, 'roller'),
     });
   }
+}
+
+/** One coordinated door set per building role; dimensions always come from the accepted opening. */
+function entranceDoorSet(seed: string, family: Family, tier: Tier, glazed: boolean): DoorSet {
+  if (family === 'industrial' || family === 'security') return 'industrial-ribbed';
+  if ((family === 'corpo' || family === 'hotel' || family === 'commerce')
+    && (tier === 'rich' || tier === 'high_rich')) return 'illuminated';
+  if (glazed && (tier === 'rich' || tier === 'high_rich')) return 'glazed-grid';
+  return new Rng(seed, 'door-set').chance(0.55) ? 'layered' : 'plain';
+}
+
+function doorAssembly(
+  set: DoorSet, width: number, height: number, motion: 'swing' | 'roller' = 'swing',
+): DoorAssembly {
+  const rule = DOORS.sets[set];
+  const leaves = leafCount(width);
+  const leafWidth = width / leaves;
+  return {
+    set,
+    frameWidth: rule.frameWidth,
+    frameDepth: rule.frameDepth,
+    recessDepth: rule.recessDepth,
+    thresholdHeight: 0,
+    motion: motion === 'roller'
+      ? { kind: 'roller', maxTravel: height, clearDepth: 0 }
+      : { kind: 'swing', maxTravel: 90, clearDepth: quant(leafWidth) },
+  };
 }
 
 function curtainState(seed: string, floor: number, edge: number, bay: number, dist: CurtainDist): CurtainState {

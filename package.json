@@ -1,6 +1,6 @@
 {
   "name": "urbe-exterior",
-  "version": "0.32.1",
+  "version": "0.33.0",
   "private": true,
   "type": "module",
   "description": "Deterministic building exterior generator: GLB shell plus opening blueprint from a seeded request",

@@ -1,5 +1,7 @@
 # Changelog
 
+0.33.0: doors publish their fitted set, frame and recess dimensions, threshold, and movement envelope. Plain, layered, glazed-grid, industrial-ribbed and illuminated assemblies reuse accepted opening dimensions; loading shutters publish vertical travel, fixed lights stay on the frame and industrial ribs stay on the moving leaf.
+
 0.32.1: door reveals and fixed casings use the canonical painted-steel frame material.
 
 0.32.0: parcel containment checks whole edges. Each candidate edge is split at every parcel-boundary intersection and every interval must lie inside, so a box cannot bridge a concave notch between valid corners and a valid midpoint. The same predicate guards massing rings, roof housings, roof artifacts and condenser runs. Balcony slabs are checked individually; buildings pinned to the parcel outline by a connection keep windows on faces where a balcony would project outside.

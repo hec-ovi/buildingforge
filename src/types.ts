@@ -56,6 +56,20 @@ export interface BuildingRequest {
 
 export type OpeningKind = 'door' | 'window' | 'balconyDoor' | 'aperture';
 export type CurtainState = 'open' | 'half' | 'closed80';
+export type DoorSet = 'plain' | 'layered' | 'glazed-grid' | 'industrial-ribbed' | 'illuminated';
+
+export interface DoorAssembly {
+  set: DoorSet;
+  frameWidth: number;
+  frameDepth: number;
+  recessDepth: number;
+  thresholdHeight: number;
+  motion: {
+    kind: 'swing' | 'roller';
+    maxTravel: number;
+    clearDepth: number;
+  };
+}
 
 export interface Opening {
   id: string;
@@ -75,6 +89,8 @@ export interface Opening {
   head?: number;
   /** door and balconyDoor: swinging leaves, one node subtree each in the GLB */
   leaves?: number;
+  /** door and balconyDoor: exact fixed-frame and movement envelope selected for this building */
+  door?: DoorAssembly;
   /** door: glazed transom light carried above the head, part of this opening */
   transom?: number;
   balcony?: { depth: number; width: number };

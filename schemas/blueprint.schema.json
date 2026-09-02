@@ -63,6 +63,29 @@
                   "maximum": 4,
                   "description": "door and balconyDoor: swinging leaves; the GLB carries one node subtree per leaf, hinged on its own pivot"
                 },
+                "door": {
+                  "type": "object",
+                  "required": ["set", "frameWidth", "frameDepth", "recessDepth", "thresholdHeight", "motion"],
+                  "additionalProperties": false,
+                  "description": "present exactly on door and balconyDoor: the coordinated visible set, fixed frame dimensions and movement envelope",
+                  "properties": {
+                    "set": { "enum": ["plain", "layered", "glazed-grid", "industrial-ribbed", "illuminated"] },
+                    "frameWidth": { "type": "number", "exclusiveMinimum": 0 },
+                    "frameDepth": { "type": "number", "exclusiveMinimum": 0 },
+                    "recessDepth": { "type": "number", "minimum": 0 },
+                    "thresholdHeight": { "type": "number", "minimum": 0 },
+                    "motion": {
+                      "type": "object",
+                      "required": ["kind", "maxTravel", "clearDepth"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": { "enum": ["swing", "roller"] },
+                        "maxTravel": { "type": "number", "minimum": 0, "description": "degrees for swing, meters for roller" },
+                        "clearDepth": { "type": "number", "minimum": 0, "description": "depth reserved behind the threshold for movement" }
+                      }
+                    }
+                  }
+                },
                 "transom": {
                   "type": "number",
                   "minimum": 0,

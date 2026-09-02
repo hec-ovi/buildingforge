@@ -11,7 +11,7 @@ import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
 import { panelOn } from '../layout/module.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
-import type { Blueprint, Opening } from '../types.ts';
+import type { Blueprint, DoorAssembly, Opening } from '../types.ts';
 
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
@@ -23,14 +23,17 @@ const SIGN_BORDER = 0.08;
 const FRAME_BITE = 0.01;
 
 
-/** Door assembly sections: casing around the hole, then the swinging leaf itself. */
+/** Leaf sections shared by every fitted door set. */
 const DOOR = {
-  casingWidth: 0.09,
-  casingDepth: 0.05,
   leafThickness: 0.055,
   stile: 0.11,
   rail: 0.16,
   paneThickness: 0.02,
+};
+
+const DEFAULT_DOOR: DoorAssembly = {
+  set: 'plain', frameWidth: 0.09, frameDepth: 0.05, recessDepth: REVEAL, thresholdHeight: 0,
+  motion: { kind: 'swing', maxTravel: 90, clearDepth: 1.2 },
 };
 
 interface Frame { v: P2; dir: P2; n: P2; len: number }
@@ -152,10 +155,12 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
     const base = o.kind === 'door' ? `door:${o.id}` : `balcony:${o.id}`;
     mb.part(base); // the door as a whole: frame plus one node per leaf
     const frame = mb.part(`${base}/frame`, { parent: base });
+    const assembly = o.door ?? DEFAULT_DOOR;
     const frameMaterial = mat('window-frame');
-    reveal(frame, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], REVEAL, o.sill > 0.01, frameMaterial);
-    doorCasing(frame, fr, u0, u1, yb, yt, frameMaterial);
-    doorLeaves(mb, base, fr, u0, u1, yb, yt, o, mat);
+    reveal(frame, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], assembly.recessDepth, o.sill > 0.01, frameMaterial);
+    doorCasing(frame, fr, u0, u1, yb, yt, frameMaterial, assembly.frameWidth, assembly.frameDepth);
+    doorFrameDetails(frame, fr, u0, u1, yb, yt, assembly, mat);
+    doorLeaves(mb, base, fr, u0, u1, yb, yt, o, assembly, mat);
     if (o.transom) {
       // The glazing carries on over the door head as this door's transom light.
       const tb = yt + FACADE.curtainWall.transomGap;
@@ -181,9 +186,10 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
  * head between them. The three members partition the ring, so no two plates ever
  * share a plane.
  */
-function doorCasing(sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number, material: string): void {
-  const w = DOOR.casingWidth;
-  const d = DOOR.casingDepth;
+function doorCasing(
+  sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
+  material: string, w: number, d: number,
+): void {
   const boxOn = (a: number, b: number, y0: number, y1: number) => {
     sink.box(material, at(fr, [(a + b) / 2, (y0 + y1) / 2], d / 2),
       [fr.dir[0] * (b - a) / 2, 0, fr.dir[1] * (b - a) / 2],
@@ -195,6 +201,39 @@ function doorCasing(sink: PartSink, fr: Frame, u0: number, u1: number, yb: numbe
   boxOn(u0, u1, yt, yt + w);
 }
 
+/** Fixed details that distinguish the small coordinated frame family without changing the opening. */
+function doorFrameDetails(
+  sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
+  assembly: DoorAssembly, mat: (k: string) => string,
+): void {
+  if (assembly.set !== 'layered' && assembly.set !== 'illuminated') return;
+  const inner = assembly.frameWidth;
+  const outer = assembly.set === 'illuminated' ? inner * 0.9 : inner * 1.35;
+  const depth = Math.max(0.035, assembly.frameDepth * 0.75);
+  const material = mat('window-frame');
+  const boxOn = (a: number, b: number, y0: number, y1: number) => {
+    sink.box(material, at(fr, [(a + b) / 2, (y0 + y1) / 2], depth / 2),
+      [fr.dir[0] * (b - a) / 2, 0, fr.dir[1] * (b - a) / 2], [0, (y1 - y0) / 2, 0],
+      [fr.n[0] * depth / 2, 0, fr.n[1] * depth / 2], 'along');
+  };
+  boxOn(u0 - inner - outer, u0 - inner, yb, yt + inner + outer);
+  boxOn(u1 + inner, u1 + inner + outer, yb, yt + inner + outer);
+  boxOn(u0 - inner, u1 + inner, yt + inner, yt + inner + outer);
+
+  if (assembly.set !== 'illuminated') return;
+  const light = mat('light-fixture');
+  const strip = Math.min(0.035, inner * 0.35);
+  const proud = assembly.frameDepth + 0.012;
+  const line = (a: number, b: number, y0: number, y1: number) => {
+    sink.box(light, at(fr, [(a + b) / 2, (y0 + y1) / 2], proud),
+      [fr.dir[0] * (b - a) / 2, 0, fr.dir[1] * (b - a) / 2], [0, (y1 - y0) / 2, 0],
+      [fr.n[0] * 0.012, 0, fr.n[1] * 0.012], 'along');
+  };
+  line(u0 - inner / 2 - strip / 2, u0 - inner / 2 + strip / 2, yb + inner, yt);
+  line(u1 + inner / 2 - strip / 2, u1 + inner / 2 + strip / 2, yb + inner, yt);
+  line(u0, u1, yt + inner / 2 - strip / 2, yt + inner / 2 + strip / 2);
+}
+
 /**
  * The leaves. Each one is a single node subtree holding everything that swings
  * with it, its glass included, and the node sits on the hinge so the game turns
@@ -202,12 +241,12 @@ function doorCasing(sink: PartSink, fr: Frame, u0: number, u1: number, yb: numbe
  */
 function doorLeaves(
   mb: MeshBuilder, base: string, fr: Frame, u0: number, u1: number, yb: number, yt: number,
-  o: Opening, mat: (k: string) => string,
+  o: Opening, assembly: DoorAssembly, mat: (k: string) => string,
 ): void {
   const count = Math.max(1, o.leaves ?? 1);
   const leafW = (u1 - u0) / count;
   const t = DOOR.leafThickness;
-  const back = -REVEAL - t;
+  const back = -assembly.recessDepth - t;
   const glazed = (o.material ?? '').includes('door-glass');
   const frameMat = mat('door');
   const glassMat = o.material ?? mat('door-glass');
@@ -227,16 +266,34 @@ function doorLeaves(
         [fr.n[0] * depth / 2, 0, fr.n[1] * depth / 2]);
     };
     if (!glazed) {
-      slab(a, b, yb, yt, -REVEAL, t, frameMat);
+      slab(a, b, yb, yt, -assembly.recessDepth, t, frameMat);
+      doorLeafDetails(sink, fr, a, b, yb, yt, assembly, mat);
       continue;
     }
     // Stiles and rails carry the leaf; the pane sits inside them, thinner, so no
     // two faces of the leaf ever land on one plane.
-    slab(a, a + stile, yb, yt, -REVEAL, t, frameMat);
-    slab(b - stile, b, yb, yt, -REVEAL, t, frameMat);
-    slab(a + stile, b - stile, yb, yb + rail, -REVEAL, t, frameMat);
-    slab(a + stile, b - stile, yt - rail, yt, -REVEAL, t, frameMat);
-    slab(a + stile, b - stile, yb + rail, yt - rail, -REVEAL - (t - DOOR.paneThickness) / 2, DOOR.paneThickness, glassMat);
+    slab(a, a + stile, yb, yt, -assembly.recessDepth, t, frameMat);
+    slab(b - stile, b, yb, yt, -assembly.recessDepth, t, frameMat);
+    slab(a + stile, b - stile, yb, yb + rail, -assembly.recessDepth, t, frameMat);
+    slab(a + stile, b - stile, yt - rail, yt, -assembly.recessDepth, t, frameMat);
+    slab(a + stile, b - stile, yb + rail, yt - rail, -assembly.recessDepth - (t - DOOR.paneThickness) / 2, DOOR.paneThickness, glassMat);
+  }
+}
+
+/** Repeated ribs are leaf-owned geometry, so they follow an industrial door through its travel. */
+function doorLeafDetails(
+  sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
+  assembly: DoorAssembly, mat: (k: string) => string,
+): void {
+  if (assembly.set !== 'industrial-ribbed') return;
+  const ribH = 0.035;
+  const depth = 0.025;
+  const front = -assembly.recessDepth + depth / 2;
+  const inset = Math.min(0.1, (u1 - u0) / 8);
+  for (let y = yb + 0.25; y < yt - 0.2; y += 0.28) {
+    sink.box(mat('window-frame'), at(fr, [(u0 + u1) / 2, y], front),
+      [fr.dir[0] * (u1 - u0 - 2 * inset) / 2, 0, fr.dir[1] * (u1 - u0 - 2 * inset) / 2],
+      [0, ribH / 2, 0], [fr.n[0] * depth / 2, 0, fr.n[1] * depth / 2], 'along');
   }
 }
 
@@ -580,8 +637,10 @@ function meshBulkhead(
     reveal(sink, fr, jamb, t, false, wall);
     const base = 'door:roof-bulkhead';
     mb.part(base);
-    doorCasing(mb.part(`${base}/frame`, { parent: base }), fr, door.u0, door.u1, top, door.head, mat('window-frame'));
-    doorLeaves(mb, base, fr, door.u0, door.u1, top, door.head, { leaves: 1 } as Opening, mat);
+    const assembly = DEFAULT_DOOR;
+    doorCasing(mb.part(`${base}/frame`, { parent: base }), fr, door.u0, door.u1, top, door.head,
+      mat('window-frame'), assembly.frameWidth, assembly.frameDepth);
+    doorLeaves(mb, base, fr, door.u0, door.u1, top, door.head, { leaves: 1 } as Opening, assembly, mat);
   }
   capUp(sink, mat('roof'), caps, ring, yTop);
   capDown(sink, mat('floor-slab'), caps, ring, yTop);

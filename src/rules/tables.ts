@@ -89,6 +89,13 @@ export const DOORS = {
   /** one swinging leaf: wider than this and the entrance takes two */
   maxLeafWidth: 1.2,
   rollerDrive: { width: [3.6, 5.4] as [number, number], height: [3.6, 5.0] as [number, number] },
+  sets: {
+    plain: { frameWidth: 0.09, frameDepth: 0.05, recessDepth: 0.12 },
+    layered: { frameWidth: 0.11, frameDepth: 0.07, recessDepth: 0.16 },
+    'glazed-grid': { frameWidth: 0.08, frameDepth: 0.055, recessDepth: 0.12 },
+    'industrial-ribbed': { frameWidth: 0.14, frameDepth: 0.09, recessDepth: 0.1 },
+    illuminated: { frameWidth: 0.12, frameDepth: 0.08, recessDepth: 0.175 },
+  },
 };
 
 export const BALCONY = {
