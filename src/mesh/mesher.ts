@@ -152,8 +152,9 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
     const base = o.kind === 'door' ? `door:${o.id}` : `balcony:${o.id}`;
     mb.part(base); // the door as a whole: frame plus one node per leaf
     const frame = mb.part(`${base}/frame`, { parent: base });
-    reveal(frame, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], REVEAL, o.sill > 0.01, mat('door'));
-    doorCasing(frame, fr, u0, u1, yb, yt, mat('door'));
+    const frameMaterial = mat('window-frame');
+    reveal(frame, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], REVEAL, o.sill > 0.01, frameMaterial);
+    doorCasing(frame, fr, u0, u1, yb, yt, frameMaterial);
     doorLeaves(mb, base, fr, u0, u1, yb, yt, o, mat);
     if (o.transom) {
       // The glazing carries on over the door head as this door's transom light.
@@ -579,7 +580,7 @@ function meshBulkhead(
     reveal(sink, fr, jamb, t, false, wall);
     const base = 'door:roof-bulkhead';
     mb.part(base);
-    doorCasing(mb.part(`${base}/frame`, { parent: base }), fr, door.u0, door.u1, top, door.head, mat('door'));
+    doorCasing(mb.part(`${base}/frame`, { parent: base }), fr, door.u0, door.u1, top, door.head, mat('window-frame'));
     doorLeaves(mb, base, fr, door.u0, door.u1, top, door.head, { leaves: 1 } as Opening, mat);
   }
   capUp(sink, mat('roof'), caps, ring, yTop);

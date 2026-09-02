@@ -893,6 +893,21 @@ describe('GLB shell', () => {
       }
     }
   });
+
+  it('uses the canonical painted-steel frame material on door reveals and casings', async () => {
+    const { glb, blueprint } = await generate(residential, KEYS);
+    const doc = await new NodeIO().readBinary(glb);
+    const doorIds = blueprint.floors.flatMap((f) => f.openings
+      .filter((o) => o.kind === 'door').map((o) => `door:${o.id}/frame`));
+    expect(doorIds.length).toBeGreaterThan(0);
+
+    for (const name of doorIds) {
+      const mesh = doc.getRoot().listNodes().find((n) => n.getName() === name)!.getMesh()!;
+      const kinds = new Set(mesh.listPrimitives()
+        .map((p) => p.getMaterial()!.getName().split('/')[1]));
+      expect(kinds).toEqual(new Set(['window-frame']));
+    }
+  });
 });
 
 describe('fire escapes', () => {
