@@ -262,7 +262,8 @@ function windowUnit(
   member(sink, fr, u0, u1, yt - fw, yt, proud, depth, frameMat, { bottom: true, top: true });
   if (spandrel > 0) {
     // Spandrel panel filling the band, then the transom the glass sits on.
-    strip(sink, fr, u0, u1, yb, yb + spandrel, proud, frameMat);
+    // the spandrel is an opaque matte panel, not a metal band: it hides the slab and never flares
+    strip(sink, fr, u0, u1, yb, yb + spandrel, proud, mat('column'));
     member(sink, fr, u0, u1, yb + spandrel, gb, proud, depth, frameMat, { top: true, bottom: true });
   } else {
     member(sink, fr, u0, u1, yb, yb + fw, proud, depth, frameMat, { top: true, bottom: true });

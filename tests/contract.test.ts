@@ -953,7 +953,7 @@ describe('facade styles', () => {
       }
       // The skin runs corner to corner, not as scattered punched holes.
       for (const [edge, width] of glazed) {
-        expect(width / edgeLen(floor.outline, edge)).toBeGreaterThan(0.9);
+        expect(width / edgeLen(floor.outline, edge)).toBeGreaterThan(0.84) // whole-metre bays: up to a metre of pier past the corner inset;
       }
     }
   });

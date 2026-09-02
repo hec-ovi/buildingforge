@@ -227,6 +227,11 @@ function quantOff(v: number): number {
   return Math.round(v * 1000) / 1000;
 }
 
+/** The farthest point past `from` that keeps whole metres between them. */
+function wholeMetres(from: number, to: number): number {
+  return quant(from + Math.floor((to - from) / MODULE_U + 1e-9) * MODULE_U);
+}
+
 /**
  * A window on the module grid: sill to the nearest module, height in whole
  * modules under the clear height; a storefront always reaches the clear height
@@ -354,7 +359,8 @@ function placeCurtainWallBays(
   let u = cw.cornerInset;
   const bays: { start: number; end: number }[] = [];
   for (const b of blocks) {
-    const stop = Math.min(b.start - OPENING.minPier, L - cw.cornerInset);
+    // a bay is whole metres of panes from its start; what does not divide widens the pier after it
+    const stop = wholeMetres(u, Math.min(b.start - OPENING.minPier, L - cw.cornerInset));
     if (stop - u >= cw.minBay) bays.push({ start: u, end: stop });
     // The skin runs on over a door as that door's transom light, so the entrance
     // never punches a blank panel through the glass. It belongs to the door
@@ -366,7 +372,8 @@ function placeCurtainWallBays(
     }
     u = Math.max(u, b.end + OPENING.minPier);
   }
-  if (L - cw.cornerInset - u >= cw.minBay) bays.push({ start: u, end: L - cw.cornerInset });
+  const last = wholeMetres(u, L - cw.cornerInset);
+  if (last - u >= cw.minBay) bays.push({ start: u, end: last });
 
   bays.forEach(({ start, end }, i) => {
     // never past the edge: the last bay's width rounds down

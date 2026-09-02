@@ -1,5 +1,6 @@
 # Changelog
 
+0.24.6: curtain-wall bays are whole metres of panes from their start (the pier after takes the remainder), so every mullion line runs at one pitch across a facade; the spandrel is a matte dark stone panel.
 0.24.5: the roof housing is sized from the interior's published stair constants (a square the stair head fits in either orientation, plus a metre of room), so the interior can centre its stair under it.
 0.24.4: glass panes on the module (metre columns, half-metre rows, from a one-panel corner pier), so every mullion stands on a grid line the interior can wall against.
 0.24.3: balcony doors are double: two metres wide, two leaves.
