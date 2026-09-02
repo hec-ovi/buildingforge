@@ -6,7 +6,8 @@ import { cellCentre } from './module.ts';
 import { Rng } from '../core/rng.ts';
 import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, ROOF_ACCESS, ROOF_ARTIFACTS, OPENING, MODULE, MODULE_U } from '../rules/tables.ts';
 import { edgeLength, edgeDir, edgeNormal, orientedBoundingBox, pointInPolygon, centroid, quant, type P2 } from '../core/polygon.ts';
-import { edgeU, findClearRect, type Rect } from './obstructions.ts';
+import { crossed, edgeU, findClearRect, type Rect } from './obstructions.ts';
+import { placeAcUnits } from './acUnits.ts';
 import type { Blueprint, BuildingRequest, P3, RoofArtifact, Signage } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
@@ -36,9 +37,13 @@ export function buildFeatures(
   // Fixtures first: they are facade obstacles like ribs and anchors, so the
   // sign and screen scans land clear of them and the overlay invariant proves it.
   placeLights(req, family, ground, streetEdge, groundFloor, lights, obstacles);
+  const acUnits = placeAcUnits(req, family, tier, floors, obstacles);
   placeSignage(req, family, ground, faces, groundFloor, top, signage, obstacles);
   placeScreens(req, family, tier, ground, faces, groundFloor.height, top, signage, screens, obstacles);
-  const facadeArtifacts = placeFacadeArtifacts(req, style, floors, ground, signage, screens);
+  const facadeArtifacts = [
+    ...acUnits,
+    ...placeFacadeArtifacts(req, style, floors, signage, screens, obstacles),
+  ];
   const fireEscape = placeFireEscape(req, family, tier, massing, floors, streetEdge);
   const roof = buildRoof(req, family, massing, top, style, floors);
 
@@ -56,15 +61,16 @@ function placedRect(outline: P2[], edge: number, center: P3, width: number, heig
 
 /**
  * Surface-mounted utility boxes: one roll per panel cell of each above-ground
- * floor, placed on wall clear of every opening. Dense on the megablock tier,
- * sparse on the panel tier, absent on glass.
+ * floor, landing only on bare wall. Dense on the megablock tier, sparse on the
+ * panel tier, absent on glass.
  */
 function placeFacadeArtifacts(
-  req: BuildingRequest, style: Style, floors: FloorLayout[], ground: P2[],
-  signage: Blueprint['signage'], screens: Blueprint['screens'],
+  req: BuildingRequest, style: Style, floors: FloorLayout[],
+  signage: Blueprint['signage'], screens: Blueprint['screens'], obstacles: Map<number, Rect[]>,
 ): Blueprint['facadeArtifacts'] {
   const out: Blueprint['facadeArtifacts'] = [];
   if (style.facade.utilityChance <= 0) return out;
+  const ground = floors.find((f) => f.index === 0)!.outline;
   const overlays: Rect[] = [
     ...signage.map((s) => placedRect(ground, s.edge, s.center, s.width, s.height)),
     ...screens.map((s) => placedRect(ground, s.edge, s.center, s.width, s.height)),
@@ -76,7 +82,7 @@ function placeFacadeArtifacts(
     if (floor.index < 1) continue; // the ground floor belongs to the street
     for (let e = 0; e < floor.outline.length; e++) {
       const L = edgeLength(floor.outline, e);
-      const onEdge = floor.openings.filter((o) => o.edge === e);
+      const rects = obstacles.get(e);
       for (let c = 0; c < Math.floor(L / module); c++) {
         const rng = new Rng(req.seed, `utility:${floor.index}:${e}:${c}`);
         if (!rng.chance(style.facade.utilityChance)) continue;
@@ -86,10 +92,10 @@ function placeFacadeArtifacts(
         const offset = quant(c * module + 0.2 + rng.next() * Math.max(0, module - 0.4 - w));
         const sill = quant(0.6 + rng.next() * Math.max(0, floor.height - h - 1.2));
         if (offset + w > L - 0.2) continue;
-        const clear = onEdge.every((o) => offset + w <= o.offset - 0.15 || offset >= o.offset + o.width + 0.15
-          || sill + h <= o.sill - 0.15 || sill >= o.sill + o.height + 0.15);
-        if (!clear) continue;
         const y = floor.elevation + sill;
+        // Bare wall only: a box never sits on an opening, a rib, a column or a band.
+        const seat: Rect = { u0: offset, u1: offset + w, y0: y, y1: y + h, what: 'utility box', kind: 'relief', depth: 0 };
+        if (crossed(rects, seat, 0.15).length > 0) continue;
         const onSign = overlays.some((r) => offset + w > r.u0 - 0.15 && offset < r.u1 + 0.15 && y + h > r.y0 - 0.15 && y < r.y1 + 0.15);
         if (onSign) continue;
         out.push({ kind: 'utility-box', floor: floor.index, edge: e, offset, sill, size: [w, h, d] });

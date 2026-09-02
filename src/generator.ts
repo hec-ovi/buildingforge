@@ -16,6 +16,7 @@ import { buildFacades } from './layout/facades.ts';
 import { buildRelief } from './layout/relief.ts';
 import { mountAnchors } from './layout/anchors.ts';
 import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.ts';
+import { acClusterName } from './layout/acUnits.ts';
 import { buildFeatures } from './layout/features.ts';
 import { buildMesh } from './mesh/mesher.ts';
 import { writeGlb } from './glb/writer.ts';
@@ -82,6 +83,7 @@ function entranceCandidates(outline: P2[], point: P2): number[] {
 function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
   checkProportions(layout);
   checkOverlays(layout, obstacles);
+  checkFacadeArtifacts(layout, obstacles);
   for (const floor of layout.floors) {
     for (const o of floor.openings) {
       const ok = o.edge < floor.outline.length
@@ -170,6 +172,44 @@ function checkOverlays(layout: Layout, obstacles: Map<number, Rect[]>): void {
   };
   layout.signage.forEach((s, i) => check(`signage:${i}`, s.edge, s.center, s.width, s.height, s.standoff));
   layout.screens.forEach((s, i) => check(`screen:${i}`, s.edge, s.center, s.width, s.height, s.standoff));
+}
+
+/**
+ * Nothing hung on a facade covers an opening or a window: every condenser unit
+ * and every utility box lies inside its edge and its floor and sits on wall,
+ * standing proud of any relief it crosses.
+ */
+function checkFacadeArtifacts(layout: Layout, obstacles: Map<number, Rect[]>): void {
+  const byFloor = new Map(layout.floors.map((f) => [f.index, f]));
+  for (const a of layout.facadeArtifacts) {
+    const floor = byFloor.get(a.floor);
+    if (!floor) continue;
+    const [w, h] = a.size;
+    const L = edgeLength(floor.outline, a.edge);
+    const what = `${a.kind} on edge ${a.edge} of floor ${a.floor}`;
+    if (a.offset < -1e-6 || a.offset + w > L + 1e-6 || a.sill < -1e-6 || a.sill + h > floor.height + 1e-6) {
+      throw new ExteriorError('E_INVARIANT',
+        `${what} (offset ${a.offset}, sill ${a.sill}) leaves its ${L.toFixed(2)} x ${floor.height.toFixed(2)} m face; exterior bug, report with the request`);
+    }
+    const standoff = a.standoff ?? 0;
+    const rect: Rect = {
+      u0: a.offset, u1: a.offset + w,
+      y0: floor.elevation + a.sill, y1: floor.elevation + a.sill + h,
+      what, kind: 'relief', depth: standoff,
+    };
+    const own = acClusterName(a.floor, a.edge);
+    for (const o of crossed(obstacles.get(a.edge), rect)) {
+      if (o.what === own) continue; // the unit's own cluster, registered when it landed
+      if (o.kind !== 'relief') {
+        throw new ExteriorError('E_INVARIANT',
+          `${what} covers ${o.what}; exterior bug, report with the request`);
+      }
+      if (standoff < o.depth - 1e-6) {
+        throw new ExteriorError('E_INVARIANT',
+          `${what} stands ${standoff.toFixed(2)} m off the wall and runs into ${o.what} at ${o.depth.toFixed(2)} m; exterior bug, report with the request`);
+      }
+    }
+  }
 }
 
 /**

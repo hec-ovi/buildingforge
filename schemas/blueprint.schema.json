@@ -201,18 +201,19 @@
     "facadeArtifacts": {
       "type": "array",
       "default": [],
-      "description": "surface-mounted equipment, positioned like an opening",
+      "description": "surface-mounted equipment, positioned like an opening: utility boxes, and condenser units in clusters of two to four on one floor and edge",
       "items": {
         "type": "object",
         "required": ["kind", "floor", "edge", "offset", "sill", "size"],
         "additionalProperties": false,
         "properties": {
-          "kind": { "type": "string", "description": "utility-box" },
+          "kind": { "enum": ["utility-box", "ac-unit"] },
           "floor": { "type": "integer" },
           "edge": { "type": "integer", "minimum": 0 },
           "offset": { "type": "number", "minimum": 0 },
           "sill": { "type": "number", "minimum": 0 },
-          "size": { "$ref": "#/$defs/point3", "description": "[width, height, depth] in meters" }
+          "size": { "$ref": "#/$defs/point3", "description": "[width, height, depth] in meters" },
+          "standoff": { "type": "number", "minimum": 0, "default": 0, "description": "where the back of the housing sits, when it has to clear relief under it" }
         }
       }
     },

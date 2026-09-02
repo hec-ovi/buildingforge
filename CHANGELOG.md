@@ -1,5 +1,6 @@
 # Changelog
 
+0.25.0: buildings wear condenser units. Clusters of two to four housings hang on one bracket, a housing per metre module, on bare wall under a window or on the blank band between window rows, from the first floor up: common on the poor and mid tiers and on homes and shops, rare on a corpo, none on a curtain wall, which has no wall to bolt a bracket to. Each is a housing with a grille face on a shelf carried by two struts, published in `facadeArtifacts` as kind `ac-unit` with its `standoff`, and built under the `facade-ac` node on the `metal` material. Nothing hung on a facade may cover an opening or leave its face or the parcel, machine-checked (E_INVARIANT); utility boxes now take bare wall too, instead of landing on a column or a floor band.
 0.24.6: curtain-wall bays are whole metres of panes from their start (the pier after takes the remainder), so every mullion line runs at one pitch across a facade; the spandrel is a matte dark stone panel.
 0.24.5: the roof housing is sized from the interior's published stair constants (a square the stair head fits in either orientation, plus a metre of room), so the interior can centre its stair under it.
 0.24.4: glass panes on the module (metre columns, half-metre rows, from a one-panel corner pier), so every mullion stands on a grid line the interior can wall against.

@@ -1021,6 +1021,59 @@ describe('facade styles', () => {
   });
 });
 
+describe('facade condenser units', () => {
+  it('hangs clusters of two to four on the metre module, clear of every opening', async () => {
+    const { glb, blueprint } = await generate(residential, KEYS);
+    const units = blueprint.facadeArtifacts.filter((a) => a.kind === 'ac-unit');
+    expect(units.length, 'a mid-tier home wears condenser units').toBeGreaterThan(0);
+
+    const clusters = new Map<string, typeof units>();
+    for (const u of units) {
+      const key = `${u.floor}:${u.edge}`;
+      clusters.set(key, [...(clusters.get(key) ?? []), u]);
+    }
+    for (const [key, group] of clusters) {
+      expect(group.length, `cluster ${key}`).toBeGreaterThanOrEqual(2);
+      expect(group.length, `cluster ${key}`).toBeLessThanOrEqual(4);
+      const starts = group.map((u) => u.offset).sort((a, b) => a - b);
+      for (let i = 1; i < starts.length; i++) {
+        expect(starts[i]! - starts[i - 1]!, `cluster ${key} runs one housing per metre`).toBeCloseTo(1, 6);
+      }
+    }
+
+    for (const u of units) {
+      const floor = blueprint.floors.find((f) => f.index === u.floor)!;
+      expect(u.floor, 'the ground floor belongs to the street').toBeGreaterThan(0);
+      expect(u.sill + u.size[1]).toBeLessThanOrEqual(floor.height + 1e-6);
+      for (const o of floor.openings.filter((o) => o.edge === u.edge)) {
+        const clear = u.offset + u.size[0] <= o.offset || u.offset >= o.offset + o.width
+          || u.sill + u.size[1] <= o.sill || u.sill >= o.sill + o.height;
+        expect(clear, `condenser unit covers ${o.id}`).toBe(true);
+      }
+    }
+
+    // The housings hang off the wall like balconies: every vertex stays on the parcel.
+    const doc = await new NodeIO().readBinary(glb);
+    const node = doc.getRoot().listNodes().find((n) => n.getName() === 'facade-ac');
+    expect(node, 'the GLB carries the units as their own node').toBeTruthy();
+    const parcel = (residential as any).parcel.footprint as [number, number][];
+    const v = [0, 0, 0];
+    for (const prim of node!.getMesh()!.listPrimitives()) {
+      const pos = prim.getAttribute('POSITION')!;
+      for (let i = 0; i < pos.getCount(); i++) {
+        pos.getElement(i, v);
+        expect(pointInPoly(parcel, [v[0]!, v[2]!]), 'a condenser unit reaches off the parcel').toBe(true);
+      }
+    }
+  });
+
+  it('leaves a curtain wall bare: it has no wall to hang a bracket on', async () => {
+    const { blueprint } = await generate(corpo, KEYS);
+    expect(blueprint.facade.style).toBe('curtain-wall');
+    expect(blueprint.facadeArtifacts.filter((a) => a.kind === 'ac-unit')).toHaveLength(0);
+  });
+});
+
 describe('roof access', () => {
   it('cuts the stair-head bulkhead out of the roof plane and publishes it', async () => {
     for (const req of [residential, corpo, factory, bridged]) {

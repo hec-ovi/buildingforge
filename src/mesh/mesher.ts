@@ -6,7 +6,7 @@ import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown } from './caps.ts';
 import { meshAnchorMount } from './anchorMount.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
-import { BALCONY, FACADE, FIRE_ESCAPE, SIGNAGE } from '../rules/tables.ts';
+import { AC_UNITS, BALCONY, FACADE, FIRE_ESCAPE, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
@@ -107,6 +107,7 @@ export function buildMesh(layout: Layout): MeshBuilder {
   meshColumns(mb, layout, above, top, mat);
   meshRoofArtifacts(mb, layout, top, mat);
   meshFacadeArtifacts(mb, layout, mat);
+  meshAcUnits(mb, layout, mat);
   for (const a of layout.anchors) meshAnchorMount(mb, a, mat('window-frame'));
   meshFeatures(mb, layout, mat);
   meshFireEscape(mb, layout, above, mat);
@@ -434,10 +435,11 @@ function meshFacadeRelief(mb: MeshBuilder, layout: Layout, above: FloorLayout[],
 
 /** Surface-mounted utility boxes, published in the blueprint and collidable. */
 function meshFacadeArtifacts(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {
-  if (layout.facadeArtifacts.length === 0) return;
+  const boxes = layout.facadeArtifacts.filter((a) => a.kind === 'utility-box');
+  if (boxes.length === 0) return;
   const sink = mb.part('facade-artifacts');
   const byFloor = new Map(layout.floors.map((f) => [f.index, f]));
-  for (const a of layout.facadeArtifacts) {
+  for (const a of boxes) {
     const floor = byFloor.get(a.floor);
     if (!floor) continue;
     const fr = frame(floor.outline, a.edge);
@@ -446,6 +448,43 @@ function meshFacadeArtifacts(mb: MeshBuilder, layout: Layout, mat: (k: string) =
       [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2],
       [0, h / 2, 0],
       [fr.n[0] * d / 2, 0, fr.n[1] * d / 2]);
+  }
+}
+
+/**
+ * Facade condenser units: a housing with a grille face standing on a bracket,
+ * a shelf carried by two struts back to the wall. Every member is painted steel.
+ */
+function meshAcUnits(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {
+  const units = layout.facadeArtifacts.filter((a) => a.kind === 'ac-unit');
+  if (units.length === 0) return;
+  const sink = mb.part('facade-ac');
+  const byFloor = new Map(layout.floors.map((f) => [f.index, f]));
+  const metal = mat('metal');
+  const { grille, bracket } = AC_UNITS;
+  for (const a of units) {
+    const floor = byFloor.get(a.floor);
+    if (!floor) continue;
+    const fr = frame(floor.outline, a.edge);
+    const [w, h, d] = a.size;
+    const back = a.standoff ?? 0;
+    const uc = a.offset + w / 2;
+    const base = floor.elevation + a.sill;
+    const across = (half: number): V3 => [fr.dir[0] * half, 0, fr.dir[1] * half];
+    const out = (half: number): V3 => [fr.n[0] * half, 0, fr.n[1] * half];
+
+    sink.box(metal, at(fr, [uc, base + h / 2], back + d / 2), across(w / 2), [0, h / 2, 0], out(d / 2));
+    sink.box(metal, at(fr, [uc, base + h / 2], back + d + grille.proud / 2),
+      across(w / 2 - grille.inset), [0, h / 2 - grille.inset, 0], out(grille.proud / 2));
+    sink.box(metal, at(fr, [uc, base - bracket.shelf / 2], back + d / 2),
+      across(w / 2), [0, bracket.shelf / 2, 0], out(d / 2));
+    for (const side of [-1, 1]) {
+      const u = uc + side * (w / 2 - bracket.strut);
+      sink.slantedBox(metal,
+        at(fr, [u, base - bracket.shelf - bracket.drop], back),
+        at(fr, [u, base - bracket.shelf], back + d),
+        across(1), bracket.strut, bracket.strut);
+    }
   }
 }
 

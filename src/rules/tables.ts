@@ -180,6 +180,39 @@ export const FACADE = {
 
 export type FacadeStyle = keyof typeof FACADE.styles;
 
+/**
+ * Facade condenser units: a housing with a grille face sitting on a bracket,
+ * hung in clusters of two to four on the wall under a window or on a blank
+ * service band. One housing per metre module, so a cluster reads as a run of
+ * whole panels. Common on the poor and mid tiers and on homes and shops, rare on
+ * a corpo: a curtain wall has no wall to hang a bracket on and carries none.
+ */
+export const AC_UNITS = {
+  /** one housing per metre module of facade, the housing narrower so units read apart */
+  pitch: MODULE_U,
+  width: 0.9,
+  height: 1.0,
+  depth: 0.45,
+  /** units in one cluster */
+  cluster: [2, 4] as [number, number],
+  /** the grille face, inset from the housing edges and standing proud of it */
+  grille: { inset: 0.1, proud: 0.025 },
+  /** the shelf the housings stand on and the two struts that carry it */
+  bracket: { shelf: 0.06, strut: 0.07, drop: 0.45 },
+  /** wall left between a cluster's top and the window sill above it */
+  underWindowGap: MODULE,
+  /** the lowest a shelf sits above its own floor line */
+  minSill: MODULE,
+  /** how often one face of one floor carries a cluster */
+  chance: {
+    tier: { poor: 0.5, mid: 0.38, rich: 0.16, high_rich: 0.1 } as Record<Tier, number>,
+    family: {
+      residential: 1.2, commerce: 1.2, hotel: 0.9, industrial: 1, hospital: 0.8,
+      security: 0.8, office: 0.7, corpo: 0.35,
+    } as Record<Family, number>,
+  },
+};
+
 const TIER_STYLE: Record<Tier, FacadeStyle> = {
   poor: 'megablock', mid: 'panel', rich: 'glass', high_rich: 'glass',
 };

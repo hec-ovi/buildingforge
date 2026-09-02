@@ -108,12 +108,15 @@ export interface Bulkhead {
 
 /** Surface-mounted equipment on a facade: positioned like an opening, sized [w, h, depth]. */
 export interface FacadeArtifact {
+  /** `utility-box` or `ac-unit` */
   kind: string;
   floor: number;
   edge: number;
   offset: number;
   sill: number;
   size: P3;
+  /** where the back of the housing sits, when it has to clear relief under it */
+  standoff?: number;
 }
 
 export interface Blueprint {
