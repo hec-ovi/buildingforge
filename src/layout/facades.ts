@@ -133,7 +133,9 @@ export function buildFacades(
     // style fills bays.
     const clear = clearHeight(level.height);
     const storefront = isGround && isStorefrontFloor(family, level.kind);
-    const fit = moduleFit(storefront ? fitStorefront(style.storefrontSill, clear) : fitWindow(prop, style.windowFraction, style.sill, clear), clear, storefront);
+    const rawFit = storefront ? fitStorefront(style.storefrontSill, clear) : fitWindow(prop, style.windowFraction, style.sill, clear);
+    // A storey the envelope kept off the module keeps proportional windows; a module storey takes module windows.
+    const fit = onGrid(level.height) ? moduleFit(rawFit, clear, storefront) : rawFit;
     if (!noWindows && style.facade.kind === 'curtain-wall') {
       for (let e = 0; e < outline.length; e++) {
         const normal = edgeNormal(outline, e);
@@ -234,6 +236,11 @@ function moduleFit(fit: WindowFit | null, clear: number, storefront: boolean): W
   const sill = Math.max(0, onModule(fit.sill, storefront ? 'down' : 'near'));
   const height = storefront ? quant(clear - sill) : Math.min(onModule(fit.height, 'near'), onModule(clear - sill, 'down'));
   return height >= MODULE ? { height, sill } : null;
+}
+
+/** Whether a length is a whole number of modules. */
+function onGrid(v: number): boolean {
+  return Math.abs(v / MODULE - Math.round(v / MODULE)) < 1e-6;
 }
 
 /** A length as whole modules: rounded down, or to the nearest. */
