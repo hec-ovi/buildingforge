@@ -8,7 +8,7 @@ import {
   clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
 } from '../rules/proportions.ts';
 import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
-import { paneGrid } from './glazing.ts';
+import { modulePanes } from './glazing.ts';
 import { anchorSeat, type AnchorSeat } from './anchors.ts';
 import type { Aperture, BuildingRequest, CurtainState, Opening } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
@@ -210,7 +210,7 @@ export function buildFacades(
             id: `w:${level.index}:${e}:${b}`, kind: 'window', edge: e,
             offset: quantOff(start), width, height: fit.height, sill: fit.sill,
             state: curtainState(seed, level.index, e, b, dist),
-            panes: paneGrid(width, fit.height, style.glazing),
+            panes: modulePanes(width, fit.height, style.glazing),
             material: `${req.theme}/window-glass/${tier}`,
           });
         }
@@ -282,7 +282,7 @@ function placeMegablockCells(
         id: `w:${level.index}:${e}:${c}`, kind: 'window', edge: e,
         offset: quantOff(start), width, height: storefront.height, sill: storefront.sill,
         state: curtainState(seed, level.index, e, c, dist),
-        panes: paneGrid(width, storefront.height, style.glazing),
+        panes: modulePanes(width, storefront.height, style.glazing),
         material: `${theme}/window-glass/${tier}`,
       });
       continue;
@@ -323,7 +323,7 @@ function placeMegablockCells(
       id: `w:${level.index}:${e}:${c}`, kind: 'window', edge: e,
       offset: u, width, height, sill,
       state: curtainState(seed, level.index, e, c, dist),
-      panes: paneGrid(width, height, style.glazing),
+      panes: modulePanes(width, height, style.glazing),
       material: `${theme}/window-glass/${tier}`,
     });
   }
@@ -369,14 +369,15 @@ function placeCurtainWallBays(
   if (L - cw.cornerInset - u >= cw.minBay) bays.push({ start: u, end: L - cw.cornerInset });
 
   bays.forEach(({ start, end }, i) => {
-    const width = quant(end - start);
+    // never past the edge: the last bay's width rounds down
+    const width = Math.floor((end - start) * 20 + 1e-9) / 20;
     if (width < cw.minBay) return;
     take(taken, e, start, start + width);
     openings.push({
       id: `w:${level.index}:${e}:${i}`, kind: 'window', edge: e,
       offset: quantOff(start), width, height, sill: 0, spandrel,
       state: curtainState(seed, level.index, e, i, dist),
-      panes: paneGrid(width, height - spandrel, style.glazing),
+      panes: modulePanes(width, height - spandrel, style.glazing),
       material: `${theme}/window-glass/${tier}`,
     });
   });

@@ -1,5 +1,6 @@
 # Changelog
 
+0.24.4: glass panes on the module (metre columns, half-metre rows, from a one-panel corner pier), so every mullion stands on a grid line the interior can wall against.
 0.24.3: balcony doors are double: two metres wide, two leaves.
 0.24.2: megablock cells are whole metres with ribs on their seams and every scattered window on the grid (metre widths and slots, half-metre heights and sills); curtain-wall spandrels are whole half metres.
 0.24.1: the module runs a metre along the facade and half a metre up: bays, window widths (to the nearest metre), entrances, piers and columns (one panel wide, on seams) sit on metre lines; lanterns sit in panel centres; door casings and window reveals wear the flat painted steel; a sign carries a dark border plate behind its face.

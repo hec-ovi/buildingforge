@@ -4,6 +4,16 @@
 import { FEASIBILITY, type FeasibilityConstants, type Family, type Tier } from './families.ts';
 import { PROPORTIONS } from './proportions.ts';
 
+/**
+ * The facade module: every storey height, bay, window width, sill and window
+ * height is a whole number of these, and the wall panel is one of them, so a
+ * panel pattern starting at a facade's corner and storey line frames every
+ * opening without a cut tile.
+ */
+export const MODULE = 0.5;
+/** Along a facade the module is a full metre: bays, window widths, piers and columns; the panel is one by half. */
+export const MODULE_U = 1.0;
+
 // Opening sizes (window width and height, sill, entrance height) live in
 // schemas/proportions.json, the published proportion table; these rules cover
 // what the table does not: storey heights, structure and bay rhythm.
@@ -146,7 +156,7 @@ export const FACADE = {
     /** opaque band at each slab edge: structural slab plus the raised floor zone */
     spandrelHeight: [0.75, 1.05] as [number, number],
     /** the glazing stops short of the corner so two faces never intersect */
-    cornerInset: 0.12,
+    cornerInset: MODULE_U, // a one-panel corner pier: the first mullion stands on a metre line, the rest follow
     /** a strip narrower than this is a pier, not a bay */
     minBay: 1.2,
     /** glass over a door head shorter than this is not worth a transom */
@@ -194,15 +204,6 @@ export const GLAZING = {
   glassInset: [0.03, 0.06] as [number, number],
 };
 
-/**
- * The facade module: every storey height, bay, window width, sill and window
- * height is a whole number of these, and the wall panel is one of them, so a
- * panel pattern starting at a facade's corner and storey line frames every
- * opening without a cut tile.
- */
-export const MODULE = 0.5;
-/** Along a facade the module is a full metre: bays, window widths, piers and columns; the panel is one by half. */
-export const MODULE_U = 1.0;
 
 export const OPENING = { minPier: MODULE_U, cornerMargin: MODULE_U };
 
