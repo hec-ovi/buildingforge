@@ -31,9 +31,11 @@ export function buildFeatures(
   const screens: Blueprint['screens'] = [];
   const lights: Blueprint['lights'] = [];
 
+  // Fixtures first: they are facade obstacles like ribs and anchors, so the
+  // sign and screen scans land clear of them and the overlay invariant proves it.
+  placeLights(req, family, ground, streetEdge, groundFloor, lights, obstacles);
   placeSignage(req, family, ground, faces, groundFloor, top, signage, obstacles);
   placeScreens(req, family, tier, ground, faces, groundFloor.height, top, signage, screens, obstacles);
-  placeLights(req, family, ground, streetEdge, groundFloor, lights);
   const facadeArtifacts = placeFacadeArtifacts(req, style, floors, ground, signage, screens);
   const fireEscape = placeFireEscape(req, family, tier, massing, floors, streetEdge);
   const roof = buildRoof(req, family, massing, top, style, floors);
@@ -294,17 +296,29 @@ function placeScreens(
   }
 }
 
+/** The fixture box the mesher builds (0.16 wide, 0.28 tall) plus the clearance a plate keeps from it. */
+const FIXTURE = { width: 0.16, height: 0.28, clearance: 0.05 };
+
 function placeLights(
   req: BuildingRequest, family: Family, ground: P2[], streetEdge: number,
-  groundFloor: FloorLayout, out: Blueprint['lights'],
+  groundFloor: FloorLayout, out: Blueprint['lights'], obstacles: Map<number, Rect[]>,
 ): void {
-  // Entrance fixtures flank every ground door.
+  // Entrance fixtures flank every ground door, and each one takes its place on
+  // the face's obstacle map before any sign or screen is scanned in.
   for (const o of groundFloor.openings) {
     if (o.kind !== 'door') continue;
     const normal = edgeNormal(ground, o.edge);
     const y = Math.min(o.height + 0.4, groundFloor.height - 0.2);
-    out.push({ kind: 'entrance', position: facePoint(ground, o.edge, o.offset - 0.3, y), normal });
-    out.push({ kind: 'entrance', position: facePoint(ground, o.edge, o.offset + o.width + 0.3, y), normal });
+    for (const u of [o.offset - 0.3, o.offset + o.width + 0.3]) {
+      out.push({ kind: 'entrance', position: facePoint(ground, o.edge, u, y), normal });
+      const list = obstacles.get(o.edge) ?? [];
+      list.push({
+        u0: u - FIXTURE.width / 2 - FIXTURE.clearance, u1: u + FIXTURE.width / 2 + FIXTURE.clearance,
+        y0: y - FIXTURE.height / 2 - FIXTURE.clearance, y1: y + FIXTURE.height / 2 + FIXTURE.clearance,
+        what: 'entrance fixture', kind: 'relief', depth: 0.16,
+      });
+      obstacles.set(o.edge, list);
+    }
   }
   if (!LIGHTING.accentFamilies.includes(family)) return;
 

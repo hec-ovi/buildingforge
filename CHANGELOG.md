@@ -1,5 +1,6 @@
 # Changelog
 
+- 0.23.2: entrance fixtures are facade obstacles like ribs and anchors, registered before the sign and screen scans, so a plate lands clear of them and the overlay invariant proves it.
 - 0.23.1: every window hole is lined from the wall skin back to the frame's back plane (the style's recess plus the glass inset), so flush glazing shows no open edge beside its frame.
 - 0.23: every floor plate holds a core. The core's axis is the longest ground edge, and a plate's depth is its extent across it behind the wall (`facade.wallDepth` plus a 0.25 m lining allowance); a setback steps in only as far as leaves 8 m of that depth, a ziggurat stops terracing where the next plate would lose it, and a plate that cannot afford any setback stays the ground outline to the roof. Machine-checked on the measured wall depth (E_INVARIANT) and covered by the shallow-tower fixture, city-urbe-small's p0.
 
