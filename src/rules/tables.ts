@@ -328,8 +328,10 @@ export const ROOF_ACCESS = {
   width: [2.4, 3.0] as [number, number],
   depth: [3.0, 3.8] as [number, number],
   housingHeight: [2.4, 2.9] as [number, number],
-  doorWidth: 0.95,
-  doorHeight: 2.05,
+  /** the housing is a room: its walls carry this thickness, so they read solid from inside too */
+  wallThickness: 0.2,
+  doorWidth: 1.0,
+  doorHeight: 2.1,
   clearance: 0.9,
 };
 

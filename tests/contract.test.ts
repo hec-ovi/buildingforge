@@ -1098,6 +1098,43 @@ describe('roof access', () => {
     }
   });
 
+  it('builds the housing as a room: walls read solid from inside, with a real door', async () => {
+    for (const req of [residential, corpo, factory]) {
+      const { glb, blueprint } = await generate(req, KEYS);
+      const b = blueprint.roof.bulkhead!;
+      const doc = await new NodeIO().readBinary(glb);
+      const housing = doc.getRoot().listNodes().find((n) => n.getName() === 'bulkhead')!;
+
+      let outward = 0, inward = 0;
+      for (const prim of housing.getMesh()!.listPrimitives()) {
+        const pos = prim.getAttribute('POSITION')!.getArray() as Float32Array;
+        const idx = prim.getIndices()!.getArray() as Uint32Array;
+        for (let i = 0; i + 2 < idx.length; i += 3) {
+          const p = [0, 1, 2].map((k) => [pos[idx[i + k]! * 3]!, pos[idx[i + k]! * 3 + 1]!, pos[idx[i + k]! * 3 + 2]!]);
+          const ab = [p[1]![0]! - p[0]![0]!, p[1]![1]! - p[0]![1]!, p[1]![2]! - p[0]![2]!];
+          const ac = [p[2]![0]! - p[0]![0]!, p[2]![1]! - p[0]![1]!, p[2]![2]! - p[0]![2]!];
+          const n = [
+            ab[1]! * ac[2]! - ab[2]! * ac[1]!,
+            ab[2]! * ac[0]! - ab[0]! * ac[2]!,
+            ab[0]! * ac[1]! - ab[1]! * ac[0]!,
+          ];
+          if (Math.abs(n[1]!) > Math.max(Math.abs(n[0]!), Math.abs(n[2]!))) continue; // slab, not wall
+          const area = Math.hypot(n[0]!, n[1]!, n[2]!) / 2;
+          const cx = (p[0]![0]! + p[1]![0]! + p[2]![0]!) / 3 - b.center[0];
+          const cz = (p[0]![2]! + p[1]![2]! + p[2]![2]!) / 3 - b.center[1];
+          if (n[0]! * cx + n[2]! * cz > 0) outward += area; else inward += area;
+        }
+      }
+      expect(outward, 'the housing shows walls to the roof').toBeGreaterThan(0);
+      expect(inward, 'a one-sided wall reads as no wall from inside the room').toBeGreaterThanOrEqual(outward);
+
+      const names = doc.getRoot().listNodes().map((n) => n.getName());
+      expect(names).toContain('door:roof-bulkhead');
+      expect(names).toContain('door:roof-bulkhead/frame');
+      expect(names).toContain('door:roof-bulkhead/leaf:0');
+    }
+  });
+
   it('keeps roof artifacts clear of the bulkhead and its walk space', async () => {
     for (const req of [residential, corpo, factory, bridged]) {
       const { blueprint } = await generate(req, KEYS);

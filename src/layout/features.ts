@@ -5,9 +5,10 @@ import { ExteriorError } from '../core/errors.ts';
 import { cellCentre } from './module.ts';
 import { Rng } from '../core/rng.ts';
 import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, ROOF_ACCESS, ROOF_ARTIFACTS, OPENING, MODULE, MODULE_U } from '../rules/tables.ts';
-import { edgeLength, edgeDir, edgeNormal, orientedBoundingBox, pointInPolygon, centroid, quant, type P2 } from '../core/polygon.ts';
+import { edgeLength, edgeDir, edgeNormal, pointInPolygon, centroid, quant, type P2 } from '../core/polygon.ts';
 import { crossed, edgeU, findClearRect, type Rect } from './obstructions.ts';
 import { placeAcUnits } from './acUnits.ts';
+import { coreAxis } from './plate.ts';
 import type { Blueprint, BuildingRequest, P3, RoofArtifact, Signage } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
@@ -373,7 +374,7 @@ function buildRoof(
   const topFloor = floors[floors.length - 1]!;
   const outline = topFloor.outline;
   const artifacts: RoofArtifact[] = [];
-  const bulkhead = placeBulkhead(req, outline, floors.map((f) => f.height));
+  const bulkhead = placeBulkhead(req, outline, massing.groundOutline, floors.map((f) => f.height));
   if ((req.options?.roofArtifacts ?? 'auto') !== 'off') {
     const rng = new Rng(req.seed, 'roof');
     const placed: { cx: number; cz: number; hw: number; hd: number }[] = [];
@@ -404,7 +405,9 @@ function buildRoof(
  * and the engine can walk the roof around it; null when the plate is too small
  * to hold the housing plus its walk space.
  */
-function placeBulkhead(req: BuildingRequest, outline: P2[], floorHeights: number[]): Blueprint['roof']['bulkhead'] {
+function placeBulkhead(
+  req: BuildingRequest, outline: P2[], ground: P2[], floorHeights: number[],
+): Blueprint['roof']['bulkhead'] {
   const rng = new Rng(req.seed, 'roof-access');
   // The cutout is the interior stair head's own size, square so either stair orientation lands
   // in it, from the stair constants the interior publishes; without them the table's ranges.
@@ -412,7 +415,9 @@ function placeBulkhead(req: BuildingRequest, outline: P2[], floorHeights: number
   const width = side ?? quant(rng.range(...ROOF_ACCESS.width));
   const depth = side ?? quant(rng.range(...ROOF_ACCESS.depth));
   const center = centroid(outline).map(quant) as P2;
-  const axis = orientedBoundingBox(outline).axisU;
+  // The core's own axis, the longest ground edge, so the housing stands square
+  // to the frame the interior lays its core in.
+  const axis = coreAxis(ground);
   const cross: P2 = [-axis[1], axis[0]];
   const c = ROOF_ACCESS.clearance;
   const hw = width / 2 + c;

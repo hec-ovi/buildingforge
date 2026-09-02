@@ -6,7 +6,7 @@ import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown } from './caps.ts';
 import { meshAnchorMount } from './anchorMount.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
-import { AC_UNITS, BALCONY, FACADE, FIRE_ESCAPE, SIGNAGE } from '../rules/tables.ts';
+import { AC_UNITS, BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
@@ -91,7 +91,7 @@ export function buildMesh(layout: Layout): MeshBuilder {
   const cutout = layout.roof.bulkhead ? bulkheadRect(layout.roof.bulkhead) : undefined;
   capUp(roofSink, mat('roof'), topFloor.outline, top, cutout);
   capDown(roofSink, mat('floor-slab'), topFloor.outline, top, cutout);
-  if (layout.roof.bulkhead) meshBulkhead(mb.part('bulkhead'), layout.roof.bulkhead, top, mat);
+  if (layout.roof.bulkhead) meshBulkhead(mb, layout.roof.bulkhead, top, mat);
   capDown(mb.part('base'), mat('floor-slab'), lowest.outline, lowest.elevation);
   const parapet = mb.part('parapet');
   for (let e = 0; e < topFloor.outline.length; e++) {
@@ -511,22 +511,38 @@ function bulkheadRect(b: NonNullable<Blueprint['roof']['bulkhead']>): P2[] {
 }
 
 /** The housing over the stair head: four walls, one door onto the roof, a capped top. */
-function meshBulkhead(sink: PartSink, b: NonNullable<Blueprint['roof']['bulkhead']>, top: number, mat: (k: string) => string): void {
+function meshBulkhead(mb: MeshBuilder, b: NonNullable<Blueprint['roof']['bulkhead']>, top: number, mat: (k: string) => string): void {
+  const sink = mb.part('bulkhead');
   const ring = bulkheadRect(b);
   const yTop = top + b.housingHeight;
+  const t = ROOF_ACCESS.wallThickness;
+  const wall = mat('wall');
   for (let e = 0; e < ring.length; e++) {
     const fr = frame(ring, e);
     const onDoorFace = fr.n[0] * b.doorNormal[0] + fr.n[1] * b.doorNormal[1] > 0.99;
     const holes: Hole[] = [];
+    let door: { u0: number; u1: number; head: number } | null = null;
     if (onDoorFace) {
       const width = Math.min(b.doorWidth, fr.len - 0.4);
       const height = Math.min(b.doorHeight, b.housingHeight - 0.2);
-      holes.push(rectHole((fr.len - width) / 2, top, width, height));
+      const u0 = (fr.len - width) / 2;
+      holes.push(rectHole(u0, top, width, height));
+      door = { u0, u1: u0 + width, head: top + height };
     }
+    const inward: V3 = [-fr.n[0], 0, -fr.n[1]];
     for (const piece of cutWall(fr.len, top, yTop, holes)) {
       const uvs = [piece.bl, piece.br, piece.tr, piece.tl].map(([u, y]) => [u, top - y] as [number, number]);
-      sink.quadFacing(mat('wall'), at(fr, piece.bl), at(fr, piece.br), at(fr, piece.tr), at(fr, piece.tl), n3(fr), uvs);
+      sink.quadFacing(wall, at(fr, piece.bl), at(fr, piece.br), at(fr, piece.tr), at(fr, piece.tl), n3(fr), uvs);
+      // The same band on the room side: a one-sided wall reads as no wall from within.
+      sink.quadFacing(wall, at(fr, piece.bl, -t), at(fr, piece.br, -t), at(fr, piece.tr, -t), at(fr, piece.tl, -t), inward, uvs);
     }
+    if (!door) continue;
+    const jamb: P2[] = [[door.u0, top], [door.u1, top], [door.u1, door.head], [door.u0, door.head]];
+    reveal(sink, fr, jamb, t, false, wall);
+    const base = 'door:roof-bulkhead';
+    mb.part(base);
+    doorCasing(mb.part(`${base}/frame`, { parent: base }), fr, door.u0, door.u1, top, door.head, mat('door'));
+    doorLeaves(mb, base, fr, door.u0, door.u1, top, door.head, { leaves: 1 } as Opening, mat);
   }
   capUp(sink, mat('roof'), ring, yTop);
   capDown(sink, mat('floor-slab'), ring, yTop);
