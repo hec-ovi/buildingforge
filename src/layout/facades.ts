@@ -227,14 +227,10 @@ function quantOff(v: number): number {
   return Math.round(v * 1000) / 1000;
 }
 
-/** The farthest point past `from` that keeps whole metres between them. */
-function wholeMetres(from: number, to: number): number {
-  return quant(from + Math.floor((to - from) / MODULE_U + 1e-9) * MODULE_U);
-}
-
 /**
- * The same, unquantized: a curtain-wall run starts on the face's centred origin,
- * so rounding its end onto the 0.05 grid would make one corner pier wider.
+ * The farthest point past `from` that keeps whole metres between them. A
+ * curtain-wall run starts on its face's centred origin, so the end is left
+ * unquantized: rounding it onto the 0.05 grid would widen one corner pier.
  */
 function runEnd(from: number, to: number): number {
   return from + Math.floor((to - from) / MODULE_U + 1e-9) * MODULE_U;

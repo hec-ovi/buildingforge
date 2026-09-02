@@ -3,14 +3,14 @@
 
 import { validateRequest } from './core/validate.ts';
 import { FAMILY } from './rules/families.ts';
-import { CORE_PLATE, FACADE, MODULE, MODULE_U, OPENING, SLAB_BAND } from './rules/tables.ts';
+import { FACADE, MODULE, MODULE_U, OPENING, SLAB_BAND } from './rules/tables.ts';
 import { onModule } from './layout/module.ts';
 import {
   PROPORTIONS, clearHeight, isStorefrontFloor, minEntranceHeight, minWindowHeight, proportionsOf,
 } from './rules/proportions.ts';
 import { buildStyle } from './layout/style.ts';
 import { buildMassing } from './layout/massing.ts';
-import { coreAxis, plateDepth } from './layout/plate.ts';
+import { coreAxis } from './layout/plate.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
 import { buildFacades } from './layout/facades.ts';
 import { buildRelief } from './layout/relief.ts';
