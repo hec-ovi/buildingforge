@@ -6,7 +6,7 @@
 
 import { ExteriorError } from '../core/errors.ts';
 import { Rng } from '../core/rng.ts';
-import { RULES } from '../rules/tables.ts';
+import { RULES, MODULE } from '../rules/tables.ts';
 import { groundFloorNeed } from '../rules/proportions.ts';
 import { quant } from '../core/polygon.ts';
 import type { BuildingRequest } from '../types.ts';
@@ -92,8 +92,22 @@ function nominalStack(floors: number, style: Style, minH: number, maxHeight: num
       total -= 0.05;
     }
   }
+  // Storeys are whole modules tall where the envelope allows it, so the wall
+  // panel that starts at each storey line ends on the next one.
+  const snapped = heights.map((h, i) => Math.max(Math.ceil((minOf(i) - 1e-9) / MODULE) * MODULE, Math.round(h / MODULE) * MODULE));
+  let snappedTotal = snapped.reduce((a, b) => a + b, 0);
+  while (snappedTotal > maxHeight + 1e-9) {
+    let pick = -1;
+    for (let i = 0; i < floors; i++) {
+      if ((snapped[i] as number) - MODULE >= minOf(i) - 1e-9 && (pick < 0 || (snapped[i] as number) > (snapped[pick] as number))) pick = i;
+    }
+    if (pick < 0) break;
+    snapped[pick] = (snapped[pick] as number) - MODULE;
+    snappedTotal -= MODULE;
+  }
+  const final = snappedTotal <= maxHeight + 1e-9 ? snapped : heights;
   const elev: number[] = [0];
-  for (let i = 0; i < floors; i++) elev.push((elev[i] as number) + (heights[i] as number));
+  for (let i = 0; i < floors; i++) elev.push(quant((elev[i] as number) + (final[i] as number)));
   return elev; // length floors+1, last entry = roof top
 }
 

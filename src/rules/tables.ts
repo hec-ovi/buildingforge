@@ -194,7 +194,15 @@ export const GLAZING = {
   glassInset: [0.03, 0.06] as [number, number],
 };
 
-export const OPENING = { minPier: 0.3, cornerMargin: 0.6 };
+/**
+ * The facade module: every storey height, bay, window width, sill and window
+ * height is a whole number of these, and the wall panel is one of them, so a
+ * panel pattern starting at a facade's corner and storey line frames every
+ * opening without a cut tile.
+ */
+export const MODULE = 0.5;
+
+export const OPENING = { minPier: MODULE, cornerMargin: MODULE };
 
 /**
  * Core plate. An interior runs its corridor along the longest ground edge and

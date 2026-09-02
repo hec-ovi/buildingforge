@@ -1,7 +1,7 @@
 {
   "$id": "urbe/exterior/proportions",
   "description": "Proportion table, the same values the generator enforces, so a consumer can predict opening sizes without reading the GLB. Units meters. A floor's clear height is its floor-to-floor height minus clearHeightAllowance (slab plus ceiling zone). A standard-family window is windowHeight (a fraction of that clear height) tall on a sill inside the family's sill range; when the sill plus the height would pass the clear height, the sill drops to the row's minimum first and the height is trimmed last, never below the fraction's lower bound unless the floor itself is too short. An entrance is entrance[0]..entrance[1] tall, capped by the ground floor's clear height; the ground floor grows to hold the row's shortest entrance whenever the envelope leaves room over the other floors' minimum. Every entrance is entranceWidth.standard wide, a grand entrance (hotel, corpo and venues at rich and high_rich) entranceWidth.grand, an edge too short for that giving what it holds. A ground floor that is a venue or a lobby takes the storefront row: glass from a sill inside storefront.sill up to the clear height, one run per bay (per panel cell on a megablock). security and industrial are the documented small-window exceptions; poor tier keeps the megablock scatter (small, deep, semi-irregular) above the ground floor whatever the family says.",
-  "clearHeightAllowance": 0.35,
+  "clearHeightAllowance": 0.5,
   "entranceRange": [2.4, 6.0],
   "standardFamilies": ["residential", "hotel", "office", "corpo", "hospital", "commerce"],
   "families": {

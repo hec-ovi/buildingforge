@@ -1,6 +1,7 @@
 // Contract tests: every declared input, output, and error of generate(),
 // exercised through the public entry point against the shipped fixtures.
 
+import { MODULE } from '../src/rules/tables.ts';
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { NodeIO } from '@gltf-transform/core';
@@ -389,9 +390,10 @@ describe('blueprint invariants', () => {
       expect(windows.length).toBeGreaterThan(0);
       for (const { o, f } of windows) {
         const clear = f.height - PROPORTIONS.clearHeightAllowance;
-        expect(o.height / clear).toBeGreaterThanOrEqual(row.windowHeight[0] - 0.02);
-        expect(o.sill).toBeGreaterThanOrEqual(row.sill[0] - 0.051);
-        expect(o.sill).toBeLessThanOrEqual(row.sill[1] + 0.051);
+        // openings sit on the module grid: the share holds to the nearest half module
+        expect(o.height).toBeGreaterThanOrEqual(row.windowHeight[0] * clear - MODULE / 2 - 1e-6);
+        expect(o.sill).toBeGreaterThanOrEqual(row.sill[0] - MODULE / 2 - 1e-6);
+        expect(o.sill).toBeLessThanOrEqual(row.sill[1] + MODULE / 2 + 1e-6);
         expect(o.sill + o.height).toBeLessThanOrEqual(clear + 1e-6);
       }
     }

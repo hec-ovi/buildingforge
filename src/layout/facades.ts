@@ -2,7 +2,7 @@
 // street face, aperture cuts reserved first, openings never overlapping.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist } from '../rules/tables.ts';
+import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE } from '../rules/tables.ts';
 import {
   clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
 } from '../rules/proportions.ts';
@@ -133,7 +133,7 @@ export function buildFacades(
     // style fills bays.
     const clear = clearHeight(level.height);
     const storefront = isGround && isStorefrontFloor(family, level.kind);
-    const fit = storefront ? fitStorefront(style.storefrontSill, clear) : fitWindow(prop, style.windowFraction, style.sill, clear);
+    const fit = moduleFit(storefront ? fitStorefront(style.storefrontSill, clear) : fitWindow(prop, style.windowFraction, style.sill, clear), clear, storefront);
     if (!noWindows && style.facade.kind === 'curtain-wall') {
       for (let e = 0; e < outline.length; e++) {
         const normal = edgeNormal(outline, e);
@@ -155,8 +155,10 @@ export function buildFacades(
         const L = edgeLength(outline, e);
         const usable = L - 2 * OPENING.cornerMargin;
         if (usable < 0.9) continue;
-        const n = Math.max(1, Math.round(usable / style.bayModule));
-        const bayW = usable / n;
+        // Bays are whole modules wide; what does not divide stays at the far corner as pier.
+        const perBay = Math.max(2, Math.round(style.bayModule / MODULE));
+        const n = Math.max(1, Math.floor(usable / (perBay * MODULE)));
+        const bayW = n * perBay * MODULE <= usable ? perBay * MODULE : onModule(usable / n, 'down');
         const onGroundOutline = outline === massing.groundOutline;
         const stacks = onGroundOutline ? balconyStacks.get(e) : undefined;
         const normal = edgeNormal(outline, e);
@@ -170,14 +172,15 @@ export function buildFacades(
 
           if (isBalcony) {
             // The balcony door rises to the window head, so the floor reads as one glazed line.
-            const doorW = 0.95;
-            const doorH = quant(Math.min(clear, Math.max(2.05, fit ? fit.sill + fit.height : 0)));
-            if (!fits(takenByEdge, e, bayCenter - doorW / 2, bayCenter + doorW / 2)) continue;
+            const doorW = MODULE;
+            const doorH = onModule(Math.min(clear, Math.max(2.05, fit ? fit.sill + fit.height : 0)), 'down');
+            const doorStart = bayStart + onModule((bayW - doorW) / 2, 'down');
+            if (!fits(takenByEdge, e, doorStart, doorStart + doorW)) continue;
             const balconyW = quant(Math.max(doorW + 0.4, Math.min(bayW - 0.4, style.balconyWidth)));
-            take(takenByEdge, e, bayCenter - doorW / 2, bayCenter + doorW / 2);
+            take(takenByEdge, e, doorStart, doorStart + doorW);
             openings.push({
               id: `bd:${level.index}:${e}:${b}`, kind: 'balconyDoor', edge: e,
-              offset: quantOff(bayCenter - doorW / 2), width: doorW, height: doorH, sill: 0,
+              offset: quantOff(doorStart), width: doorW, height: doorH, sill: 0,
               leaves: leafCount(doorW), state: curtainState(seed, level.index, e, b, dist),
               balcony: { depth: style.balconyDepth, width: balconyW },
               material: `${req.theme}/door-glass/${tier}`,
@@ -188,18 +191,20 @@ export function buildFacades(
           // Window bay: a storefront takes the bay whole, a punched window its
           // family width, rolled by the window-to-wall density.
           if (!fit) continue;
-          const w = storefront ? bayW - OPENING.minPier : Math.min(style.windowWidth, bayW - OPENING.minPier);
-          if (w < 0.4) continue;
+          const w = onModule(storefront ? bayW - OPENING.minPier : Math.min(style.windowWidth, bayW - OPENING.minPier), 'down');
+          if (w < MODULE) continue;
           if (!storefront) {
             const p = Math.min(1, Math.max(0.05, (style.wwr * bayW * level.height) / (w * fit.height)));
             if (!new Rng(seed, `win:${level.index}:${e}:${b}`).chance(p)) continue;
           }
-          if (!fits(takenByEdge, e, bayCenter - w / 2, bayCenter + w / 2)) continue;
-          take(takenByEdge, e, bayCenter - w / 2, bayCenter + w / 2);
-          const width = quant(w);
+          // The window sits on the module grid inside its bay, the spare modules split to its sides.
+          const start = bayStart + onModule((bayW - w) / 2, 'down');
+          if (!fits(takenByEdge, e, start, start + w)) continue;
+          take(takenByEdge, e, start, start + w);
+          const width = w;
           openings.push({
             id: `w:${level.index}:${e}:${b}`, kind: 'window', edge: e,
-            offset: quantOff(bayCenter - w / 2), width, height: fit.height, sill: fit.sill,
+            offset: quantOff(start), width, height: fit.height, sill: fit.sill,
             state: curtainState(seed, level.index, e, b, dist),
             panes: paneGrid(width, fit.height, style.glazing),
             material: `${req.theme}/window-glass/${tier}`,
@@ -216,6 +221,25 @@ export function buildFacades(
 
 function quantOff(v: number): number {
   return Math.round(v * 1000) / 1000;
+}
+
+/**
+ * A window on the module grid: sill to the nearest module, height in whole
+ * modules under the clear height; a storefront always reaches the clear height
+ * from its sill. None when not even one module fits.
+ */
+function moduleFit(fit: WindowFit | null, clear: number, storefront: boolean): WindowFit | null {
+  if (fit === null) return null;
+  // a storefront sill only ever drops to the grid: it stays a low sill
+  const sill = Math.max(0, onModule(fit.sill, storefront ? 'down' : 'near'));
+  const height = storefront ? quant(clear - sill) : Math.min(onModule(fit.height, 'near'), onModule(clear - sill, 'down'));
+  return height >= MODULE ? { height, sill } : null;
+}
+
+/** A length as whole modules: rounded down, or to the nearest. */
+function onModule(v: number, mode: 'down' | 'near'): number {
+  const k = mode === 'down' ? Math.floor(v / MODULE + 1e-9) : Math.round(v / MODULE);
+  return quant(k * MODULE);
 }
 
 /** Swinging leaves: one per person-width of opening, four at the widest portal. */

@@ -3,7 +3,7 @@
 
 import { validateRequest } from './core/validate.ts';
 import { FAMILY } from './rules/families.ts';
-import { CORE_PLATE, FACADE } from './rules/tables.ts';
+import { CORE_PLATE, FACADE, MODULE } from './rules/tables.ts';
 import {
   PROPORTIONS, clearHeight, isStorefrontFloor, minEntranceHeight, minWindowHeight, proportionsOf,
 } from './rules/proportions.ts';
@@ -228,10 +228,11 @@ function checkProportions(layout: Layout): void {
         continue;
       }
       if (megablock) continue;
-      if (o.height < minWindowHeight(prop, clear) - 0.051) {
+      // Openings sit on the module grid, so a proportion is met to the nearest half module.
+      if (o.height < minWindowHeight(prop, clear) - MODULE / 2 - 1e-6) {
         fail(`window ${o.id} is ${o.height.toFixed(2)} m in a ${clear.toFixed(2)} m clear floor, under the ${prop.windowHeight[0]} share`);
       }
-      if (o.sill > prop.sill[1] + 0.051) {
+      if (o.sill > prop.sill[1] + MODULE / 2 + 1e-6) {
         fail(`window ${o.id} sits on a ${o.sill.toFixed(2)} m sill, over the ${prop.sill[1]} m limit`);
       }
     }

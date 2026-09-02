@@ -1,5 +1,6 @@
 # Changelog
 
+0.24.0: the facade module: storeys, bays, windows, sills, balcony doors and corner margins are whole half metres, the head band one module, so half-metre wall panels starting at every facade corner and storey line frame each opening without a cut tile.
 - 0.23.4: a rib never lands on an opening or an aperture cut, the rule columns already followed, so a megablock's panel grid steps over its doors.
 - 0.23.3: every outer frame member is a closed profile with both side faces, so a frame standing proud of the wall never shows its hollow from the street.
 - 0.23.2: entrance fixtures are facade obstacles like ribs and anchors, registered before the sign and screen scans, so a plate lands clear of them and the overlay invariant proves it.
