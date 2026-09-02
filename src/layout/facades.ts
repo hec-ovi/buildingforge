@@ -2,7 +2,7 @@
 // street face, aperture cuts reserved first, openings never overlapping.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE } from '../rules/tables.ts';
+import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U } from '../rules/tables.ts';
 import {
   clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
 } from '../rules/proportions.ts';
@@ -158,9 +158,9 @@ export function buildFacades(
         const usable = L - 2 * OPENING.cornerMargin;
         if (usable < 0.9) continue;
         // Bays are whole modules wide; what does not divide stays at the far corner as pier.
-        const perBay = Math.max(2, Math.round(style.bayModule / MODULE));
-        const n = Math.max(1, Math.floor(usable / (perBay * MODULE)));
-        const bayW = n * perBay * MODULE <= usable ? perBay * MODULE : onModule(usable / n, 'down');
+        const perBay = Math.max(2, Math.round(style.bayModule / MODULE_U));
+        const n = Math.max(1, Math.floor(usable / (perBay * MODULE_U)));
+        const bayW = n * perBay * MODULE_U <= usable ? perBay * MODULE_U : onModule(usable / n, 'down', MODULE_U);
         const onGroundOutline = outline === massing.groundOutline;
         const stacks = onGroundOutline ? balconyStacks.get(e) : undefined;
         const normal = edgeNormal(outline, e);
@@ -174,9 +174,9 @@ export function buildFacades(
 
           if (isBalcony) {
             // The balcony door rises to the window head, so the floor reads as one glazed line.
-            const doorW = MODULE;
+            const doorW = MODULE_U;
             const doorH = onModule(Math.min(clear, Math.max(2.05, fit ? fit.sill + fit.height : 0)), 'down');
-            const doorStart = bayStart + onModule((bayW - doorW) / 2, 'down');
+            const doorStart = bayStart + onModule((bayW - doorW) / 2, 'down', MODULE_U);
             if (!fits(takenByEdge, e, doorStart, doorStart + doorW)) continue;
             const balconyW = quant(Math.max(doorW + 0.4, Math.min(bayW - 0.4, style.balconyWidth)));
             take(takenByEdge, e, doorStart, doorStart + doorW);
@@ -193,14 +193,15 @@ export function buildFacades(
           // Window bay: a storefront takes the bay whole, a punched window its
           // family width, rolled by the window-to-wall density.
           if (!fit) continue;
-          const w = onModule(storefront ? bayW - OPENING.minPier : Math.min(style.windowWidth, bayW - OPENING.minPier), 'down');
-          if (w < MODULE) continue;
+          // a window is whole metres wide, to the nearest, never wider than its bay leaves for a pier
+          const w = Math.min(onModule(storefront ? bayW - OPENING.minPier : style.windowWidth, 'near', MODULE_U), bayW - OPENING.minPier);
+          if (w < MODULE_U) continue;
           if (!storefront) {
             const p = Math.min(1, Math.max(0.05, (style.wwr * bayW * level.height) / (w * fit.height)));
             if (!new Rng(seed, `win:${level.index}:${e}:${b}`).chance(p)) continue;
           }
           // The window sits on the module grid inside its bay, the spare modules split to its sides.
-          const start = bayStart + onModule((bayW - w) / 2, 'down');
+          const start = bayStart + onModule((bayW - w) / 2, 'down', MODULE_U);
           if (!fits(takenByEdge, e, start, start + w)) continue;
           take(takenByEdge, e, start, start + w);
           const width = w;
@@ -244,9 +245,9 @@ function onGrid(v: number): boolean {
 }
 
 /** A length as whole modules: rounded down, or to the nearest. */
-function onModule(v: number, mode: 'down' | 'near'): number {
-  const k = mode === 'down' ? Math.floor(v / MODULE + 1e-9) : Math.round(v / MODULE);
-  return quant(k * MODULE);
+function onModule(v: number, mode: 'down' | 'near', module: number = MODULE): number {
+  const k = mode === 'down' ? Math.floor(v / module + 1e-9) : Math.round(v / module);
+  return quant(k * module);
 }
 
 /** Swinging leaves: one per person-width of opening, four at the widest portal. */

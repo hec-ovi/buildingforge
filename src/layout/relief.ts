@@ -3,6 +3,7 @@
 // scan avoids it, so a sign can never sit on a rib the mesher drew somewhere
 // else.
 
+import { MODULE_U, OPENING } from '../rules/tables.ts';
 import { edgeLength, type P2 } from '../core/polygon.ts';
 import type { CarvedAperture, FloorLayout, Style } from './model.ts';
 
@@ -57,21 +58,24 @@ export function buildRelief(style: Style, floors: FloorLayout[], carved: CarvedA
         forbidden.push([Math.min(...us) - 0.2, Math.max(...us) + 0.2]);
       }
       const clear = (u: number, w: number) => !forbidden.some(([a, b]) => u + w / 2 > a && u - w / 2 < b);
+      // Ribs stand on panel seams; a column is one panel wide and covers whole panels from a grid line.
       const ribs: number[] = [];
       if (f.ribWidth > 0) {
-        for (let u = f.panelModule; u < len - f.ribWidth / 2; u += f.panelModule) if (clear(u, f.ribWidth)) ribs.push(u);
+        const pitch = Math.max(MODULE_U, Math.round(f.panelModule / MODULE_U) * MODULE_U);
+        for (let u = pitch; u < len - f.ribWidth / 2; u += pitch) if (clear(u, f.ribWidth)) ribs.push(u);
       }
       const columns: number[] = [];
       if (style.showColumns) {
-        const w = style.columnWidth;
-        for (let u = style.columnSpacing; u < len - w; u += style.columnSpacing) if (clear(u, w)) columns.push(u);
+        const w = MODULE_U;
+        const pitch = Math.max(2 * MODULE_U, Math.round(style.columnSpacing / MODULE_U) * MODULE_U);
+        for (let u = OPENING.cornerMargin + pitch + w / 2; u < len - w; u += pitch) if (clear(u, w)) columns.push(u);
       }
       byEdge.push({ ribs, columns });
     }
   }
 
   return {
-    ribWidth: f.ribWidth, ribDepth: f.ribDepth, columnWidth: style.columnWidth,
+    ribWidth: f.ribWidth, ribDepth: f.ribDepth, columnWidth: MODULE_U,
     columnDepth: COLUMN_PROUD, bandDepth: f.bandProud, bands, byEdge, outline,
   };
 }

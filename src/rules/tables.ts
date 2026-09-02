@@ -201,8 +201,10 @@ export const GLAZING = {
  * opening without a cut tile.
  */
 export const MODULE = 0.5;
+/** Along a facade the module is a full metre: bays, window widths, piers and columns; the panel is one by half. */
+export const MODULE_U = 1.0;
 
-export const OPENING = { minPier: MODULE, cornerMargin: MODULE };
+export const OPENING = { minPier: MODULE_U, cornerMargin: MODULE_U };
 
 /**
  * Core plate. An interior runs its corridor along the longest ground edge and
