@@ -33,8 +33,9 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   const tier = req.building.tier;
   const style = buildStyle(req.seed, family, tier, req.building.floors);
   const facadeInset = facadeDepth(style.facade.kind);
-  const massing = buildMassing(req, family, tier, style.balconyDepth, facadeInset);
   const stack = buildFloorStack(req, family, tier, style);
+  const massing = buildMassing(
+    req, family, tier, style.balconyDepth, facadeInset, stack.levels.map((floor) => floor.height));
   const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
   const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
   const relief = buildRelief(style, facades.floors, facades.carved);
@@ -115,14 +116,12 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
 function checkCorePlate(floors: FloorLayout[], facadeInset: number, aboveGround: number): void {
   const ground = floors.find((f) => f.index === 0)!.outline;
   const axis = coreAxis(ground);
-  const rects = coreRects(aboveGround, area(ground));
-  for (const floor of floors) {
-    const { fits, reached } = bestCoreFit(floor.outline, axis, facadeInset, rects);
-    if (fits) continue;
-    throw new ExteriorError('E_CORE_PLATE',
-      `floor ${floor.index} reaches ${reached.band.toFixed(2)} m of plate at ${reached.rect.depth} m deep behind the facade, under the ${reached.rect.length} x ${reached.rect.depth} m a ${reached.rect.mode} needs`,
-      { floor: floor.index, band: reached.band, needs: [reached.rect.length, reached.rect.depth], mode: reached.rect.mode });
-  }
+  const rects = coreRects(floors.map((floor) => floor.height), aboveGround, area(ground));
+  const { fits, reached } = bestCoreFit(floors.map((floor) => floor.outline), axis, facadeInset, rects);
+  if (fits) return;
+  throw new ExteriorError('E_CORE_PLATE',
+    `the shared core reaches ${reached.band.toFixed(2)} m of plate, under the ${reached.rect.length} x ${reached.rect.depth} m a ${reached.rect.mode} needs`,
+    { band: reached.band, needs: [reached.rect.length, reached.rect.depth], mode: reached.rect.mode });
 }
 
 /**

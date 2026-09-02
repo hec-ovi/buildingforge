@@ -1,0 +1,13 @@
+{
+  "seed": "urbe-small:p34",
+  "buildingId": "p34",
+  "parcel": {
+    "footprint": [[357.785, 696.425], [359.623, 700.708], [347.113, 704.035], [344.928, 695.82], [353.987, 691.157]],
+    "accessPoint": [358.222, 696.175],
+    "maxHeight": 4.5
+  },
+  "building": { "type": "commerce", "tier": "poor", "floors": 1 },
+  "theme": "cyberpunk",
+  "apertures": [],
+  "options": { "glb": "merged", "signage": { "mode": "marquee", "text": "MARKET" } }
+}

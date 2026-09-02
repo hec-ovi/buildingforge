@@ -28,6 +28,7 @@ const bridged = fixture('bridged-tower');
 const sliver = fixture('sliver-parcel');
 const shallow = fixture('shallow-tower');
 const pinned = fixture('pinned-tower');
+const rotatedCore = fixture('rotated-core');
 
 async function code(req: unknown): Promise<string> {
   try {
@@ -988,8 +989,15 @@ describe('core plate', () => {
     } catch (err) {
       const e = err as { message: string };
       expect(e.message).toMatch(/reaches [\d.]+ m of plate/);
-      expect(e.message).toMatch(/9\.4 x 8 m a walkup needs/);
+      expect(e.message).toMatch(/x 8 m a .* core needs/);
     }
+  });
+
+  it('accepts the skewed p34 plate using the shared rotated-frame recipe', async () => {
+    const { blueprint } = await generate(rotatedCore, KEYS);
+    expect(blueprint.floors).toHaveLength(1);
+    expect(blueprint.floors[0]!.height).toBe(4.5);
+    expect(blueprint.floors[0]!.outline).toEqual((rotatedCore.parcel as { footprint: number[][] }).footprint);
   });
 });
 

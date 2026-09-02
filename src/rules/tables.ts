@@ -249,11 +249,9 @@ export const GLAZING = {
 export const OPENING = { minPier: MODULE_U, cornerMargin: MODULE_U };
 
 /**
- * Core plate. An interior runs its corridor along the longest ground edge and
- * needs a shaft row, the corridor and one room strip across it on every floor,
- * the core standing identical top to bottom. Depth is read behind the wall:
- * the outline inset by the wall depth plus the lining an interior fits against
- * it. A setback or terrace that cannot keep it is not taken.
+ * Core plate fallback dimensions used by setback depth heuristics. Exact core
+ * feasibility, including rotated frames and stair arithmetic, is owned by
+ * layout/core.ts and read from the interior contract.
  */
 export const CORE_PLATE = {
   minDepth: 8,

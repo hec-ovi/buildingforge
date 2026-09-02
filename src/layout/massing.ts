@@ -35,6 +35,7 @@ export interface Massing {
 
 export function buildMassing(
   req: BuildingRequest, family: Family, tier: Tier, balconyInset: number, facadeInset: number,
+  floorHeights: readonly number[],
 ): Massing {
   const rng = new Rng(req.seed, 'massing');
   const parcel = req.parcel.footprint;
@@ -42,9 +43,9 @@ export function buildMassing(
   const hasApertures = (req.apertures ?? []).length > 0;
   // Every plate has to host the interior's core rectangle; the massing picks a
   // box that does rather than leaving the assembler to find out it cannot.
-  const rects = coreRects(floors, area(parcel), true);
+  const rects = coreRects(floorHeights, floors, area(parcel), true);
   const holdsCore = (ring: P2[], axis?: P2) =>
-    bestCoreFit(ring, axis ?? coreAxis(ring), facadeInset, rects).fits !== null;
+    bestCoreFit([ring], axis ?? coreAxis(ring), facadeInset, rects, axis === undefined).fits !== null;
 
   let shape = (req.options?.shape ?? 'auto') as Shape | 'auto';
   if (hasApertures) {
@@ -59,7 +60,7 @@ export function buildMassing(
   const base = baseOutline(shape, parcel, rng, needInset ? balconyInset + 0.1 : 0, hasApertures, holdsCore);
 
   if (shape === 'setback' && floors >= 8) {
-    const axis = coreAxis(base);
+    const axis = bestCoreFit([base], coreAxis(base), facadeInset, rects).axis;
     const t1 = Math.max(2, Math.round(floors * rng.range(0.3, 0.45)));
     const t2 = Math.max(t1 + 2, Math.round(floors * rng.range(0.65, 0.8)));
     const mid = stepIn(base, axis, rng, holdsCore);
@@ -75,7 +76,7 @@ export function buildMassing(
   if (shape === 'pyramid' && floors >= 4) {
     // Ziggurat: the outline steps inward every floor, vertical walls, terrace
     // rings, and stops stepping where the next plate would lose its core.
-    const axis = coreAxis(base);
+    const axis = bestCoreFit([base], coreAxis(base), facadeInset, rects).axis;
     const steps: P2[][] = [base];
     let current = base;
     const totalInset = Math.min(minHalfWidth(base) * 0.8, floors * 1.2, coreRoom(base, axis));

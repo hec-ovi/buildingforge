@@ -1,150 +1,361 @@
-// The core rectangle a plate has to host. The interior lays its stairs, lifts
-// and risers in one rectangle on the plate behind the facade; these are its own
-// published sizes with half a metre of snap slack, so the massing can pick a box
-// the interior can core instead of the assembler finding out later.
+// Exterior-side preflight for the vertical core. All dimensions come from the
+// interior's published schema; this module deliberately imports no interior
+// implementation code.
 
 import { readFileSync } from 'node:fs';
 import { CORE_PLATE } from '../rules/tables.ts';
-import type { P2 } from '../core/polygon.ts';
+import { pointInPolygon, pointSegmentDistance, type P2 } from '../core/polygon.ts';
 
 export interface CoreRect {
-  /** along the core's axis, the longest ground edge */
+  /** required run along the core frame */
   length: number;
-  /** across it, behind the facade */
+  /** minimum plate depth across the core frame */
   depth: number;
-  mode: string;
-}
-
-/** Interior core rectangles, its own numbers (../interior/schemas/core-feasibility.json). */
-const CORE_RECTS = {
-  walkup: { length: 9.4, depth: 8, mode: 'walkup' },
-  walkupTwoStairs: { length: 15.9, depth: 8, mode: 'walkup with two stairs' },
-  compact: { length: 10.4, depth: 12, mode: 'compact lift core' },
-  standard: { length: 18.4, depth: 8, mode: 'standard lift core' },
-} as const;
-
-/**
- * The interior snaps its core positions onto a half metre, so a plate that only
- * just holds a rectangle can lose it to rounding. The massing aims a snap wider
- * than the bare number; the check that names a hopeless lot uses the bare one,
- * so no plate the interior would take is ever refused here.
- */
-const SNAP = 0.5;
-
-function grow(rect: CoreRect, slack: number): CoreRect {
-  return { length: rect.length + slack, depth: rect.depth + slack, mode: rect.mode };
+  mode: 'standard lift core' | 'compact lift core' | 'walkup' | 'walkup with two stairs';
+  /** full depth of compact stair columns behind the corridor face */
+  columnDepth?: number;
 }
 
 interface Constants {
+  snap: number;
+  corridorWidth: number;
+  elevatorShaft: number;
+  riserShaft: number;
+  serviceStub: number;
+  margin: number;
+  minStripDepth: number;
+  singleLoadedBelowDepth: number;
+  vFaceScanRange: number;
+  frameSweepStepDeg: number;
+  stairColumnWidth: number;
+  walkupMaxFloors: number;
+  stairRiserMin: number;
+  stairRiserIdeal: number;
+  stairRiserMax: number;
+  stairTread: number;
+  maxRisersPerFlight: number;
+  stairLanding: number;
+  wallThickness: number;
   twoStairsAreaOver: number;
   twoStairsFloorsOver: number;
-  walkupMaxFloors: number;
   facadeDepth: Record<string, number>;
 }
+
+const FALLBACK: Constants = {
+  snap: 0.5,
+  corridorWidth: 2.5,
+  elevatorShaft: 2.5,
+  riserShaft: 1.2,
+  serviceStub: 1.2,
+  margin: 0.5,
+  minStripDepth: 3,
+  singleLoadedBelowDepth: 12.5,
+  vFaceScanRange: 8,
+  frameSweepStepDeg: 5,
+  stairColumnWidth: 2.5,
+  walkupMaxFloors: 6,
+  stairRiserMin: 0.16,
+  stairRiserIdeal: 0.17,
+  stairRiserMax: 0.18,
+  stairTread: 0.28,
+  maxRisersPerFlight: 14,
+  stairLanding: 1.2,
+  wallThickness: 0.1,
+  twoStairsAreaOver: 460,
+  twoStairsFloorsOver: 4,
+  facadeDepth: {},
+};
 
 const CONSTANTS = readConstants();
 
 function readConstants(): Constants {
   try {
-    const c = JSON.parse(readFileSync(
-      new URL('../../../interior/schemas/core-feasibility.json', import.meta.url), 'utf8')).constants;
-    return {
-      twoStairsAreaOver: c.twoStairsAreaOver,
-      twoStairsFloorsOver: c.twoStairsFloorsOver,
-      walkupMaxFloors: c.walkupMaxFloors,
-      facadeDepth: c.facadeDepth,
+    const raw = JSON.parse(readFileSync(
+      new URL('../../../interior/schemas/core-feasibility.json', import.meta.url), 'utf8')).constants as Record<string, unknown>;
+    const values: Constants = {
+      snap: raw.snap as number,
+      corridorWidth: raw.corridorWidth as number,
+      elevatorShaft: raw.elevatorShaft as number,
+      riserShaft: raw.riserShaft as number,
+      serviceStub: raw.serviceStub as number,
+      margin: raw.margin as number,
+      minStripDepth: raw.minStripDepth as number,
+      singleLoadedBelowDepth: raw.singleLoadedBelowDepth as number,
+      vFaceScanRange: raw.vFaceScanRange as number,
+      frameSweepStepDeg: raw.frameSweepStepDeg as number,
+      stairColumnWidth: raw.stairColumnWidth as number,
+      walkupMaxFloors: raw.walkupMaxFloors as number,
+      stairRiserMin: raw.stairRiserMin as number,
+      stairRiserIdeal: raw.stairRiserIdeal as number,
+      stairRiserMax: raw.stairRiserMax as number,
+      stairTread: raw.stairTread as number,
+      maxRisersPerFlight: raw.maxRisersPerFlight as number,
+      stairLanding: raw.stairLanding as number,
+      wallThickness: raw.wallThickness as number,
+      twoStairsAreaOver: raw.twoStairsAreaOver as number,
+      twoStairsFloorsOver: raw.twoStairsFloorsOver as number,
+      facadeDepth: raw.facadeDepth as Record<string, number>,
     };
+    const scalars = Object.entries(values).filter(([key]) => key !== 'facadeDepth').map(([, value]) => value);
+    if (!scalars.every((value) => Number.isFinite(value) && (value as number) > 0)) return FALLBACK;
+    if (!values.facadeDepth || !Object.values(values.facadeDepth).every((v) => Number.isFinite(v) && v > 0)) return FALLBACK;
+    return values;
   } catch {
-    return { twoStairsAreaOver: 460, twoStairsFloorsOver: 4, walkupMaxFloors: 6, facadeDepth: {} };
+    return FALLBACK;
   }
 }
 
-/** How far behind the outline skin the plate starts, by facade style. */
+/** How far behind the outline skin the interior plate starts, by facade style. */
 export function facadeDepth(style: string): number {
   return CONSTANTS.facadeDepth[style] ?? CONSTANTS.facadeDepth.panel ?? CORE_PLATE.lining;
 }
 
 /**
- * The rectangles that would serve this building, best first. A building past
- * the walkup floor cap needs a lift, so only the lift cores serve it; below the
- * cap a stair core does, two stairs where the floor count or the ground area
- * calls for them.
+ * Core choices for these exact storey climbs. The order matches interior:
+ * standard, compact, then a stair-only walkup where its floor cap permits it.
  */
-export function coreRects(aboveGroundFloors: number, groundArea: number, aim = false): CoreRect[] {
-  const slack = aim ? SNAP : 0;
-  const lifts = [CORE_RECTS.standard, CORE_RECTS.compact];
-  if (aboveGroundFloors > CONSTANTS.walkupMaxFloors) return lifts.map((r) => grow(r, slack));
+export function coreRects(
+  floorHeights: readonly number[], aboveGroundFloors: number, groundArea: number, aim = false,
+): CoreRect[] {
+  const stairDepth = stairShaftDepth(floorHeights);
   const two = groundArea > CONSTANTS.twoStairsAreaOver || aboveGroundFloors > CONSTANTS.twoStairsFloorsOver;
-  const stair = two ? CORE_RECTS.walkupTwoStairs : CORE_RECTS.walkup;
-  return [stair, ...lifts].map((r) => grow(r, slack));
+  const rowFixed = stairDepth + CONSTANTS.riserShaft + CONSTANTS.serviceStub
+    + (two ? stairDepth : 0) + CONSTANTS.margin;
+  const compactFixed = CONSTANTS.stairColumnWidth * (two ? 2 : 1)
+    + CONSTANTS.riserShaft + CONSTANTS.serviceStub + CONSTANTS.margin;
+  const slack = aim ? CONSTANTS.snap : 0;
+  const crossDepth = CONSTANTS.minStripDepth + CONSTANTS.corridorWidth + CONSTANTS.elevatorShaft;
+  const walkupMode = two ? 'walkup with two stairs' : 'walkup';
+  const out: CoreRect[] = [
+    { length: rowFixed + CONSTANTS.elevatorShaft + slack, depth: crossDepth + slack, mode: 'standard lift core' },
+    {
+      length: compactFixed + CONSTANTS.elevatorShaft + slack,
+      depth: CONSTANTS.minStripDepth + CONSTANTS.corridorWidth + stairDepth + slack,
+      columnDepth: stairDepth + slack,
+      mode: 'compact lift core',
+    },
+  ];
+  if (aboveGroundFloors <= CONSTANTS.walkupMaxFloors) {
+    out.push({ length: rowFixed + slack, depth: crossDepth + slack, mode: walkupMode });
+  }
+  return out;
+}
+
+/** Deepest flight needed by a one- or adjacent-two-storey climb. */
+function stairShaftDepth(floorHeights: readonly number[]): number {
+  const climbs = [...floorHeights];
+  for (let i = 0; i + 1 < floorHeights.length; i++) climbs.push(floorHeights[i]! + floorHeights[i + 1]!);
+  let worst = 0;
+  for (const climb of climbs) {
+    const idealCount = climb / CONSTANTS.stairRiserIdeal;
+    const flights = 2 * Math.ceil(idealCount / (2 * CONSTANTS.maxRisersPerFlight));
+    const low = Math.ceil(climb / CONSTANTS.stairRiserMax - 1e-9);
+    const high = Math.floor(climb / CONSTANTS.stairRiserMin + 1e-9);
+    let total: number | null = null;
+    for (let count = low; count <= high; count++) {
+      if (count % flights !== 0) continue;
+      if (total === null || Math.abs(count - idealCount) < Math.abs(total - idealCount)) total = count;
+    }
+    const resolved = total ?? Math.max(flights, Math.round(idealCount / flights) * flights);
+    worst = Math.max(worst, resolved / flights);
+  }
+  return Math.round(Math.ceil((worst * CONSTANTS.stairTread + 2 * CONSTANTS.stairLanding
+    + CONSTANTS.wallThickness) / 0.1 - 1e-9) * 0.1 * 1000) / 1000;
+}
+
+interface Band {
+  u0: number;
+  u1: number;
+  vFace: number;
+}
+
+interface FrameFit {
+  fits: CoreRect | null;
+  reached: { band: number; rect: CoreRect };
+  axis: P2;
 }
 
 /**
- * The largest rectangle on this plate, in the core's frame: the depth is what
- * the strip test allows and the length the longest run inside it. A plate is
- * measured at the depth asked for, since a shallow plate can be long and a deep
- * one short.
+ * Longest shared run in a fixed-depth strip. Kept exported for geometry tests;
+ * normal callers use bestCoreFit, which also enforces the room strip and modes.
  */
-export function plateBand(outline: P2[], axis: P2, inset: number, depth: number): number {
-  const uv = outline.map(([x, z]): P2 => [x * axis[0] + z * axis[1], z * axis[0] - x * axis[1]]);
-  let vMin = Infinity, vMax = -Infinity;
-  for (const [, v] of uv) { vMin = Math.min(vMin, v); vMax = Math.max(vMax, v); }
-  const lo = vMin + inset, hi = vMax - inset;
-  if (hi - lo < depth) return 0;
-
+export function plateBand(outlines: readonly P2[][], axis: P2, inset: number, depth: number): number {
+  const uv = outlines.map((outline) => project(outline, axis));
+  const ground = bounds(uv[0]!);
   let best = 0;
-  const step = 0.5;
-  for (let v0 = lo; v0 <= hi - depth + 1e-9; v0 += step) {
-    // Every level of the strip has to be inside the plate, so a notch between
-    // two levels cannot be counted as core room.
-    let runs = chords(uv, v0, inset);
-    for (let v = v0 + step; v < v0 + depth - 1e-9 && runs.length > 0; v += step) {
-      runs = intersect(runs, chords(uv, v, inset));
-    }
-    if (runs.length > 0) runs = intersect(runs, chords(uv, v0 + depth, inset));
-    for (const [a, b] of runs) best = Math.max(best, b - a);
+  const lo = snapUp(ground.v0 + inset);
+  const hi = snapDown(ground.v1 - inset - depth);
+  for (let v = lo; v <= hi + 1e-9; v += CONSTANTS.snap) {
+    const band = fullCoverage(uv, v, v + depth, inset);
+    best = Math.max(best, band.u1 - band.u0);
   }
   return best;
 }
 
-/** Whether the plate hosts any of the rectangles, and the best band it reached. */
+/** Whether all floors share one core placement, including rotated fallback frames. */
 export function bestCoreFit(
-  outline: P2[], axis: P2, inset: number, rects: readonly CoreRect[],
-): { fits: CoreRect | null; reached: { band: number; rect: CoreRect } } {
-  let reached = { band: -1, rect: rects[0]! };
-  for (const rect of rects) {
-    const band = plateBand(outline, axis, inset, rect.depth);
-    if (band >= rect.length - 1e-9) return { fits: rect, reached: { band, rect } };
-    if (band > reached.band) reached = { band, rect };
+  outlines: readonly P2[][], principalAxis: P2, inset: number, rects: readonly CoreRect[], sweep = true,
+): FrameFit {
+  const first = fitFrame(outlines, normalize(principalAxis), inset, rects);
+  if (first.fits || !sweep) return first;
+
+  let best = first;
+  let bestRank = Infinity;
+  const base = Math.atan2(principalAxis[1], principalAxis[0]);
+  for (let deg = CONSTANTS.frameSweepStepDeg; deg < 180; deg += CONSTANTS.frameSweepStepDeg) {
+    const a = base + deg * Math.PI / 180;
+    const fit = fitFrame(outlines, [Math.cos(a), Math.sin(a)], inset, rects);
+    if (!fit.fits) {
+      if (fit.reached.band > best.reached.band) best = fit;
+      continue;
+    }
+    const rank = modeRank(fit.fits) * 1000 - Math.min(999, fit.reached.band);
+    if (rank < bestRank) {
+      bestRank = rank;
+      best = fit;
+    }
+    if (fit.fits.mode === 'standard lift core') break;
   }
-  return { fits: null, reached };
+  return best;
 }
 
-/** The u-runs inside the plate at height v, each pulled in by the facade inset. */
-function chords(uv: P2[], v: number, inset: number): [number, number][] {
-  const xs: number[] = [];
-  for (let i = 0; i < uv.length; i++) {
-    const [u1, v1] = uv[i] as P2;
-    const [u2, v2] = uv[(i + 1) % uv.length] as P2;
-    if ((v1 > v) === (v2 > v)) continue;
-    xs.push(u1 + ((v - v1) / (v2 - v1)) * (u2 - u1));
-  }
-  xs.sort((a, b) => a - b);
-  const out: [number, number][] = [];
-  for (let i = 0; i + 1 < xs.length; i += 2) {
-    const a = (xs[i] as number) + inset, b = (xs[i + 1] as number) - inset;
-    if (b > a) out.push([a, b]);
-  }
-  return out;
-}
-
-function intersect(a: [number, number][], b: [number, number][]): [number, number][] {
-  const out: [number, number][] = [];
-  for (const [a0, a1] of a) {
-    for (const [b0, b1] of b) {
-      const lo = Math.max(a0, b0), hi = Math.min(a1, b1);
-      if (hi > lo) out.push([lo, hi]);
+function fitFrame(outlines: readonly P2[][], axis: P2, inset: number, rects: readonly CoreRect[]): FrameFit {
+  const uv = outlines.map((outline) => project(outline, axis));
+  const ground = bounds(uv[0]!);
+  const usableDepth = ground.v1 - ground.v0 - 2 * inset;
+  const ideal = usableDepth < CONSTANTS.singleLoadedBelowDepth
+    ? snapDown(ground.v1 - inset - CONSTANTS.elevatorShaft)
+    : snap((ground.v0 + ground.v1 + CONSTANTS.corridorWidth) / 2);
+  const vMin = snapUp(ground.v0 + inset + CONSTANTS.minStripDepth + CONSTANTS.corridorWidth);
+  const vMax = snapDown(ground.v1 - inset - CONSTANTS.elevatorShaft);
+  const candidates: number[] = [];
+  for (let offset = 0; offset <= CONSTANTS.vFaceScanRange + 1e-9; offset += CONSTANTS.snap) {
+    for (const v of offset === 0 ? [ideal] : [ideal - offset, ideal + offset]) {
+      if (v >= vMin - 1e-9 && v <= vMax + 1e-9 && !candidates.includes(v)) candidates.push(v);
     }
   }
-  return out;
+
+  const bands = candidates.map((vFace): Band => {
+    const run = fullCoverage(uv, vFace - CONSTANTS.corridorWidth, vFace + CONSTANTS.elevatorShaft, inset);
+    return { ...run, vFace };
+  });
+  const bestBand = bands.reduce((best, band) => band.u1 - band.u0 > best.u1 - best.u0 ? band : best,
+    { u0: 0, u1: 0, vFace: ideal });
+  let reached = { band: Math.max(0, bestBand.u1 - bestBand.u0), rect: rects[0]! };
+
+  for (const rect of rects) {
+    for (const band of bands) {
+      const length = band.u1 - band.u0;
+      if (length < rect.length - 1e-9) continue;
+      if (rect.columnDepth && !compactFits(uv, band, rect, inset)) continue;
+      return { fits: rect, reached: { band: length, rect }, axis };
+    }
+    if (bestBand.u1 - bestBand.u0 > reached.band) reached = { band: bestBand.u1 - bestBand.u0, rect };
+  }
+  return { fits: null, reached, axis };
+}
+
+function compactFits(uv: readonly P2[][], band: Band, rect: CoreRect, inset: number): boolean {
+  const u0 = Math.max(snapUp(band.u0), snap(band.u0 + (band.u1 - band.u0 - rect.length) / 2));
+  return uv.every((outline) => rectInside(outline, u0, band.vFace, rect.length, rect.columnDepth!, inset));
+}
+
+/** Interior-equivalent 0.5 m cell scan for the longest full-coverage run. */
+function fullCoverage(uv: readonly P2[][], v0: number, v1: number, inset: number): { u0: number; u1: number } {
+  let lo = -Infinity, hi = Infinity;
+  for (const outline of uv) {
+    const b = bounds(outline);
+    lo = Math.max(lo, b.u0 + inset);
+    hi = Math.min(hi, b.u1 - inset);
+  }
+  lo = snapUp(lo);
+  hi = snapDown(hi);
+  if (hi - lo < CONSTANTS.snap - 1e-9) return { u0: lo, u1: lo };
+
+  let runStart = lo;
+  let best: [number, number] = [lo, lo];
+  for (let u = lo; u < hi - 1e-9; u += CONSTANTS.snap) {
+    const width = Math.min(CONSTANTS.snap, hi - u);
+    const covered = uv.every((outline) => rectInside(outline, u, v0, width, v1 - v0, inset));
+    if (!covered) {
+      if (u - runStart > best[1] - best[0]) best = [runStart, u];
+      runStart = u + width;
+    }
+  }
+  if (hi - runStart > best[1] - best[0]) best = [runStart, hi];
+  return { u0: best[0], u1: best[1] };
+}
+
+/** Whole rectangle inside the outline and at least inset from every boundary segment. */
+function rectInside(outline: readonly P2[], u: number, v: number, width: number, depth: number, inset: number): boolean {
+  if (width <= 0 || depth <= 0) return false;
+  const corners: P2[] = [[u, v], [u + width, v], [u + width, v + depth], [u, v + depth]];
+  if (!corners.every((p) => pointInOrOn(outline, p))) return false;
+  for (let i = 0; i < corners.length; i++) {
+    const a = corners[i]!;
+    const b = corners[(i + 1) % corners.length]!;
+    for (let j = 0; j < outline.length; j++) {
+      const c = outline[j]!;
+      const d = outline[(j + 1) % outline.length]!;
+      if (segmentsProperlyCross(a, b, c, d)) return false;
+      if (segmentDistance(a, b, c, d) < inset - 1e-7) return false;
+    }
+  }
+  return true;
+}
+
+function pointInOrOn(poly: readonly P2[], p: P2): boolean {
+  for (let i = 0; i < poly.length; i++) {
+    if (pointSegmentDistance(p, poly[i]!, poly[(i + 1) % poly.length]!) < 1e-8) return true;
+  }
+  return pointInPolygon(poly as P2[], p);
+}
+
+function segmentDistance(a: P2, b: P2, c: P2, d: P2): number {
+  if (segmentsProperlyCross(a, b, c, d)) return 0;
+  return Math.min(
+    pointSegmentDistance(a, c, d), pointSegmentDistance(b, c, d),
+    pointSegmentDistance(c, a, b), pointSegmentDistance(d, a, b),
+  );
+}
+
+function segmentsProperlyCross(a: P2, b: P2, c: P2, d: P2): boolean {
+  const o = (p: P2, q: P2, r: P2) => (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+  return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+}
+
+function project(outline: readonly P2[], axis: P2): P2[] {
+  return outline.map(([x, z]) => [x * axis[0] + z * axis[1], -x * axis[1] + z * axis[0]]);
+}
+
+function bounds(outline: readonly P2[]): { u0: number; u1: number; v0: number; v1: number } {
+  let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+  for (const [u, v] of outline) {
+    u0 = Math.min(u0, u); u1 = Math.max(u1, u);
+    v0 = Math.min(v0, v); v1 = Math.max(v1, v);
+  }
+  return { u0, u1, v0, v1 };
+}
+
+function snap(value: number): number {
+  return Math.round(value / CONSTANTS.snap) * CONSTANTS.snap;
+}
+
+function snapDown(value: number): number {
+  return Math.floor(value / CONSTANTS.snap + 1e-9) * CONSTANTS.snap;
+}
+
+function snapUp(value: number): number {
+  return Math.ceil(value / CONSTANTS.snap - 1e-9) * CONSTANTS.snap;
+}
+
+function normalize([x, z]: P2): P2 {
+  const d = Math.hypot(x, z) || 1;
+  return [x / d, z / d];
+}
+
+function modeRank(rect: CoreRect): number {
+  if (rect.mode === 'standard lift core') return 0;
+  if (rect.mode === 'compact lift core') return 1;
+  return 2;
 }
