@@ -3,6 +3,7 @@
 
 import { Rng } from '../core/rng.ts';
 import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U } from '../rules/tables.ts';
+import { moduleWithin, onGrid, onModule } from './module.ts';
 import {
   clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
 } from '../rules/proportions.ts';
@@ -239,16 +240,7 @@ function moduleFit(fit: WindowFit | null, clear: number, storefront: boolean): W
   return height >= MODULE ? { height, sill } : null;
 }
 
-/** Whether a length is a whole number of modules. */
-function onGrid(v: number): boolean {
-  return Math.abs(v / MODULE - Math.round(v / MODULE)) < 1e-6;
-}
 
-/** A length as whole modules: rounded down, or to the nearest. */
-function onModule(v: number, mode: 'down' | 'near', module: number = MODULE): number {
-  const k = mode === 'down' ? Math.floor(v / module + 1e-9) : Math.round(v / module);
-  return quant(k * module);
-}
 
 /** Swinging leaves: one per person-width of opening, four at the widest portal. */
 function leafCount(width: number): number {
@@ -428,13 +420,16 @@ function placeEntrance(
   const grand = (family === 'corpo' || family === 'hotel' || family === 'commerce')
     && (tier === 'rich' || tier === 'high_rich');
   const wWant = quant(rng.range(...(grand ? DOORS.width.grand : DOORS.width.standard)));
-  const h = entranceHeight(prop, style.entrancePick, clearHeight(groundHeight));
+  // whole modules tall, inside the family's range; a range too narrow for a module keeps the exact height
+  const clear = clearHeight(groundHeight);
+  const h = moduleWithin(entranceHeight(prop, style.entrancePick, clear), prop.entrance[0], Math.min(prop.entrance[1], clear));
 
   for (const e of candidates) {
     if (e >= outline.length) continue;
     const L = edgeLength(outline, e);
-    const w = Math.min(wWant, L - 0.3);
-    if (w < 0.6) continue; // too small even for a narrow door, try the next edge
+    // an entrance is whole metres wide and starts on a panel seam
+    const w = onModule(Math.min(wWant, L - 2 * OPENING.cornerMargin), 'near', MODULE_U);
+    if (w < 2 * MODULE_U) continue; // too small even for a narrow door, try the next edge
     const margin = Math.min(OPENING.cornerMargin, (L - w) / 2);
     const tMin = margin + w / 2;
     const tMax = L - margin - w / 2;
@@ -450,8 +445,8 @@ function placeEntrance(
       if (!fits(taken, e, t - w / 2, t + w / 2)) continue;
       take(taken, e, t - w / 2, t + w / 2);
       openings.push({
-        id: 'entrance', kind: 'door', edge: e, offset: quantOff(t - w / 2),
-        width: quant(w), height: quant(h), sill: 0, leaves: leafCount(w),
+        id: 'entrance', kind: 'door', edge: e, offset: onModule(t - w / 2, 'near', MODULE_U),
+        width: w, height: quant(h), sill: 0, leaves: leafCount(w),
         material: `${req.theme}/${rules.entranceGlass ? 'door-glass' : 'door'}/${tier}`,
       });
       return;

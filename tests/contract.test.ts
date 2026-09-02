@@ -205,7 +205,7 @@ describe('blueprint invariants', () => {
     const tris = doc.getRoot().listNodes().find((n) => n.getName() === 'signage:0')!
       .getMesh()!.listPrimitives().reduce((n, p) => n + p.getIndices()!.getCount() / 3, 0);
     const letters = [...s.text!].filter((c) => c.trim().length > 0).length;
-    expect(tris).toBe(12 + letters * 2); // closed plate box (6 quads) + one quad per letter
+    expect(tris).toBe(24 + letters * 2); // face plate and its border plate (6 quads each) + one quad per letter
   });
 
   it('closes the marquee with a back panel standing off the wall', async () => {

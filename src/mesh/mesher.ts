@@ -16,6 +16,8 @@ const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
 /** A wall-mounted plate's back panel stands this far off the wall, so the two never share a plane. */
 const PLATE_STANDOFF = 0.012;
+/** The border a sign plate shows around its face. */
+const SIGN_BORDER = 0.08;
 
 
 /** Door assembly sections: casing around the hole, then the swinging leaf itself. */
@@ -139,8 +141,8 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
     const base = o.kind === 'door' ? `door:${o.id}` : `balcony:${o.id}`;
     mb.part(base); // the door as a whole: frame plus one node per leaf
     const frame = mb.part(`${base}/frame`, { parent: base });
-    reveal(frame, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], REVEAL, o.sill > 0.01, mat('wall-trim'));
-    doorCasing(frame, fr, u0, u1, yb, yt, mat('wall-trim'));
+    reveal(frame, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], REVEAL, o.sill > 0.01, mat('door'));
+    doorCasing(frame, fr, u0, u1, yb, yt, mat('door'));
     doorLeaves(mb, base, fr, u0, u1, yb, yt, o, mat);
     if (o.transom) {
       // The glazing carries on over the door head as this door's transom light.
@@ -252,7 +254,7 @@ function windowUnit(
   const z = -recess;
   const lining = recess + g.glassInset;
   if (lining > 0.005) {
-    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], lining, true, mat('wall-trim'));
+    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], lining, true, mat('window-frame'));
   }
   const proud = g.frameProud + z;
 
@@ -526,6 +528,8 @@ function meshSign(sink: PartSink, s: Blueprint['signage'][number], mat: (k: stri
 
   if (s.mode === 'logo' || s.orientation !== 'vertical') {
     const depth = s.depth ?? 0.06;
+    // a dark border plate behind the sign face, so the letters read as a mounted sign
+    plate(sink, s.center, s.normal, s.width + 2 * SIGN_BORDER, s.height + 2 * SIGN_BORDER, depth - 0.02, mat('door'), s.standoff);
     plate(sink, s.center, s.normal, s.width, s.height, depth, frame, s.standoff);
     if (!cell) return;
     // Glyph cells left to right across the band, standing just off the plate face.

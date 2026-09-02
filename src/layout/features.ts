@@ -1,8 +1,9 @@
 // Facade and roof features: signage, ad screens, lights, fire escape, roof artifacts.
 
 import { ExteriorError } from '../core/errors.ts';
+import { cellCentre } from './module.ts';
 import { Rng } from '../core/rng.ts';
-import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, ROOF_ACCESS, ROOF_ARTIFACTS, OPENING } from '../rules/tables.ts';
+import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, ROOF_ACCESS, ROOF_ARTIFACTS, OPENING, MODULE, MODULE_U } from '../rules/tables.ts';
 import { edgeLength, edgeDir, edgeNormal, orientedBoundingBox, pointInPolygon, centroid, quant, type P2 } from '../core/polygon.ts';
 import { edgeU, findClearRect, type Rect } from './obstructions.ts';
 import type { Blueprint, BuildingRequest, P3, RoofArtifact, Signage } from '../types.ts';
@@ -308,8 +309,9 @@ function placeLights(
   for (const o of groundFloor.openings) {
     if (o.kind !== 'door') continue;
     const normal = edgeNormal(ground, o.edge);
-    const y = Math.min(o.height + 0.4, groundFloor.height - 0.2);
-    for (const u of [o.offset - 0.3, o.offset + o.width + 0.3]) {
+    const y = cellCentre(Math.min(o.height + 0.4, groundFloor.height - 0.2), MODULE);
+    // one lantern in the centre of the panel either side of the door, on the panel row over its head
+    for (const u of [o.offset - MODULE_U / 2, o.offset + o.width + MODULE_U / 2]) {
       out.push({ kind: 'entrance', position: facePoint(ground, o.edge, u, y), normal });
       const list = obstacles.get(o.edge) ?? [];
       list.push({
@@ -327,12 +329,12 @@ function placeLights(
   const e = streetEdge;
   const L = edgeLength(ground, e);
   const spacing = rng.range(...LIGHTING.accentSpacing);
-  const y = groundFloor.height * 0.8;
+  const y = cellCentre(groundFloor.height * 0.8, MODULE);
   const openingsOnEdge = groundFloor.openings.filter((o) => o.edge === e);
   for (let u = OPENING.cornerMargin + spacing / 2; u < L - OPENING.cornerMargin; u += spacing) {
     const overOpening = openingsOnEdge.some((o) => u > o.offset - 0.3 && u < o.offset + o.width + 0.3 && y > o.sill && y < o.sill + o.height + 0.5);
     if (overOpening) continue;
-    out.push({ kind: 'accent', position: facePoint(ground, e, quant(u), quant(y)), normal: edgeNormal(ground, e) });
+    out.push({ kind: 'accent', position: facePoint(ground, e, cellCentre(u, MODULE_U), y), normal: edgeNormal(ground, e) });
   }
 }
 
