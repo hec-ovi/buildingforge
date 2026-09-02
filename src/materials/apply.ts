@@ -37,11 +37,12 @@ type MapSlot = typeof MAP_SLOTS[number];
 
 /**
  * Kinds that always take the canonical variant (variant 0), never a seeded one:
- * a frame section has to read as flat painted steel on every building, and a
- * deck as a solid surface, so a plate that is not a whole number of tiles shows
- * no cut joint. Everything else varies from building to building.
+ * a frame section has to read as flat painted steel on every building, a deck as
+ * a solid surface so a plate that is not a whole number of tiles shows no cut
+ * joint, and an exterior lantern as the lamp its housing is shaped for, not a
+ * ceiling strip or panel. Everything else varies from building to building.
  */
-const CANONICAL_KINDS = new Set(['window-frame', 'door', 'roof', 'floor-slab']);
+const CANONICAL_KINDS = new Set(['window-frame', 'door', 'roof', 'floor-slab', 'light-fixture']);
 
 /** Untextured materials named by the canonical key: what a keys-only consumer resolves itself. */
 function keysOnly(doc: Document, keys: string[], reason?: string): MaterialPlan {
