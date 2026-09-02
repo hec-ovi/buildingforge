@@ -25,3 +25,12 @@ export function moduleWithin(v: number, lo: number, hi: number, module: number =
   if (inside.length === 0) return v;
   return inside.reduce((best, c) => (Math.abs(c - v) < Math.abs(best - v) ? c : best));
 }
+
+/**
+ * The panel a face really carries: the declared module stretched or squeezed to
+ * the nearest whole count that spans the face exactly, so no face ends on a cut
+ * panel. A face already a whole number of modules long gets the module itself.
+ */
+export function panelOn(span: number, module: number): number {
+  return span / Math.max(1, Math.round(span / module));
+}

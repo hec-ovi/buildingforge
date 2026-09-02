@@ -876,6 +876,59 @@ describe('GLB shell', () => {
   });
 });
 
+describe('facade panels', () => {
+  it('spans every face and every storey with whole wall panels', async () => {
+    for (const req of [residential, corpo, factory, bridged, shallow]) {
+      const { glb, blueprint } = await generate(req, KEYS);
+      const panel = blueprint.facade.panelModule;
+      const doc = await new NodeIO().readBinary(glb);
+      let checked = 0;
+      for (const node of doc.getRoot().listNodes()) {
+        if (!node.getName().startsWith('wall:')) continue;
+        for (const prim of node.getMesh()!.listPrimitives()) {
+          const uv = prim.getAttribute('TEXCOORD_0')!;
+          let maxU = -Infinity, minV = Infinity;
+          const t = [0, 0];
+          for (let i = 0; i < uv.getCount(); i++) {
+            uv.getElement(i, t);
+            maxU = Math.max(maxU, t[0]!);
+            minV = Math.min(minV, t[1]!);
+          }
+          const across = maxU / panel;
+          const up = -minV / panel;
+          expect(Math.abs(across - Math.round(across)), `${node.getName()} ends on a cut panel across`).toBeLessThan(2e-3);
+          expect(Math.abs(up - Math.round(up)), `${node.getName()} ends on a cut panel up`).toBeLessThan(2e-3);
+          checked++;
+        }
+      }
+      expect(checked).toBeGreaterThan(0);
+    }
+  });
+
+  it('gives a curtain wall equal piers at both corners', async () => {
+    for (const req of [corpo, sliver]) {
+      const { blueprint } = await generate(req, KEYS);
+      expect(blueprint.facade.style).toBe('curtain-wall');
+      let checked = 0;
+      for (const floor of blueprint.floors) {
+        if (floor.index < 1) continue; // the ground floor carries the entrance
+        for (let e = 0; e < floor.outline.length; e++) {
+          // one uninterrupted run: a door or an aperture on the face moves its bays
+          const bays = floor.openings.filter((o) => o.edge === e);
+          if (bays.length !== 1 || bays[0]!.kind !== 'window') continue;
+          const a = floor.outline[e]!, b = floor.outline[(e + 1) % floor.outline.length]!;
+          const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          const head = bays[0]!.offset;
+          const tail = len - (head + bays[0]!.width);
+          expect(Math.abs(head - tail), `edge ${e} of floor ${floor.index} leaves a wider pier at one corner`).toBeLessThan(2e-3);
+          checked++;
+        }
+      }
+      expect(checked).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('window units', () => {
   it('fills a punched hole with its glass and straddles the hole edge with the frame', async () => {
     for (const req of [residential, factory]) {

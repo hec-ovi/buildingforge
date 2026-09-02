@@ -9,6 +9,7 @@ import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { AC_UNITS, BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
+import { panelOn } from '../layout/module.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
 import type { Blueprint, Opening } from '../types.ts';
 
@@ -81,8 +82,13 @@ export function buildMesh(layout: Layout): MeshBuilder {
         if (c.aperture.face === e) holes.push({ poly: c.facePoly });
       }
       const sink = mb.part(`wall:${f.index}/${e}`);
+      // Whole panels both ways: the map is scaled to the panel this face and this
+      // storey really carry, so a corner and a floor line never cut one in half.
+      const panel = layout.style.facade.panelModule;
+      const su = panel / panelOn(fr.len, panel);
+      const sv = panel / panelOn(f.height, panel);
       for (const piece of cutWall(fr.len, f.elevation, f.elevation + f.height, holes)) {
-        const uvs = [piece.bl, piece.br, piece.tr, piece.tl].map(([u, y]) => [u, f.elevation - y] as [number, number]);
+        const uvs = [piece.bl, piece.br, piece.tr, piece.tl].map(([u, y]) => [u * su, (f.elevation - y) * sv] as [number, number]);
         sink.quadFacing(mat('wall'), at(fr, piece.bl), at(fr, piece.br), at(fr, piece.tr), at(fr, piece.tl), n3(fr), uvs);
       }
     }

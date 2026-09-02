@@ -4,6 +4,7 @@
 // else.
 
 import { MODULE_U, OPENING } from '../rules/tables.ts';
+import { panelOn } from './module.ts';
 import { edgeLength, type P2 } from '../core/polygon.ts';
 import type { CarvedAperture, FloorLayout, Style } from './model.ts';
 
@@ -61,7 +62,9 @@ export function buildRelief(style: Style, floors: FloorLayout[], carved: CarvedA
       // Ribs stand on panel seams; a column is one panel wide and covers whole panels from a grid line.
       const ribs: number[] = [];
       if (f.ribWidth > 0) {
-        const pitch = Math.max(MODULE_U, Math.round(f.panelModule / MODULE_U) * MODULE_U);
+        // On the face's own panel, the one the wall map is scaled to, so a rib
+        // always stands on a painted joint and the last panel is never cut.
+        const pitch = panelOn(len, f.panelModule);
         for (let u = pitch; u < len - f.ribWidth / 2; u += pitch) if (clear(u, f.ribWidth)) ribs.push(u);
       }
       const columns: number[] = [];

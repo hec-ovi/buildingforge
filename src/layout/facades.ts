@@ -233,6 +233,14 @@ function wholeMetres(from: number, to: number): number {
 }
 
 /**
+ * The same, unquantized: a curtain-wall run starts on the face's centred origin,
+ * so rounding its end onto the 0.05 grid would make one corner pier wider.
+ */
+function runEnd(from: number, to: number): number {
+  return from + Math.floor((to - from) / MODULE_U + 1e-9) * MODULE_U;
+}
+
+/**
  * A window on the module grid: sill to the nearest module, height in whole
  * modules under the clear height; a storefront always reaches the clear height
  * from its sill. None when not even one module fits.
@@ -356,11 +364,15 @@ function placeCurtainWallBays(
 
   // A wire anchor mounts on the skin, so the glazing runs straight across it.
   const blocks = blockedSpans((taken.get(e) ?? []).filter((t) => !t.anchor), openings, e).sort((a, b) => a.start - b.start);
-  let u = cw.cornerInset;
+  // Equal piers at both corners: the metre that does not divide the face is
+  // split between them, so two faces never meet on a wide band of bare wall.
+  const usable = L - 2 * cw.cornerInset;
+  const origin = cw.cornerInset + (usable - Math.floor(usable)) / 2;
+  let u = origin;
   const bays: { start: number; end: number }[] = [];
   for (const b of blocks) {
     // a bay is whole metres of panes from its start; what does not divide widens the pier after it
-    const stop = wholeMetres(u, Math.min(b.start - OPENING.minPier, L - cw.cornerInset));
+    const stop = runEnd(u, Math.min(b.start - OPENING.minPier, L - origin));
     if (stop - u >= cw.minBay) bays.push({ start: u, end: stop });
     // The skin runs on over a door as that door's transom light, so the entrance
     // never punches a blank panel through the glass. It belongs to the door
@@ -372,7 +384,7 @@ function placeCurtainWallBays(
     }
     u = Math.max(u, b.end + OPENING.minPier);
   }
-  const last = wholeMetres(u, L - cw.cornerInset);
+  const last = runEnd(u, L - origin);
   if (last - u >= cw.minBay) bays.push({ start: u, end: last });
 
   bays.forEach(({ start, end }, i) => {

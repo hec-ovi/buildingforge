@@ -11,7 +11,7 @@ import {
 } from '../core/polygon.ts';
 import type { BuildingRequest } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
-import { CORE_PLATE } from '../rules/tables.ts';
+import { CORE_PLATE, FACADE } from '../rules/tables.ts';
 import { MIN_PLATE_DEPTH, coreAxis, plateDepth } from './plate.ts';
 
 // 16-gon unit ring, precomputed so no trig runs at generation time.
@@ -48,7 +48,7 @@ export function buildMassing(req: BuildingRequest, family: Family, tier: Tier, b
 
   // Balconies protrude beyond the outline but must stay inside the parcel.
   const needInset = balconyInset > 0 && !hasApertures;
-  const base = baseOutline(shape, parcel, rng, needInset ? balconyInset + 0.1 : 0);
+  const base = baseOutline(shape, parcel, rng, needInset ? balconyInset + 0.1 : 0, hasApertures);
 
   if (shape === 'setback' && floors >= 8) {
     const axis = coreAxis(base);
@@ -116,13 +116,18 @@ function pickShape(rng: Rng, family: Family, tier: Tier, floors: number): Shape 
   return 'box';
 }
 
-function baseOutline(shape: Shape, parcel: P2[], rng: Rng, inset: number): P2[] {
+function baseOutline(shape: Shape, parcel: P2[], rng: Rng, inset: number, keepParcel: boolean): P2[] {
+  // A face carrying an aperture has to sit on its parcel segment, so that
+  // building takes the parcel verbatim, slivers and all.
+  if (keepParcel) return clone(parcel);
   if (shape === 'box' || shape === 'setback' || shape === 'pyramid') {
-    if (inset > 0) {
-      const insetRing = isConvex(parcel) ? insetConvex(parcel, inset) : null;
-      return insetRing ?? fitInObb(parcel, rng, (hu, hv) => rect(hu, hv), inset);
-    }
-    return parcel.map((p) => [...p] as P2);
+    // Whole panels corner to corner: a box's sides are whole wall panels, so no
+    // face ends on a cut tile and every rib stands on a painted joint. A parcel
+    // that holds no such box keeps its own outline.
+    const snapped = fitRing(parcel, rng, (hu, hv) => rect(onPanel(hu), onPanel(hv)), inset);
+    if (snapped && plateDepth(snapped, coreAxis(snapped)) >= MIN_PLATE_DEPTH - 1e-9) return snapped;
+    if (inset > 0) return (isConvex(parcel) ? insetConvex(parcel, inset) : null) ?? snapped ?? clone(parcel);
+    return clone(parcel);
   }
   if (shape === 'octagon') {
     return fitInObb(parcel, rng, (hu, hv) => {
@@ -137,8 +142,23 @@ function baseOutline(shape: Shape, parcel: P2[], rng: Rng, inset: number): P2[] 
   }, inset);
 }
 
-/** Place a parametric ring (built in OBB-local coords) inside the parcel, shrinking until it fits. */
+/** Half a side, snapped down so the whole side is a whole number of wall panels. */
+function onPanel(half: number): number {
+  const panels = Math.floor((2 * half) / FACADE.panelModule + 1e-9);
+  return (Math.max(1, panels) * FACADE.panelModule) / 2;
+}
+
+/** Place a parametric ring (built in OBB-local coords) inside the parcel, or the parcel itself. */
 function fitInObb(parcel: P2[], rng: Rng, make: (halfU: number, halfV: number) => P2[], inset: number): P2[] {
+  return fitRing(parcel, rng, make, inset) ?? clone(parcel);
+}
+
+function clone(ring: P2[]): P2[] {
+  return ring.map((p) => [...p] as P2);
+}
+
+/** The same fit, null when no scale of the ring lands inside the parcel. */
+function fitRing(parcel: P2[], rng: Rng, make: (halfU: number, halfV: number) => P2[], inset: number): P2[] | null {
   const obb = orientedBoundingBox(parcel);
   const margin = inset > 0 ? inset : 0.2;
   for (let scale = 1; scale >= 0.3; scale = quant(scale - 0.05)) {
@@ -152,8 +172,7 @@ function fitInObb(parcel: P2[], rng: Rng, make: (halfU: number, halfV: number) =
     ]);
     if (world.every((p) => pointInPolygon(parcel, p)) && edgeMidpointsInside(parcel, world)) return world;
   }
-  // Last resort: the parcel itself (concave prisms are valid geometry).
-  return parcel.map((p) => [...p] as P2);
+  return null;
 }
 
 function edgeMidpointsInside(parcel: P2[], ring: P2[]): boolean {
