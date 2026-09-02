@@ -256,16 +256,17 @@ function windowUnit(
   }
   const proud = g.frameProud + z;
 
-  member(sink, fr, u0, u1, yt - fw, yt, proud, depth, frameMat, { bottom: true });
+  // Every outer member is a closed profile: both side faces, so nothing looks into it from the street.
+  member(sink, fr, u0, u1, yt - fw, yt, proud, depth, frameMat, { bottom: true, top: true });
   if (spandrel > 0) {
     // Spandrel panel filling the band, then the transom the glass sits on.
     strip(sink, fr, u0, u1, yb, yb + spandrel, proud, frameMat);
-    member(sink, fr, u0, u1, yb + spandrel, gb, proud, depth, frameMat, { top: true });
+    member(sink, fr, u0, u1, yb + spandrel, gb, proud, depth, frameMat, { top: true, bottom: true });
   } else {
-    member(sink, fr, u0, u1, yb, yb + fw, proud, depth, frameMat, { top: true });
+    member(sink, fr, u0, u1, yb, yb + fw, proud, depth, frameMat, { top: true, bottom: true });
   }
-  member(sink, fr, u0, g0, gb, gt, proud, depth, frameMat, { right: true });
-  member(sink, fr, g1, u1, gb, gt, proud, depth, frameMat, { left: true });
+  member(sink, fr, u0, g0, gb, gt, proud, depth, frameMat, { left: true, right: true });
+  member(sink, fr, g1, u1, gb, gt, proud, depth, frameMat, { left: true, right: true });
 
   const { cols, rows } = o.panes ?? paneGrid(u1 - u0, gt - gb, g);
   const mw = Math.min(g.mullionWidth, (g1 - g0) / (cols * 2), (gt - gb) / (rows * 2));
