@@ -27,6 +27,7 @@ const factory = fixture('factory');
 const bridged = fixture('bridged-tower');
 const sliver = fixture('sliver-parcel');
 const shallow = fixture('shallow-tower');
+const pinned = fixture('pinned-tower');
 
 async function code(req: unknown): Promise<string> {
   try {
@@ -911,7 +912,9 @@ describe('fire escapes', () => {
 
 describe('slab bands', () => {
   it('keeps the glass clear of the band at every floor line, in the blueprint and in the glass itself', async () => {
-    for (const req of [corpo, residential, factory]) {
+    // pinned-tower has storeys off the module: its apertures pin floor lines and
+    // what is left between them does not divide into whole modules
+    for (const req of [corpo, residential, factory, pinned]) {
       const { glb, blueprint } = await generate(req, KEYS);
       const band = blueprint.facade.slabBand;
       expect(band.below).toBeGreaterThan(0);

@@ -46,14 +46,19 @@ export function fitWindow(spec: FamilyProportions, fraction: number, sill: numbe
   if (s + h > clear) h = clear - s;
   if (h < minH - 1e-9) h = minH;
   if (h < 0.5 || s < 0 || s + h > clear + 1e-9) return null;
-  return { height: q(h), sill: q(s) };
+  // Quantize the sill first, then trim the glass to it: rounding both up would
+  // push the head into the band the facade keeps under the slab above.
+  const sill2 = q(s);
+  const height2 = Math.min(q(h), qDown(clear - sill2));
+  return height2 >= 0.5 ? { height: height2, sill: sill2 } : null;
 }
 
 /** Storefront glazing: from its sill up to the clear height, the head band above. */
 export function fitStorefront(sill: number, clear: number): WindowFit | null {
-  const height = qDown(clear - sill);
+  const seat = q(sill);
+  const height = qDown(clear - seat);
   if (height < 0.5) return null;
-  return { height, sill: q(sill) };
+  return { height, sill: seat };
 }
 
 /** The smallest height fitWindow can return on this floor: what the invariant asserts. */
