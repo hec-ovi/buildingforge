@@ -3,18 +3,40 @@
 // so ring orientation can never invert a face.
 
 import earcut from 'earcut';
+import { coreAxis } from '../layout/plate.ts';
 import type { P2 } from '../core/polygon.ts';
 import type { PartSink, V3 } from './primitives.ts';
 
-export function capUp(sink: PartSink, material: string, ring: P2[], y: number, hole?: P2[]): void {
-  cap(sink, material, ring, y, hole, true);
+/**
+ * The grid every horizontal surface of one building shares: the ground plate's
+ * own corner and axis, so roof, slabs and terraces all tile from the same line
+ * and a joint runs parallel to the parapet instead of cutting across it.
+ */
+export interface CapFrame { origin: P2; axis: P2 }
+
+export function capFrame(ground: P2[]): CapFrame {
+  const axis = coreAxis(ground);
+  let u = Infinity, v = Infinity;
+  for (const [x, z] of ground) {
+    u = Math.min(u, x * axis[0] + z * axis[1]);
+    v = Math.min(v, z * axis[0] - x * axis[1]);
+  }
+  return { origin: [u, v], axis };
 }
 
-export function capDown(sink: PartSink, material: string, ring: P2[], y: number, hole?: P2[]): void {
-  cap(sink, material, ring, y, hole, false);
+function capUv(f: CapFrame, x: number, z: number): [number, number] {
+  return [x * f.axis[0] + z * f.axis[1] - f.origin[0], z * f.axis[0] - x * f.axis[1] - f.origin[1]];
 }
 
-function cap(sink: PartSink, material: string, ring: P2[], y: number, hole: P2[] | undefined, up: boolean): void {
+export function capUp(sink: PartSink, material: string, f: CapFrame, ring: P2[], y: number, hole?: P2[]): void {
+  cap(sink, material, f, ring, y, hole, true);
+}
+
+export function capDown(sink: PartSink, material: string, f: CapFrame, ring: P2[], y: number, hole?: P2[]): void {
+  cap(sink, material, f, ring, y, hole, false);
+}
+
+function cap(sink: PartSink, material: string, f: CapFrame, ring: P2[], y: number, hole: P2[] | undefined, up: boolean): void {
   const flat: number[] = [];
   for (const [x, z] of ring) flat.push(x, z);
   const holeIndices: number[] = [];
@@ -33,6 +55,6 @@ function cap(sink: PartSink, material: string, ring: P2[], y: number, hole: P2[]
     const ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
     const flip = (ny > 0) !== up;
     const [p, q, r] = flip ? [a, c, b] : [a, b, c];
-    sink.tri(material, p, q, r, [[p[0], p[2]], [q[0], q[2]], [r[0], r[2]]]);
+    sink.tri(material, p, q, r, [capUv(f, p[0], p[2]), capUv(f, q[0], q[2]), capUv(f, r[0], r[2])]);
   }
 }

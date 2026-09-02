@@ -1074,6 +1074,58 @@ describe('facade condenser units', () => {
   });
 });
 
+describe('horizontal surfaces', () => {
+  it('tiles roof, slabs and terraces on the plate\'s own axis, from its corner, unstretched', async () => {
+    for (const req of [residential, corpo, factory, bridged]) {
+      const { glb, blueprint } = await generate(req, KEYS);
+      const doc = await new NodeIO().readBinary(glb);
+      const ground = blueprint.floors.find((f) => f.index === 0)!.outline;
+      // the longest ground edge, the axis the interior lays its core along
+      let longest = 0;
+      for (let i = 1; i < ground.length; i++) {
+        const len = (o: number) => Math.hypot(
+          ground[(o + 1) % ground.length]![0] - ground[o]![0],
+          ground[(o + 1) % ground.length]![1] - ground[o]![1]);
+        if (len(i) > len(longest)) longest = i;
+      }
+      const a = ground[longest]!, b = ground[(longest + 1) % ground.length]!;
+      const axis = [(b[0] - a[0]), (b[1] - a[1])];
+      const len = Math.hypot(axis[0]!, axis[1]!);
+      axis[0]! /= len; axis[1]! /= len;
+
+      let originU = Infinity, originV = Infinity;
+      const surfaces = doc.getRoot().listNodes()
+        .filter((n) => n.getName() === 'roof' || n.getName().endsWith('/slab') || n.getName().startsWith('terrace:'));
+      expect(surfaces.length).toBeGreaterThan(0);
+      for (const node of surfaces) {
+        for (const prim of node.getMesh()!.listPrimitives()) {
+          const pos = prim.getAttribute('POSITION')!;
+          const uv = prim.getAttribute('TEXCOORD_0')!;
+          const p = [0, 0, 0], t = [0, 0], p2 = [0, 0, 0], t2 = [0, 0];
+          for (let i = 0; i + 1 < pos.getCount(); i++) {
+            pos.getElement(i, p); uv.getElement(i, t);
+            pos.getElement(i + 1, p2); uv.getElement(i + 1, t2);
+            originU = Math.min(originU, t[0]!);
+            originV = Math.min(originV, t[1]!);
+            // one UV unit is one metre on the surface: no stretch, no shear, no scale
+            const world = Math.hypot(p[0]! - p2[0]!, p[2]! - p2[2]!);
+            const map = Math.hypot(t[0]! - t2[0]!, t[1]! - t2[1]!);
+            expect(Math.abs(world - map), `${node.getName()} stretches its map`).toBeLessThan(1e-3);
+            // u runs along the plate's own axis, so a joint is parallel to the parapet
+            if (world > 0.5) {
+              const du = (t[0]! - t2[0]!) / map;
+              const dot = ((p[0]! - p2[0]!) * axis[0]! + (p[2]! - p2[2]!) * axis[1]!) / world;
+              expect(Math.abs(du - dot), `${node.getName()} rotates its map off the plate axis`).toBeLessThan(2e-3);
+            }
+          }
+        }
+      }
+      expect(originU, 'the grid starts at the plate corner').toBeCloseTo(0, 3);
+      expect(originV, 'the grid starts at the plate corner').toBeCloseTo(0, 3);
+    }
+  });
+});
+
 describe('roof access', () => {
   it('cuts the stair-head bulkhead out of the roof plane and publishes it', async () => {
     for (const req of [residential, corpo, factory, bridged]) {

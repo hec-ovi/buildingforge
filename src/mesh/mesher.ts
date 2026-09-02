@@ -3,7 +3,7 @@
 
 import { MeshBuilder, type PartSink, type V3, add, scale } from './primitives.ts';
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
-import { capUp, capDown } from './caps.ts';
+import { capUp, capDown, capFrame, type CapFrame } from './caps.ts';
 import { meshAnchorMount } from './anchorMount.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { AC_UNITS, BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
@@ -41,21 +41,23 @@ export function buildMesh(layout: Layout): MeshBuilder {
   const lowest = floors[0]!;
   const topFloor = floors[floors.length - 1]!;
   const top = topFloor.elevation + topFloor.height;
+  // One tiling grid for every horizontal surface of the building.
+  const caps = capFrame(floors.find((f) => f.index === 0)!.outline);
 
   // Floor separator planes, faced both ways: seen from below through the glazing
   // a one-sided slab is invisible and the shell reads hollow. Each keeps its node
   // in merged output, so the interior can swap it for the slab it furnishes.
   for (const f of floors) {
     const sink = mb.part(`floor:${f.index}/slab`, { keepNode: true });
-    capUp(sink, mat('floor-slab'), f.outline, f.elevation);
-    capDown(sink, mat('floor-slab'), f.outline, f.elevation);
+    capUp(sink, mat('floor-slab'), caps, f.outline, f.elevation);
+    capDown(sink, mat('floor-slab'), caps, f.outline, f.elevation);
   }
 
   // Terrace rings where the outline steps inward.
   for (let i = 1; i < above.length; i++) {
     const prev = above[i - 1]!, cur = above[i]!;
     if (prev.outline !== cur.outline) {
-      capUp(mb.part(`terrace:${cur.index}`), mat('roof'), prev.outline, cur.elevation, cur.outline);
+      capUp(mb.part(`terrace:${cur.index}`), mat('roof'), caps, prev.outline, cur.elevation, cur.outline);
     }
   }
 
@@ -89,10 +91,10 @@ export function buildMesh(layout: Layout): MeshBuilder {
   // where the stair head comes up.
   const roofSink = mb.part('roof');
   const cutout = layout.roof.bulkhead ? bulkheadRect(layout.roof.bulkhead) : undefined;
-  capUp(roofSink, mat('roof'), topFloor.outline, top, cutout);
-  capDown(roofSink, mat('floor-slab'), topFloor.outline, top, cutout);
-  if (layout.roof.bulkhead) meshBulkhead(mb, layout.roof.bulkhead, top, mat);
-  capDown(mb.part('base'), mat('floor-slab'), lowest.outline, lowest.elevation);
+  capUp(roofSink, mat('roof'), caps, topFloor.outline, top, cutout);
+  capDown(roofSink, mat('floor-slab'), caps, topFloor.outline, top, cutout);
+  if (layout.roof.bulkhead) meshBulkhead(mb, layout.roof.bulkhead, top, caps, mat);
+  capDown(mb.part('base'), mat('floor-slab'), caps, lowest.outline, lowest.elevation);
   const parapet = mb.part('parapet');
   for (let e = 0; e < topFloor.outline.length; e++) {
     const fr = frame(topFloor.outline, e);
@@ -511,7 +513,10 @@ function bulkheadRect(b: NonNullable<Blueprint['roof']['bulkhead']>): P2[] {
 }
 
 /** The housing over the stair head: four walls, one door onto the roof, a capped top. */
-function meshBulkhead(mb: MeshBuilder, b: NonNullable<Blueprint['roof']['bulkhead']>, top: number, mat: (k: string) => string): void {
+function meshBulkhead(
+  mb: MeshBuilder, b: NonNullable<Blueprint['roof']['bulkhead']>, top: number, caps: CapFrame,
+  mat: (k: string) => string,
+): void {
   const sink = mb.part('bulkhead');
   const ring = bulkheadRect(b);
   const yTop = top + b.housingHeight;
@@ -544,8 +549,8 @@ function meshBulkhead(mb: MeshBuilder, b: NonNullable<Blueprint['roof']['bulkhea
     doorCasing(mb.part(`${base}/frame`, { parent: base }), fr, door.u0, door.u1, top, door.head, mat('door'));
     doorLeaves(mb, base, fr, door.u0, door.u1, top, door.head, { leaves: 1 } as Opening, mat);
   }
-  capUp(sink, mat('roof'), ring, yTop);
-  capDown(sink, mat('floor-slab'), ring, yTop);
+  capUp(sink, mat('roof'), caps, ring, yTop);
+  capDown(sink, mat('floor-slab'), caps, ring, yTop);
 }
 
 function meshRoofArtifacts(mb: MeshBuilder, layout: Layout, top: number, mat: (k: string) => string): void {
