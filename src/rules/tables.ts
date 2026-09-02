@@ -195,7 +195,7 @@ export const AC_UNITS = {
   depth: 0.45,
   /** units in one cluster */
   cluster: [2, 4] as [number, number],
-  /** the grille face, inset from the housing edges and standing proud of it */
+  /** the grille face, inset from the housing edges and standing proud of it; its own material kind */
   grille: { inset: 0.1, proud: 0.025 },
   /** the shelf the housings stand on and the two struts that carry it */
   bracket: { shelf: 0.06, strut: 0.07, drop: 0.45 },

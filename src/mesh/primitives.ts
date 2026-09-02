@@ -126,11 +126,13 @@ export class PartSink {
 
   /**
    * Box from center, three orthogonal half-axis vectors (each = direction * halfExtent).
-   * All six faces wound outward; tiled world-scale UVs per face. `along` turns
-   * each face's map a quarter where the face is taller than it is wide, so a
-   * rolled section (a frame member, a bracket) carries its map down its length.
+   * All six faces wound outward. `face` gives tiled world-scale UVs; `along`
+   * turns each face's map a quarter where the face is taller than it is wide, so
+   * a rolled section (a frame member, a bracket) carries its map down its
+   * length; `exact` puts one whole picture on every face, for a material placed
+   * rather than tiled.
    */
-  box(material: string, center: V3, hx: V3, hy: V3, hz: V3, along = false): void {
+  box(material: string, center: V3, hx: V3, hy: V3, hz: V3, uvMode: 'face' | 'along' | 'exact' = 'face'): void {
     const faces: [V3, V3, V3][] = [
       [hx, hy, hz], [scale(hx, -1), hy, scale(hz, -1)],
       [hz, hy, scale(hx, -1)], [scale(hz, -1), hy, hx],
@@ -142,9 +144,9 @@ export class PartSink {
       const br = add(add(c, right), scale(up, -1));
       const tr = add(add(c, right), up);
       const tl = add(add(c, scale(right, -1)), up);
-      const w = 2 * Math.sqrt(dot(right, right));
-      const h = 2 * Math.sqrt(dot(up, up));
-      const uv: [number, number][] = along && h > w
+      const w = uvMode === 'exact' ? 1 : 2 * Math.sqrt(dot(right, right));
+      const h = uvMode === 'exact' ? 1 : 2 * Math.sqrt(dot(up, up));
+      const uv: [number, number][] = uvMode === 'along' && h > w
         ? [[0, 0], [0, w], [h, w], [h, 0]]
         : [[0, h], [w, h], [w, 0], [0, 0]];
       this.quadFacing(material, bl, br, tr, tl, n, uv);
@@ -165,6 +167,6 @@ export class PartSink {
     const side = scale(norm(widthDir), width / 2);
     const thick = scale(norm(cross(axis, side)), thickness / 2);
     const c = add(start, scale(axis, 0.5));
-    this.box(material, c, scale(axis, 0.5), thick, side, true);
+    this.box(material, c, scale(axis, 0.5), thick, side, 'along');
   }
 }

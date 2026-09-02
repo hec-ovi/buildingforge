@@ -187,7 +187,7 @@ function doorCasing(sink: PartSink, fr: Frame, u0: number, u1: number, yb: numbe
     sink.box(material, at(fr, [(a + b) / 2, (y0 + y1) / 2], d / 2),
       [fr.dir[0] * (b - a) / 2, 0, fr.dir[1] * (b - a) / 2],
       [0, (y1 - y0) / 2, 0],
-      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2], true);
+      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2], 'along');
   };
   boxOn(u0 - w, u0, yb, yt + w);
   boxOn(u1, u1 + w, yb, yt + w);
@@ -507,10 +507,10 @@ function meshAcUnits(mb: MeshBuilder, layout: Layout, mat: (k: string) => string
     const out = (half: number): V3 => [fr.n[0] * half, 0, fr.n[1] * half];
 
     sink.box(metal, at(fr, [uc, base + h / 2], back + d / 2), across(w / 2), [0, h / 2, 0], out(d / 2));
-    sink.box(metal, at(fr, [uc, base + h / 2], back + d + grille.proud / 2),
-      across(w / 2 - grille.inset), [0, h / 2 - grille.inset, 0], out(grille.proud / 2));
+    sink.box(mat('ac-unit'), at(fr, [uc, base + h / 2], back + d + grille.proud / 2),
+      across(w / 2 - grille.inset), [0, h / 2 - grille.inset, 0], out(grille.proud / 2), 'exact');
     sink.box(metal, at(fr, [uc, base - bracket.shelf / 2], back + d / 2),
-      across(w / 2), [0, bracket.shelf / 2, 0], out(d / 2), true);
+      across(w / 2), [0, bracket.shelf / 2, 0], out(d / 2), 'along');
     for (const side of [-1, 1]) {
       const u = uc + side * (w / 2 - bracket.strut);
       sink.slantedBox(metal,

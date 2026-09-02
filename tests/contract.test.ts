@@ -876,6 +876,41 @@ describe('GLB shell', () => {
   });
 });
 
+describe('material resolution', () => {
+  it('resolves frames and decks to the canonical variant, never a seeded one', async () => {
+    const theme = JSON.parse(readFileSync(
+      new URL('../../materials/themes/cyberpunk/theme.json', import.meta.url), 'utf8')) as
+      { entries: Record<string, { variants: { id: string }[] }> };
+    const { glb } = await generate(residential, { textures: { baseUrl: '../materials/' } });
+    const json = glbJson(glb);
+    const uriOf = (material: any): string | undefined => {
+      const info = material.pbrMetallicRoughness?.baseColorTexture;
+      if (!info) return undefined;
+      return json.images[json.textures[info.index].source].uri as string;
+    };
+
+    let checked = 0;
+    for (const material of json.materials) {
+      const kind = String(material.name).split('/')[1];
+      if (!['window-frame', 'door', 'roof', 'floor-slab'].includes(kind!)) continue;
+      const entry = theme.entries[material.name];
+      expect(entry, `${material.name} is in the theme`).toBeTruthy();
+      const uri = uriOf(material);
+      expect(uri, `${material.name} carries a map`).toBeTruthy();
+      expect(uri, `${material.name} took a seeded variant instead of the canonical one`)
+        .toContain(`/${kind}/${material.name.split('/')[2]}/${entry!.variants[0]!.id}/`);
+      checked++;
+    }
+    expect(checked, 'the fixture uses frames and decks').toBeGreaterThan(0);
+  });
+
+  it('hangs condenser grilles on the ac-unit kind', async () => {
+    const { blueprint } = await generate(residential, KEYS);
+    expect(blueprint.facadeArtifacts.some((a) => a.kind === 'ac-unit')).toBe(true);
+    expect(blueprint.materials).toContain('cyberpunk/ac-unit/mid');
+  });
+});
+
 describe('facade panels', () => {
   it('spans every face and every storey with whole wall panels', async () => {
     for (const req of [residential, corpo, factory, bridged, shallow]) {

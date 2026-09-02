@@ -35,6 +35,14 @@ export interface MaterialPlan {
 const MAP_SLOTS = ['basecolor', 'normal', 'ao', 'emission'] as const;
 type MapSlot = typeof MAP_SLOTS[number];
 
+/**
+ * Kinds that always take the canonical variant (variant 0), never a seeded one:
+ * a frame section has to read as flat painted steel on every building, and a
+ * deck as a solid surface, so a plate that is not a whole number of tiles shows
+ * no cut joint. Everything else varies from building to building.
+ */
+const CANONICAL_KINDS = new Set(['window-frame', 'door', 'roof', 'floor-slab']);
+
 /** Untextured materials named by the canonical key: what a keys-only consumer resolves itself. */
 function keysOnly(doc: Document, keys: string[], reason?: string): MaterialPlan {
   const byKey = new Map<string, Material>();
@@ -70,7 +78,9 @@ export function createMaterials(
     if (!entry) {
       throw new ExteriorError('E_MATERIAL_UNRESOLVED', `theme "${theme}" has no entry for material key ${key}`, { key });
     }
-    const variant = entry.variants[new Rng(seed, `material:${key}`).int(0, entry.variants.length - 1)]!;
+    const variant = CANONICAL_KINDS.has(key.split('/')[1] ?? '')
+      ? entry.variants[0]!
+      : entry.variants[new Rng(seed, `material:${key}`).int(0, entry.variants.length - 1)]!;
     const p = entry.physical;
     const material = doc.createMaterial(key)
       .setDoubleSided(false)
