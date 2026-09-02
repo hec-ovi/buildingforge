@@ -7,7 +7,7 @@ import { moduleWithin, onGrid, onModule } from './module.ts';
 import {
   clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
 } from '../rules/proportions.ts';
-import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
+import { edgeLength, edgeDir, edgeNormal, ringInsidePolygon, quant, type P2 } from '../core/polygon.ts';
 import { modulePanes } from './glazing.ts';
 import { anchorSeat, type AnchorSeat } from './anchors.ts';
 import type { Aperture, BuildingRequest, CurtainState, Opening } from '../types.ts';
@@ -150,7 +150,7 @@ export function buildFacades(
         const sunFacing = normal[0] * sun[0] + normal[1] * sun[1] > 0;
         const dist = (CURTAINS[profile] as { sunFacing: CurtainDist; shaded: CurtainDist })[sunFacing ? 'sunFacing' : 'shaded'];
         const stacked = balconiesOn && !isGround && outline === massing.groundOutline;
-        placeMegablockCells(seed, req.theme, tier, style, outline, e, level, openings, takenByEdge, dist, stacked,
+        placeMegablockCells(seed, req.theme, tier, style, req.parcel.footprint, outline, e, level, openings, takenByEdge, dist, stacked,
           storefront ? fit : null);
       }
     } else if (!noWindows) {
@@ -178,17 +178,19 @@ export function buildFacades(
             const doorW = 2 * MODULE_U; // a balcony door is a double door
             const doorH = onModule(Math.min(clear, Math.max(2.05, fit ? fit.sill + fit.height : 0)), 'down');
             const doorStart = bayStart + onModule((bayW - doorW) / 2, 'down', MODULE_U);
-            if (!fits(takenByEdge, e, doorStart, doorStart + doorW)) continue;
             const balconyW = quant(Math.max(doorW + 0.4, Math.min(bayW - 0.4, style.balconyWidth)));
-            take(takenByEdge, e, doorStart, doorStart + doorW);
-            openings.push({
-              id: `bd:${level.index}:${e}:${b}`, kind: 'balconyDoor', edge: e,
-              offset: quantOff(doorStart), width: doorW, height: doorH, sill: 0,
-              leaves: leafCount(doorW), state: curtainState(seed, level.index, e, b, dist),
-              balcony: { depth: style.balconyDepth, width: balconyW },
-              material: `${req.theme}/door-glass/${tier}`,
-            });
-            continue;
+            if (fits(takenByEdge, e, doorStart, doorStart + doorW)
+              && balconyFits(req.parcel.footprint, outline, e, doorStart, doorW, balconyW, style.balconyDepth)) {
+              take(takenByEdge, e, doorStart, doorStart + doorW);
+              openings.push({
+                id: `bd:${level.index}:${e}:${b}`, kind: 'balconyDoor', edge: e,
+                offset: quantOff(doorStart), width: doorW, height: doorH, sill: 0,
+                leaves: leafCount(doorW), state: curtainState(seed, level.index, e, b, dist),
+                balcony: { depth: style.balconyDepth, width: balconyW },
+                material: `${req.theme}/door-glass/${tier}`,
+              });
+              continue;
+            }
           }
 
           // Window bay: a storefront takes the bay whole, a punched window its
@@ -264,7 +266,7 @@ function leafCount(width: number): number {
  * cell whole instead, rib to rib.
  */
 function placeMegablockCells(
-  seed: string, theme: string, tier: Tier, style: Style, outline: P2[], e: number,
+  seed: string, theme: string, tier: Tier, style: Style, parcel: P2[], outline: P2[], e: number,
   level: { index: number; elevation: number; height: number },
   openings: Opening[], taken: Map<number, Taken[]>, dist: CurtainDist, balconies: boolean,
   storefront: WindowFit | null,
@@ -302,13 +304,15 @@ function placeMegablockCells(
       const doorW = 2 * MODULE_U; // a balcony door is a double door
       const doorH = onModule(Math.min(2.05, level.height - 0.5), 'down');
       const doorStart = start + onModule((end - start - doorW) / 2, 'down', MODULE_U);
-      if (doorH >= 1.5 && fits(taken, e, doorStart, doorStart + doorW)) {
+      const balconyW = quant(Math.max(doorW + 0.4, Math.min(module - 0.4, style.balconyWidth)));
+      if (doorH >= 1.5 && fits(taken, e, doorStart, doorStart + doorW)
+        && balconyFits(parcel, outline, e, doorStart, doorW, balconyW, style.balconyDepth)) {
         take(taken, e, doorStart, doorStart + doorW);
         openings.push({
           id: `bd:${level.index}:${e}:${c}`, kind: 'balconyDoor', edge: e,
           offset: quantOff(doorStart), width: doorW, height: doorH, sill: 0,
           leaves: leafCount(doorW), state: curtainState(seed, level.index, e, c, dist),
-          balcony: { depth: style.balconyDepth, width: quant(Math.max(doorW + 0.4, Math.min(module - 0.4, style.balconyWidth))) },
+          balcony: { depth: style.balconyDepth, width: balconyW },
           material: `${theme}/door-glass/${tier}`,
         });
         continue;
@@ -336,6 +340,25 @@ function placeMegablockCells(
       material: `${theme}/window-glass/${tier}`,
     });
   }
+}
+
+/** The whole balcony slab stays inside the parcel, including concave edges. */
+function balconyFits(
+  parcel: P2[], outline: P2[], edge: number, offset: number,
+  openingWidth: number, balconyWidth: number, depth: number,
+): boolean {
+  if (depth <= 0) return true;
+  const at = outline[edge] as P2;
+  const along = edgeDir(outline, edge);
+  const outward = edgeNormal(outline, edge);
+  const center = offset + openingWidth / 2;
+  const u0 = center - balconyWidth / 2;
+  const u1 = center + balconyWidth / 2;
+  const p = (u: number, d: number): P2 => [
+    at[0] + along[0] * u + outward[0] * d,
+    at[1] + along[1] * u + outward[1] * d,
+  ];
+  return ringInsidePolygon(parcel, [p(u0, 0), p(u1, 0), p(u1, depth), p(u0, depth)]);
 }
 
 /**

@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.31, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.32, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -84,8 +84,8 @@ Thrown as `ExteriorError { code, message, details? }`:
 - One opening owns one stretch of an edge: two openings on the same floor and edge never share any of it, whatever their heights, so a consumer reads each facade as a run of exclusive intervals. Min 0.3 m pier between openings. Every opening lies entirely inside its edge with non-negative offset and inside its floor's height (machine-checked before output).
 - Every opening the proportion table covers is the size that table promises: entrance height in its family range and at least the standard width its edge allows, window height at or above its share of the clear height on a sill inside the family range, storefront glass reaching the clear height on a sill inside its row (machine-checked before output).
 - The entrance goes to a street-facing edge at least 3 m long when one exists (true point-to-segment distance from the access point, never a corner-touching sliver), and its zone is reserved before any window fill.
-- Every balconyDoor carries balcony dimensions; balconies protrude beyond the outline but stay inside the parcel footprint.
-- The structure never exceeds the parcel footprint; it need not fill it.
+- Every balconyDoor carries balcony dimensions; balconies protrude beyond the outline but stay inside the parcel footprint. Each candidate slab is checked before its door replaces a window. An aperture-pinned or otherwise constrained face with no room keeps the window instead.
+- The structure never exceeds the parcel footprint; it need not fill it. Whole candidate edges are checked against every interval of a concave boundary, including massing rings, roof housings, roof artifacts and condenser runs, so an edge cannot leave and re-enter through a notch between otherwise valid corners.
 - Blueprint floors match GLB geometry exactly (same outlines, same opening rectangles).
 
 ## Preview

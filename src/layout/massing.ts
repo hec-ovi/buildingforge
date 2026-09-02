@@ -7,7 +7,7 @@
 
 import { Rng } from '../core/rng.ts';
 import {
-  area, insetConvex, isConvex, orientedBoundingBox, pointInPolygon, edgeLength, quant, type P2,
+  area, insetConvex, isConvex, orientedBoundingBox, ringInsidePolygon, edgeLength, quant, type P2,
 } from '../core/polygon.ts';
 import type { BuildingRequest } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
@@ -188,18 +188,9 @@ function fitRing(
       obb.center[0] + obb.axisU[0] * u + obb.axisV[0] * v,
       obb.center[1] + obb.axisU[1] * u + obb.axisV[1] * v,
     ]);
-    if (world.every((p) => pointInPolygon(parcel, p)) && edgeMidpointsInside(parcel, world) && accept(world)) return world;
+    if (ringInsidePolygon(parcel, world) && accept(world)) return world;
   }
   return null;
-}
-
-function edgeMidpointsInside(parcel: P2[], ring: P2[]): boolean {
-  for (let i = 0; i < ring.length; i++) {
-    const [x1, z1] = ring[i] as P2;
-    const [x2, z2] = ring[(i + 1) % ring.length] as P2;
-    if (!pointInPolygon(parcel, [(x1 + x2) / 2, (z1 + z2) / 2])) return false;
-  }
-  return true;
 }
 
 function rect(hu: number, hv: number): P2[] {

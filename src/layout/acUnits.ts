@@ -8,7 +8,7 @@ import { Rng } from '../core/rng.ts';
 import { AC_UNITS, OPENING } from '../rules/tables.ts';
 import { onModule } from './module.ts';
 import { crossed, standoffOver, type Rect } from './obstructions.ts';
-import { edgeDir, edgeLength, edgeNormal, pointInPolygon, quant, type P2 } from '../core/polygon.ts';
+import { edgeDir, edgeLength, edgeNormal, segmentInsidePolygon, quant, type P2 } from '../core/polygon.ts';
 import type { BuildingRequest, FacadeArtifact } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { FloorLayout } from './model.ts';
@@ -142,8 +142,7 @@ function insideParcel(parcel: P2[], outline: P2[], edge: number, c: Cluster): bo
   const n = edgeNormal(outline, edge);
   const reach = c.standoff + AC_UNITS.depth;
   const u1 = c.u0 + c.count * AC_UNITS.pitch;
-  return [c.u0, u1].every((u) => pointInPolygon(parcel, [
-    vx + d[0] * u + n[0] * reach,
-    vz + d[1] * u + n[1] * reach,
-  ]));
+  return segmentInsidePolygon(parcel,
+    [vx + d[0] * c.u0 + n[0] * reach, vz + d[1] * c.u0 + n[1] * reach],
+    [vx + d[0] * u1 + n[0] * reach, vz + d[1] * u1 + n[1] * reach]);
 }

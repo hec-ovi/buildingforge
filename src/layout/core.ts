@@ -4,7 +4,7 @@
 
 import { readFileSync } from 'node:fs';
 import { CORE_PLATE } from '../rules/tables.ts';
-import { pointInPolygon, pointSegmentDistance, type P2 } from '../core/polygon.ts';
+import { pointInPolygon, type P2 } from '../core/polygon.ts';
 
 export interface CoreRect {
   /** required run along the core frame */
@@ -290,7 +290,8 @@ function fullCoverage(uv: readonly P2[][], v0: number, v1: number, inset: number
 function rectInside(outline: readonly P2[], u: number, v: number, width: number, depth: number, inset: number): boolean {
   if (width <= 0 || depth <= 0) return false;
   const corners: P2[] = [[u, v], [u + width, v], [u + width, v + depth], [u, v + depth]];
-  if (!corners.every((p) => pointInOrOn(outline, p))) return false;
+  if (!corners.every((p) => pointInPolygon(outline as P2[], p))) return false;
+  const inset2 = (inset - 1e-7) ** 2;
   for (let i = 0; i < corners.length; i++) {
     const a = corners[i]!;
     const b = corners[(i + 1) % corners.length]!;
@@ -298,25 +299,27 @@ function rectInside(outline: readonly P2[], u: number, v: number, width: number,
       const c = outline[j]!;
       const d = outline[(j + 1) % outline.length]!;
       if (segmentsProperlyCross(a, b, c, d)) return false;
-      if (segmentDistance(a, b, c, d) < inset - 1e-7) return false;
+      if (segmentDistanceSq(a, b, c, d) < inset2) return false;
     }
   }
   return true;
 }
 
-function pointInOrOn(poly: readonly P2[], p: P2): boolean {
-  for (let i = 0; i < poly.length; i++) {
-    if (pointSegmentDistance(p, poly[i]!, poly[(i + 1) % poly.length]!) < 1e-8) return true;
-  }
-  return pointInPolygon(poly as P2[], p);
-}
-
-function segmentDistance(a: P2, b: P2, c: P2, d: P2): number {
+function segmentDistanceSq(a: P2, b: P2, c: P2, d: P2): number {
   if (segmentsProperlyCross(a, b, c, d)) return 0;
   return Math.min(
-    pointSegmentDistance(a, c, d), pointSegmentDistance(b, c, d),
-    pointSegmentDistance(c, a, b), pointSegmentDistance(d, a, b),
+    pointSegmentDistanceSq(a, c, d), pointSegmentDistanceSq(b, c, d),
+    pointSegmentDistanceSq(c, a, b), pointSegmentDistanceSq(d, a, b),
   );
+}
+
+function pointSegmentDistanceSq(p: P2, a: P2, b: P2): number {
+  const dx = b[0] - a[0], dz = b[1] - a[1];
+  const len2 = dx * dx + dz * dz;
+  const t = len2 === 0 ? 0 : Math.min(1, Math.max(0, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / len2));
+  const x = p[0] - a[0] - dx * t;
+  const z = p[1] - a[1] - dz * t;
+  return x * x + z * z;
 }
 
 function segmentsProperlyCross(a: P2, b: P2, c: P2, d: P2): boolean {

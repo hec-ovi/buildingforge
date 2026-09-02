@@ -1,5 +1,7 @@
 # Changelog
 
+0.32.0: parcel containment checks whole edges. Each candidate edge is split at every parcel-boundary intersection and every interval must lie inside, so a box cannot bridge a concave notch between valid corners and a valid midpoint. The same predicate guards massing rings, roof housings, roof artifacts and condenser runs. Balcony slabs are checked individually; buildings pinned to the parcel outline by a connection keep windows on faces where a balcony would project outside.
+
 0.31.0: core preflight follows interior core-feasibility v0.25. Core length is computed from each building's actual one- and two-storey climbs and the published comfortable riser arithmetic. Standard, compact and walkup placements use one band shared by every floor; a skewed plate gets the same 5 degree fallback frame sweep as interior. The p34 parcel now passes both generators instead of exterior rejecting a valid walkup from obsolete fixed rectangles.
 
 0.30.0: roof access follows interior core-feasibility v0.25. The housing reader consumes the published minimum, ideal and maximum riser band plus wall thickness, and computes the same comfortable multiple-of-flights riser count. A renamed upstream field can no longer turn every cutout dimension into NaN and silently remove roof access.

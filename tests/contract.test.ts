@@ -104,6 +104,23 @@ describe('blueprint invariants', () => {
     }
   });
 
+  it('falls back to windows when an aperture-pinned outline leaves no room for balconies', async () => {
+    const { blueprint } = await generate({
+      seed: 'aperture-balcony', buildingId: 'ab',
+      parcel: { footprint: [[0, 0], [20, 0], [20, 20], [0, 20]], accessPoint: [10, -1], maxHeight: 12 },
+      building: { type: 'hotel', tier: 'mid', floors: 3 }, theme: 'cyberpunk',
+      apertures: [{
+        id: 'link', linkId: 'link', buildingId: 'ab', floor: 1, face: 0, kind: 'bridge',
+        u: 8, base: 4, width: 3, height: 2.5, shape: 'rect',
+        cut: { polygon: [[8, 4, 0], [11, 4, 0], [11, 6.5, 0], [8, 6.5, 0]], axisDir: [0, 0, -1] },
+      }],
+      options: { balconies: 'on', signage: null },
+    }, KEYS);
+    const openings = blueprint.floors.flatMap((floor) => floor.openings);
+    expect(openings.filter((opening) => opening.kind === 'balconyDoor')).toHaveLength(0);
+    expect(openings.some((opening) => opening.kind === 'window')).toBe(true);
+  });
+
   it('windows carry curtain states with variety on a big tower', async () => {
     const { blueprint } = await generate(corpo);
     const states = new Set(
@@ -955,6 +972,30 @@ describe('slab bands', () => {
 });
 
 describe('core plate', () => {
+  it('does not bridge a box edge across a concave parcel notch', async () => {
+    const parcel: [number, number][] = [
+      [0, 0], [20, 0], [20, 20], [6, 20], [6, 14], [4, 14], [4, 20], [0, 20],
+    ];
+    const { blueprint } = await generate({
+      seed: 'urbe-notch', buildingId: 'notch',
+      parcel: { footprint: parcel, accessPoint: [10, -1], maxHeight: 8 },
+      building: { type: 'residential', tier: 'mid', floors: 2 },
+      theme: 'cyberpunk', options: { shape: 'box', balconies: 'off', signage: null },
+    }, KEYS);
+
+    for (const floor of blueprint.floors) {
+      for (let edge = 0; edge < floor.outline.length; edge++) {
+        const a = floor.outline[edge]!;
+        const b = floor.outline[(edge + 1) % floor.outline.length]!;
+        for (let step = 0; step <= 200; step++) {
+          const t = step / 200;
+          const p: [number, number] = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+          expect(pointInOrOnPoly(parcel, p), `floor ${floor.index} edge ${edge} leaves the parcel`).toBe(true);
+        }
+      }
+    }
+  });
+
   it('masses a box the interior can core, on a lot whose bounding box flatters it', async () => {
     // A commerce lot of about 680 m2 set on the diagonal: the old massing took a
     // shallow slice of it and the interior could not fit its core rectangle.
@@ -1705,4 +1746,16 @@ function pointInPoly(poly: [number, number][], p: [number, number]): boolean {
     if (zi > p[1] !== zj > p[1] && p[0] < ((xj - xi) * (p[1] - zi)) / (zj - zi) + xi) inside = !inside;
   }
   return inside;
+}
+
+function pointInOrOnPoly(poly: [number, number][], p: [number, number]): boolean {
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i]!;
+    const b = poly[(i + 1) % poly.length]!;
+    const dx = b[0] - a[0], dz = b[1] - a[1];
+    const len2 = dx * dx + dz * dz;
+    const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dz) / len2));
+    if (Math.hypot(p[0] - a[0] - dx * t, p[1] - a[1] - dz * t) < 1e-7) return true;
+  }
+  return pointInPoly(poly, p);
 }

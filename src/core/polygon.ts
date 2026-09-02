@@ -88,6 +88,60 @@ export function pointInPolygon(poly: P2[], p: P2): boolean {
   return inside;
 }
 
+/** True on the boundary or in the polygon interior. */
+export function pointInOrOnPolygon(poly: P2[], p: P2, eps = 1e-8): boolean {
+  for (let i = 0; i < poly.length; i++) {
+    if (pointSegmentDistance(p, poly[i] as P2, poly[(i + 1) % poly.length] as P2) <= eps) return true;
+  }
+  return pointInPolygon(poly, p);
+}
+
+/**
+ * Whether a whole candidate ring lies in a polygon. Intersections split every
+ * candidate edge into intervals and each interval is tested, so a straight
+ * edge cannot leave and re-enter through a concave notch between sampled points.
+ */
+export function ringInsidePolygon(poly: P2[], ring: P2[]): boolean {
+  if (ring.length < 3 || !ring.every((p) => pointInOrOnPolygon(poly, p))) return false;
+  for (let i = 0; i < ring.length; i++) {
+    if (!segmentInsidePolygon(poly, ring[i] as P2, ring[(i + 1) % ring.length] as P2)) return false;
+  }
+  return true;
+}
+
+/** Whole segment containment, including segments that run on the boundary. */
+export function segmentInsidePolygon(poly: P2[], a: P2, b: P2): boolean {
+  const rx = b[0] - a[0], rz = b[1] - a[1];
+  const len2 = rx * rx + rz * rz;
+  if (len2 < 1e-18) return pointInOrOnPolygon(poly, a);
+  const cuts = [0, 1];
+  const cross = (x1: number, z1: number, x2: number, z2: number) => x1 * z2 - z1 * x2;
+  for (let i = 0; i < poly.length; i++) {
+    const c = poly[i] as P2;
+    const d = poly[(i + 1) % poly.length] as P2;
+    const sx = d[0] - c[0], sz = d[1] - c[1];
+    const qx = c[0] - a[0], qz = c[1] - a[1];
+    const den = cross(rx, rz, sx, sz);
+    if (Math.abs(den) > 1e-12) {
+      const t = cross(qx, qz, sx, sz) / den;
+      const u = cross(qx, qz, rx, rz) / den;
+      if (t >= -1e-9 && t <= 1 + 1e-9 && u >= -1e-9 && u <= 1 + 1e-9) cuts.push(Math.max(0, Math.min(1, t)));
+    } else if (Math.abs(cross(qx, qz, rx, rz)) <= 1e-9) {
+      const tc = (qx * rx + qz * rz) / len2;
+      const td = ((d[0] - a[0]) * rx + (d[1] - a[1]) * rz) / len2;
+      if (tc >= -1e-9 && tc <= 1 + 1e-9) cuts.push(Math.max(0, Math.min(1, tc)));
+      if (td >= -1e-9 && td <= 1 + 1e-9) cuts.push(Math.max(0, Math.min(1, td)));
+    }
+  }
+  cuts.sort((x, y) => x - y);
+  const unique = cuts.filter((t, i) => i === 0 || Math.abs(t - cuts[i - 1]!) > 1e-9);
+  for (let i = 0; i + 1 < unique.length; i++) {
+    const mid = (unique[i]! + unique[i + 1]!) / 2;
+    if (!pointInOrOnPolygon(poly, [a[0] + rx * mid, a[1] + rz * mid])) return false;
+  }
+  return true;
+}
+
 export function isConvex(poly: P2[]): boolean {
   const n = poly.length;
   let sign = 0;

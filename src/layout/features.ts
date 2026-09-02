@@ -5,11 +5,9 @@ import { ExteriorError } from '../core/errors.ts';
 import { cellCentre } from './module.ts';
 import { Rng } from '../core/rng.ts';
 import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, ROOF_ACCESS, ROOF_ARTIFACTS, OPENING, MODULE, MODULE_U } from '../rules/tables.ts';
-import { area, edgeLength, edgeDir, edgeNormal, pointInPolygon, centroid, quant, type P2 } from '../core/polygon.ts';
+import { edgeLength, edgeDir, edgeNormal, ringInsidePolygon, centroid, quant, type P2 } from '../core/polygon.ts';
 import { crossed, edgeU, findClearRect, type Rect } from './obstructions.ts';
 import { placeAcUnits } from './acUnits.ts';
-import { coreAxis } from './plate.ts';
-import { bestCoreFit, coreRects, facadeDepth } from './core.ts';
 import type { Blueprint, BuildingRequest, P3, RoofArtifact, Signage } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
@@ -27,7 +25,7 @@ export interface Features {
 export function buildFeatures(
   req: BuildingRequest, family: Family, tier: Tier, style: Style,
   massing: Massing, top: number, floors: FloorLayout[], faces: number[],
-  obstacles: Map<number, Rect[]>,
+  obstacles: Map<number, Rect[]>, coreFrameAxis: P2,
 ): Features {
   const streetEdge = faces[0] as number;
   const ground = massing.groundOutline;
@@ -47,7 +45,7 @@ export function buildFeatures(
     ...placeFacadeArtifacts(req, style, floors, signage, screens, obstacles),
   ];
   const fireEscape = placeFireEscape(req, family, tier, massing, floors, streetEdge);
-  const roof = buildRoof(req, family, massing, top, style, floors);
+  const roof = buildRoof(req, family, massing, top, style, floors, coreFrameAxis);
 
   return { signage, screens, lights, facadeArtifacts, fireEscape, roof };
 }
@@ -416,12 +414,12 @@ function servingSeat(above: FloorLayout[], edge: number, len: number): { u: numb
 
 function buildRoof(
   req: BuildingRequest, family: Family, massing: Massing, top: number,
-  style: Style, floors: FloorLayout[],
+  style: Style, floors: FloorLayout[], coreFrameAxis: P2,
 ): Blueprint['roof'] {
   const topFloor = floors[floors.length - 1]!;
   const outline = topFloor.outline;
   const artifacts: RoofArtifact[] = [];
-  const bulkhead = placeBulkhead(req, floors, massing.groundOutline, style);
+  const bulkhead = placeBulkhead(req, floors, coreFrameAxis);
   if ((req.options?.roofArtifacts ?? 'auto') !== 'off') {
     const rng = new Rng(req.seed, 'roof');
     const placed: { cx: number; cz: number; hw: number; hd: number }[] = [];
@@ -453,7 +451,7 @@ function buildRoof(
  * to hold the housing plus its walk space.
  */
 function placeBulkhead(
-  req: BuildingRequest, floors: FloorLayout[], ground: P2[], style: Style,
+  req: BuildingRequest, floors: FloorLayout[], coreFrameAxis: P2,
 ): Blueprint['roof']['bulkhead'] {
   const rng = new Rng(req.seed, 'roof-access');
   // The cutout is the interior stair head's own size, square so either stair orientation lands
@@ -464,12 +462,8 @@ function placeBulkhead(
   const depth = side ?? quant(rng.range(...ROOF_ACCESS.depth));
   const outline = floors[floors.length - 1]!.outline;
   const center = centroid(outline).map(quant) as P2;
-  // Use the same principal-or-rotated frame as core preflight. A skewed parcel
-  // therefore publishes roof access square to the frame the interior selects.
-  const rects = coreRects(floorHeights, req.building.floors, area(ground));
-  const axis = bestCoreFit(
-    floors.map((floor) => floor.outline), coreAxis(ground), facadeDepth(style.facade.kind), rects,
-  ).axis;
+  // Preflight passes the same principal-or-rotated frame the interior selects.
+  const axis = coreFrameAxis;
   const cross: P2 = [-axis[1], axis[0]];
   const c = ROOF_ACCESS.clearance;
   const hw = width / 2 + c;
@@ -478,7 +472,7 @@ function placeBulkhead(
     center[0] + axis[0] * u + cross[0] * v,
     center[1] + axis[1] * u + cross[1] * v,
   ]);
-  if (!corners.every((p) => pointInPolygon(outline, p))) return null;
+  if (!ringInsidePolygon(outline, corners)) return null;
   return {
     center, axis, width, depth,
     housingHeight: quant(rng.range(...ROOF_ACCESS.housingHeight)),
@@ -511,7 +505,7 @@ function findRoofSpot(
     const corners: P2[] = [
       [cx - w / 2, cz - d / 2], [cx + w / 2, cz - d / 2], [cx + w / 2, cz + d / 2], [cx - w / 2, cz + d / 2],
     ];
-    if (!corners.every((p) => pointInPolygon(outline, p))) continue;
+    if (!ringInsidePolygon(outline, corners)) continue;
     const clash = placed.some((q) => Math.abs(cx - q.cx) < w / 2 + q.hw && Math.abs(cz - q.cz) < d / 2 + q.hd);
     if (clash) continue;
     return [cx, cz];

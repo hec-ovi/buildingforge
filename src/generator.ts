@@ -38,11 +38,13 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
     req, family, tier, style.balconyDepth, facadeInset, stack.levels.map((floor) => floor.height));
   const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
   const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
+  const corePlate = inspectCorePlate(
+    facades.floors, facadeInset, facades.floors.filter((floor) => floor.index >= 0).length);
   const relief = buildRelief(style, facades.floors, facades.carved);
   const obstacles = faceObstacles(facades.floors, facades.carved, facades.anchors, relief, stack.top);
   const anchors = mountAnchors(facades.anchors, massing.groundOutline, obstacles);
   const features = buildFeatures(
-    req, family, tier, style, massing, stack.top, facades.floors, streetEdges, obstacles);
+    req, family, tier, style, massing, stack.top, facades.floors, streetEdges, obstacles, corePlate.axis);
 
   const layout: Layout = {
     request: req, family, tier, theme: req.theme, style, relief,
@@ -53,7 +55,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
 
   const mb = buildMesh(layout);
   const blueprint = buildBlueprint(layout, mb);
-  checkCorePlate(layout.floors, facadeInset, layout.floors.filter((f) => f.index >= 0).length);
+  if (corePlate.error) throw corePlate.error;
   const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   return { glb, blueprint, textures };
 }
@@ -113,15 +115,21 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
  * has to host the rectangle its type and floor count call for. A lot that
  * cannot is named here rather than at assembly.
  */
-function checkCorePlate(floors: FloorLayout[], facadeInset: number, aboveGround: number): void {
+function inspectCorePlate(
+  floors: FloorLayout[], facadeInset: number, aboveGround: number,
+): { axis: P2; error: ExteriorError | null } {
   const ground = floors.find((f) => f.index === 0)!.outline;
-  const axis = coreAxis(ground);
+  const principalAxis = coreAxis(ground);
   const rects = coreRects(floors.map((floor) => floor.height), aboveGround, area(ground));
-  const { fits, reached } = bestCoreFit(floors.map((floor) => floor.outline), axis, facadeInset, rects);
-  if (fits) return;
-  throw new ExteriorError('E_CORE_PLATE',
-    `the shared core reaches ${reached.band.toFixed(2)} m of plate, under the ${reached.rect.length} x ${reached.rect.depth} m a ${reached.rect.mode} needs`,
-    { band: reached.band, needs: [reached.rect.length, reached.rect.depth], mode: reached.rect.mode });
+  const { fits, reached, axis } = bestCoreFit(
+    floors.map((floor) => floor.outline), principalAxis, facadeInset, rects);
+  if (fits) return { axis, error: null };
+  return {
+    axis,
+    error: new ExteriorError('E_CORE_PLATE',
+      `the shared core reaches ${reached.band.toFixed(2)} m of plate, under the ${reached.rect.length} x ${reached.rect.depth} m a ${reached.rect.mode} needs`,
+      { band: reached.band, needs: [reached.rect.length, reached.rect.depth], mode: reached.rect.mode }),
+  };
 }
 
 /**
