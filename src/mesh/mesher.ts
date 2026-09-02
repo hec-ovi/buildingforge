@@ -245,12 +245,14 @@ function windowUnit(
   const gb = spandrel > 0 ? yb + spandrel + fw : yb + fw;
   const frameMat = mat('window-frame');
 
-  // The wall is cut at the opening; the reveal ring lines it back to the unit,
-  // which the facade style sets deeper the poorer the tier.
+  // The wall is cut at the opening; the reveal ring lines it from the skin back
+  // to the frame's back plane (the style's recess plus the glass inset), so the
+  // hole never shows an open edge beside the frame, flush glazing included.
   const recess = style.facade.windowRecess;
   const z = -recess;
-  if (recess > 0.01) {
-    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], recess, true, mat('wall-trim'));
+  const lining = recess + g.glassInset;
+  if (lining > 0.005) {
+    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], lining, true, mat('wall-trim'));
   }
   const proud = g.frameProud + z;
 
