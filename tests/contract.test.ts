@@ -876,6 +876,63 @@ describe('GLB shell', () => {
   });
 });
 
+describe('window units', () => {
+  it('fills a punched hole with its glass and straddles the hole edge with the frame', async () => {
+    for (const req of [residential, factory]) {
+      const { glb, blueprint } = await generate(req, KEYS);
+      expect(blueprint.facade.style).not.toBe('curtain-wall');
+      const doc = await new NodeIO().readBinary(glb);
+      let checked = 0;
+
+      for (const floor of blueprint.floors) {
+        for (const o of floor.openings) {
+          if (o.kind !== 'window') continue;
+          const node = doc.getRoot().listNodes().find((n) => n.getName() === `window:${o.id}`);
+          if (!node) continue;
+          const a = floor.outline[o.edge]!;
+          const b = floor.outline[(o.edge + 1) % floor.outline.length]!;
+          const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          const dir = [(b[0] - a[0]) / len, (b[1] - a[1]) / len];
+          const normal = [dir[1]!, -dir[0]!];
+          const span = (material: string) => {
+            let uMin = Infinity, uMax = -Infinity, yMin = Infinity, yMax = -Infinity, out = -Infinity;
+            const v = [0, 0, 0];
+            for (const prim of node.getMesh()!.listPrimitives()) {
+              if (!prim.getMaterial()!.getName().includes(material)) continue;
+              const pos = prim.getAttribute('POSITION')!;
+              for (let i = 0; i < pos.getCount(); i++) {
+                pos.getElement(i, v);
+                const u = (v[0]! - a[0]) * dir[0]! + (v[2]! - a[1]) * dir[1]!;
+                uMin = Math.min(uMin, u); uMax = Math.max(uMax, u);
+                yMin = Math.min(yMin, v[1]!); yMax = Math.max(yMax, v[1]!);
+                out = Math.max(out, (v[0]! - a[0]) * normal[0]! + (v[2]! - a[1]) * normal[1]!);
+              }
+            }
+            return { uMin, uMax, yMin, yMax, out };
+          };
+
+          const hole = {
+            u0: o.offset, u1: o.offset + o.width,
+            y0: floor.elevation + o.sill + (o.spandrel ?? 0), y1: floor.elevation + o.sill + o.height,
+          };
+          const glass = span('window-glass');
+          expect(glass.uMin, `${o.id} glass is narrower than its hole`).toBeCloseTo(hole.u0, 3);
+          expect(glass.uMax, `${o.id} glass is narrower than its hole`).toBeCloseTo(hole.u1, 3);
+          expect(glass.yMin, `${o.id} glass is shorter than its hole`).toBeCloseTo(hole.y0, 3);
+          expect(glass.yMax, `${o.id} glass is shorter than its hole`).toBeCloseTo(hole.y1, 3);
+
+          const frame = span('window-frame');
+          expect(frame.uMin, `${o.id} frame sits inside its hole instead of over the wall`).toBeLessThan(hole.u0 - 1e-6);
+          expect(frame.uMax, `${o.id} frame sits inside its hole instead of over the wall`).toBeGreaterThan(hole.u1 + 1e-6);
+          expect(frame.out, `${o.id} frame is sunk behind the wall skin`).toBeGreaterThan(0);
+          checked++;
+        }
+      }
+      expect(checked, 'the fixture carries punched windows').toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('facade styles', () => {
   it('gives each tier its own style, with the panel grid published', async () => {
     const poor = (await generate(factory, KEYS)).blueprint;

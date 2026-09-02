@@ -18,6 +18,8 @@ const APERTURE_REVEAL = 0.15;
 const PLATE_STANDOFF = 0.012;
 /** The border a sign plate shows around its face. */
 const SIGN_BORDER = 0.08;
+/** How far a punched window's frame reaches behind the wall skin, so the two never share a plane. */
+const FRAME_BITE = 0.01;
 
 
 /** Door assembly sections: casing around the hole, then the swinging leaf itself. */
@@ -179,7 +181,7 @@ function doorCasing(sink: PartSink, fr: Frame, u0: number, u1: number, yb: numbe
     sink.box(material, at(fr, [(a + b) / 2, (y0 + y1) / 2], d / 2),
       [fr.dir[0] * (b - a) / 2, 0, fr.dir[1] * (b - a) / 2],
       [0, (y1 - y0) / 2, 0],
-      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2]);
+      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2], true);
   };
   boxOn(u0 - w, u0, yb, yt + w);
   boxOn(u1, u1 + w, yb, yt + w);
@@ -244,40 +246,53 @@ function windowUnit(
 ): void {
   const g = style.glazing;
   const fw = Math.min(g.frameWidth, (u1 - u0) / 4, (yt - yb) / 4);
-  const depth = g.frameProud + g.glassInset;
   const spandrel = o.spandrel ?? 0;
-  const g0 = u0 + fw, g1 = u1 - fw, gt = yt - fw;
-  const gb = spandrel > 0 ? yb + spandrel + fw : yb + fw;
   const frameMat = mat('window-frame');
+  const curtainWall = style.facade.kind === 'curtain-wall';
 
   // The wall is cut at the opening; the reveal ring lines it from the skin back
-  // to the frame's back plane (the style's recess plus the glass inset), so the
-  // hole never shows an open edge beside the frame, flush glazing included.
+  // to the glass, so the hole never shows an open edge beside the frame.
   const recess = style.facade.windowRecess;
   const z = -recess;
   const lining = recess + g.glassInset;
   if (lining > 0.005) {
-    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], lining, true, mat('window-frame'));
+    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], lining, true, frameMat);
   }
-  const proud = g.frameProud + z;
 
-  // Every outer member is a closed profile: both side faces, so nothing looks into it from the street.
-  member(sink, fr, u0, u1, yt - fw, yt, proud, depth, frameMat, { bottom: true, top: true });
+  // A punched window: the frame ring straddles the hole edge, half over the wall
+  // and half over the glass, its back on the wall skin, and the glass fills the
+  // hole exactly. A curtain wall has no wall to sit on and its mullion is shared
+  // with the bay next door, so its ring stays inside the bay and the glass is
+  // the field the ring leaves.
+  const sill = spandrel > 0 ? yb + spandrel : yb;
+  const half = fw / 2;
+  const down = Math.min(half, o.sill + spandrel);
+  const outer = curtainWall
+    ? { u0, u1, y0: sill, y1: yt }
+    : { u0: u0 - half, u1: u1 + half, y0: sill - down, y1: yt + half };
+  const inner = curtainWall
+    ? { u0: u0 + fw, u1: u1 - fw, y0: sill + fw, y1: yt - fw }
+    : { u0: u0 + half, u1: u1 - half, y0: sill + half, y1: yt - half };
+  const field = curtainWall ? inner : { u0, u1, y0: sill, y1: yt };
+  const proud = curtainWall ? g.frameProud + z : g.frameProud;
+  const depth = curtainWall ? g.frameProud + g.glassInset : g.frameProud + FRAME_BITE;
+  const { g0, g1, gb, gt } = { g0: field.u0, g1: field.u1, gb: field.y0, gt: field.y1 };
+
   if (spandrel > 0) {
-    // Spandrel panel filling the band, then the transom the glass sits on.
     // the spandrel is an opaque matte panel, not a metal band: it hides the slab and never flares
     strip(sink, fr, u0, u1, yb, yb + spandrel, proud, mat('column'));
-    member(sink, fr, u0, u1, yb + spandrel, gb, proud, depth, frameMat, { top: true, bottom: true });
-  } else {
-    member(sink, fr, u0, u1, yb, yb + fw, proud, depth, frameMat, { top: true, bottom: true });
   }
-  member(sink, fr, u0, g0, gb, gt, proud, depth, frameMat, { left: true, right: true });
-  member(sink, fr, g1, u1, gb, gt, proud, depth, frameMat, { left: true, right: true });
+  // Every outer member is a closed profile: both side faces, so nothing looks into it from the street.
+  member(sink, fr, outer.u0, outer.u1, inner.y1, outer.y1, proud, depth, frameMat, { bottom: true, top: true });
+  member(sink, fr, outer.u0, outer.u1, outer.y0, inner.y0, proud, depth, frameMat, { top: true, bottom: true });
+  member(sink, fr, outer.u0, inner.u0, inner.y0, inner.y1, proud, depth, frameMat, { left: true, right: true });
+  member(sink, fr, inner.u1, outer.u1, inner.y0, inner.y1, proud, depth, frameMat, { left: true, right: true });
 
   const { cols, rows } = o.panes ?? paneGrid(u1 - u0, gt - gb, g);
   const mw = Math.min(g.mullionWidth, (g1 - g0) / (cols * 2), (gt - gb) / (rows * 2));
   const mProud = g.frameProud * 0.7 + z;
   const mDepth = g.frameProud * 0.7 + g.glassInset;
+  // mullions run inside the glazed field, standing on the glass
   for (let c = 1; c < cols; c++) {
     const u = g0 + ((g1 - g0) * c) / cols;
     member(sink, fr, u - mw / 2, u + mw / 2, gb, gt, mProud, mDepth, frameMat, { left: true, right: true });
@@ -315,7 +330,7 @@ function member(
   proud: number, depth: number, material: string, reveals: Reveals,
 ): void {
   if (u1 - u0 < 1e-6 || y1 - y0 < 1e-6) return;
-  strip(sink, fr, u0, u1, y0, y1, proud, material);
+  strip(sink, fr, u0, u1, y0, y1, proud, material, true);
   const back = proud - depth;
   if (reveals.left) revealU(sink, fr, u0, y0, y1, proud, back, -1, depth, material);
   if (reveals.right) revealU(sink, fr, u1, y0, y1, proud, back, 1, depth, material);
@@ -332,7 +347,7 @@ function revealU(
   const h = y1 - y0;
   sink.quadFacing(material,
     at(fr, [u, y0], proud), at(fr, [u, y0], back), at(fr, [u, y1], back), at(fr, [u, y1], proud),
-    outward, [[0, 0], [depth, 0], [depth, h], [0, h]]);
+    outward, faceUv(depth, h, true));
 }
 
 /** Horizontal reveal face at y, normal +Y or -Y by s. */
@@ -343,14 +358,24 @@ function revealY(
   const w = u1 - u0;
   sink.quadFacing(material,
     at(fr, [u0, y], proud), at(fr, [u1, y], proud), at(fr, [u1, y], back), at(fr, [u0, y], back),
-    [0, s, 0], [[0, 0], [w, 0], [w, depth], [0, depth]]);
+    [0, s, 0], faceUv(w, depth, true));
+}
+
+/**
+ * World-scale UVs for a face, `along` turning the map a quarter so its U axis
+ * runs down the long side. A frame member is a rolled section: the map has to
+ * follow its length, or a jamb and the head it meets read as two materials.
+ */
+function faceUv(w: number, h: number, along = false): [number, number][] {
+  if (along && h > w) return [[0, 0], [0, w], [h, w], [h, 0]];
+  return [[0, 0], [w, 0], [w, h], [0, h]];
 }
 
 /** Proud flat plate on the wall plane (frames, trims), world-scale UVs so tiles never stretch. */
-function strip(sink: PartSink, fr: Frame, u0: number, u1: number, y0: number, y1: number, proud: number, material: string): void {
+function strip(sink: PartSink, fr: Frame, u0: number, u1: number, y0: number, y1: number, proud: number, material: string, along = false): void {
   if (u1 - u0 < 1e-6 || y1 - y0 < 1e-6) return;
   const w = u1 - u0, h = y1 - y0;
-  sink.quadFacing(material, at(fr, [u0, y0], proud), at(fr, [u1, y0], proud), at(fr, [u1, y1], proud), at(fr, [u0, y1], proud), n3(fr), [[0, 0], [w, 0], [w, h], [0, h]]);
+  sink.quadFacing(material, at(fr, [u0, y0], proud), at(fr, [u1, y0], proud), at(fr, [u1, y1], proud), at(fr, [u0, y1], proud), n3(fr), faceUv(w, h, along));
 }
 
 /** Quads bridging the wall plane to a recessed plane along a hole boundary, facing into the hole. */
@@ -479,7 +504,7 @@ function meshAcUnits(mb: MeshBuilder, layout: Layout, mat: (k: string) => string
     sink.box(metal, at(fr, [uc, base + h / 2], back + d + grille.proud / 2),
       across(w / 2 - grille.inset), [0, h / 2 - grille.inset, 0], out(grille.proud / 2));
     sink.box(metal, at(fr, [uc, base - bracket.shelf / 2], back + d / 2),
-      across(w / 2), [0, bracket.shelf / 2, 0], out(d / 2));
+      across(w / 2), [0, bracket.shelf / 2, 0], out(d / 2), true);
     for (const side of [-1, 1]) {
       const u = uc + side * (w / 2 - bracket.strut);
       sink.slantedBox(metal,
