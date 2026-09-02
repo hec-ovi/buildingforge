@@ -3,7 +3,8 @@
 
 import { validateRequest } from './core/validate.ts';
 import { FAMILY } from './rules/families.ts';
-import { CORE_PLATE, FACADE, MODULE } from './rules/tables.ts';
+import { CORE_PLATE, FACADE, MODULE, MODULE_U, OPENING } from './rules/tables.ts';
+import { onModule } from './layout/module.ts';
 import {
   PROPORTIONS, clearHeight, isStorefrontFloor, minEntranceHeight, minWindowHeight, proportionsOf,
 } from './rules/proportions.ts';
@@ -200,7 +201,8 @@ function checkProportions(layout: Layout): void {
         if (o.height < want - 1e-6 || o.height > prop.entrance[1] + 1e-6) {
           fail(`entrance is ${o.height.toFixed(2)} m tall, outside ${want.toFixed(2)}..${prop.entrance[1]} m for ${layout.family}`);
         }
-        const minWidth = Math.min(PROPORTIONS.entranceWidth.standard[0], edgeLength(floor.outline, o.edge) - 0.3);
+        // an entrance is whole metres wide: the least its edge allows, on the module
+        const minWidth = onModule(Math.min(PROPORTIONS.entranceWidth.standard[0], edgeLength(floor.outline, o.edge) - 2 * OPENING.cornerMargin), 'down', MODULE_U);
         if (o.width < minWidth - 0.051) {
           fail(`entrance is ${o.width.toFixed(2)} m wide, under the ${minWidth.toFixed(2)} m its edge allows`);
         }
