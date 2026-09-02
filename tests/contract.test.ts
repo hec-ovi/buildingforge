@@ -876,6 +876,47 @@ describe('GLB shell', () => {
   });
 });
 
+describe('slab bands', () => {
+  it('keeps the glass clear of the band at every floor line, in the blueprint and in the glass itself', async () => {
+    for (const req of [corpo, residential, factory]) {
+      const { glb, blueprint } = await generate(req, KEYS);
+      const band = blueprint.facade.slabBand;
+      expect(band.below).toBeGreaterThan(0);
+
+      for (const floor of blueprint.floors) {
+        if (floor.index < 0) continue;
+        for (const o of floor.openings) {
+          if (o.kind !== 'window') continue;
+          const low = o.sill + (o.spandrel ?? 0);
+          const high = o.sill + o.height - (o.head ?? 0);
+          expect(low, `${o.id} starts inside the band over its floor line`).toBeGreaterThanOrEqual(band.above - 1e-6);
+          expect(high, `${o.id} reaches into the band under the slab above`)
+            .toBeLessThanOrEqual(floor.height - band.below + 1e-6);
+        }
+      }
+
+      // The built glass agrees: no pane crosses a slab line's band.
+      const doc = await new NodeIO().readBinary(glb);
+      const lines = blueprint.floors.filter((f) => f.index >= 0).map((f) => f.elevation);
+      const v = [0, 0, 0];
+      for (const node of doc.getRoot().listNodes()) {
+        if (!node.getName().startsWith('window:')) continue;
+        for (const prim of node.getMesh()!.listPrimitives()) {
+          if (!prim.getMaterial()!.getName().includes('window-glass')) continue;
+          const pos = prim.getAttribute('POSITION')!;
+          for (let i = 0; i < pos.getCount(); i++) {
+            pos.getElement(i, v);
+            for (const line of lines) {
+              const inside = v[1]! > line - band.below + 1e-3 && v[1]! < line + band.above - 1e-3;
+              expect(inside, `${node.getName()} glazes across the slab at ${line}`).toBe(false);
+            }
+          }
+        }
+      }
+    }
+  });
+});
+
 describe('core plate', () => {
   it('masses a box the interior can core, on a lot whose bounding box flatters it', async () => {
     // A commerce lot of about 680 m2 set on the diagonal: the old massing took a
@@ -1149,7 +1190,9 @@ describe('facade styles', () => {
     const entrance = ground.openings.find((o) => o.id === 'entrance')!;
     // The glazing above the head belongs to the door: one opening owns the run.
     expect(entrance.transom, 'glazing continues above the door').toBeGreaterThan(0);
-    expect(entrance.sill + entrance.height + 0.15 + entrance.transom!).toBeCloseTo(ground.height, 6);
+    // up to the band that hides the slab above, the way every bay on the face stops
+    expect(entrance.sill + entrance.height + 0.15 + entrance.transom!)
+      .toBeCloseTo(ground.height - blueprint.facade.slabBand.below, 6);
     for (const o of ground.openings) {
       if (o === entrance || o.edge !== entrance.edge) continue;
       const apart = o.offset >= entrance.offset + entrance.width || o.offset + o.width <= entrance.offset;

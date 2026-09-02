@@ -101,6 +101,14 @@ export const BALCONY = {
 export const STRUCTURE = { concreteMaxFloors: 40 };
 
 /**
+ * The opaque band a facade keeps at every floor line so the interior slab does
+ * not read through the glass: `below` under the walking surface, covering the
+ * slab and the ceiling under it, `above` over it. A punched facade needs none
+ * above, since its sills already stand clear of the line.
+ */
+export const SLAB_BAND = { below: MODULE };
+
+/**
  * Facade styles across the tier spectrum. `panelModule` is the concrete panel
  * width and the wall material's tile size at once, so the joints painted in the
  * map land exactly on the geometry that sits on the same grid.
@@ -153,8 +161,8 @@ export const FACADE = {
    * on a thin mullion grid.
    */
   curtainWall: {
-    /** opaque band at each slab edge: structural slab plus the raised floor zone */
-    spandrelHeight: [0.75, 1.05] as [number, number],
+    /** opaque band at each slab edge: structural slab plus the raised floor zone, split across the floor line */
+    spandrelHeight: [1.0, 1.5] as [number, number],
     /** the glazing stops short of the corner so two faces never intersect */
     cornerInset: MODULE_U, // a one-panel corner pier: the first mullion stands on a metre line, the rest follow
     /** a strip narrower than this is a pier, not a bay */

@@ -68,10 +68,15 @@
                   "minimum": 0,
                   "description": "door only: glazed transom light carried above the head, part of this opening; it starts 0.15 m above the door head and belongs to the door's run of the edge"
                 },
+                "head": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "curtain-wall bay only: opaque band at the top of the opening, covering the slab of the floor above from under it"
+                },
                 "spandrel": {
                   "type": "number",
                   "minimum": 0,
-                  "description": "curtain-wall bay only: opaque band at the bottom of the opening covering the slab edge; vision glass runs from sill + spandrel to the top of the opening"
+                  "description": "curtain-wall bay only: opaque band at the bottom of the opening, over the floor line; vision glass runs from sill + spandrel up to the head band"
                 },
                 "panes": {
                   "type": "object",
@@ -179,7 +184,7 @@
     },
     "facade": {
       "type": "object",
-      "required": ["style", "panelModule", "wallDepth"],
+      "required": ["style", "panelModule", "wallDepth", "slabBand"],
       "additionalProperties": false,
       "properties": {
         "style": {
@@ -195,6 +200,16 @@
           "type": "number",
           "minimum": 0,
           "description": "meters the deepest opening unit reaches inward from the outline skin (window reveals, frames, glass and curtain panels, door reveals and closed leaves, aperture collars), measured on the built geometry; a consumer fitting the shell keeps everything it builds at least this far inside the outline"
+        },
+        "slabBand": {
+          "type": "object",
+          "required": ["below", "above"],
+          "additionalProperties": false,
+          "description": "the opaque band the facade keeps at every floor line, so an interior slab never reads through the glass: `below` metres under the walking surface and `above` metres over it",
+          "properties": {
+            "below": { "type": "number", "minimum": 0 },
+            "above": { "type": "number", "minimum": 0 }
+          }
         }
       }
     },

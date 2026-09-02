@@ -3,7 +3,7 @@
 
 import { validateRequest } from './core/validate.ts';
 import { FAMILY } from './rules/families.ts';
-import { CORE_PLATE, FACADE, MODULE, MODULE_U, OPENING } from './rules/tables.ts';
+import { CORE_PLATE, FACADE, MODULE, MODULE_U, OPENING, SLAB_BAND } from './rules/tables.ts';
 import { onModule } from './layout/module.ts';
 import {
   PROPORTIONS, clearHeight, isStorefrontFloor, minEntranceHeight, minWindowHeight, proportionsOf,
@@ -84,6 +84,7 @@ function entranceCandidates(outline: P2[], point: P2): number[] {
  */
 function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
   checkProportions(layout);
+  checkSlabBands(layout);
   checkOverlays(layout, obstacles);
   checkFacadeArtifacts(layout, obstacles);
   for (const floor of layout.floors) {
@@ -178,6 +179,32 @@ function checkOverlays(layout: Layout, obstacles: Map<number, Rect[]>): void {
 }
 
 /**
+ * The slab line reads solid: every pane of glass starts above the band the
+ * facade keeps over its own floor line and stops below the band it keeps under
+ * the next one, so an interior slab seen through the glazing sits inside opaque
+ * facade instead of floating between two window rows.
+ */
+function checkSlabBands(layout: Layout): void {
+  const above = layout.style.facade.kind === 'curtain-wall' ? SLAB_BAND.below : 0;
+  for (const floor of layout.floors) {
+    if (floor.index < 0) continue;
+    for (const o of floor.openings) {
+      if (o.kind !== 'window') continue;
+      const glassLow = o.sill + (o.spandrel ?? 0);
+      const glassHigh = o.sill + o.height - (o.head ?? 0);
+      if (glassLow < above - 1e-6) {
+        throw new ExteriorError('E_INVARIANT',
+          `window ${o.id} on floor ${floor.index} starts ${glassLow.toFixed(2)} m over its floor line, inside the ${above} m band the facade keeps there; exterior bug, report with the request`);
+      }
+      if (glassHigh > floor.height - SLAB_BAND.below + 1e-6) {
+        throw new ExteriorError('E_INVARIANT',
+          `window ${o.id} on floor ${floor.index} reaches ${glassHigh.toFixed(2)} m of a ${floor.height.toFixed(2)} m floor, into the ${SLAB_BAND.below} m band under the slab above; exterior bug, report with the request`);
+      }
+    }
+  }
+}
+
+/**
  * Nothing hung on a facade covers an opening or a window: every condenser unit
  * and every utility box lies inside its edge and its floor and sits on wall,
  * standing proud of any relief it crosses.
@@ -258,8 +285,9 @@ function checkProportions(layout: Layout): void {
         if (Math.abs(o.sill + o.height - floor.height) > 1e-6) {
           fail(`curtain-wall bay ${o.id} spans ${(o.sill + o.height).toFixed(2)} m of a ${floor.height.toFixed(2)} m floor instead of reaching the slab above`);
         }
-        if (o.height - (o.spandrel ?? 0) < FACADE.curtainWall.minBay - 1e-6) {
-          fail(`curtain-wall bay ${o.id} carries ${(o.height - (o.spandrel ?? 0)).toFixed(2)} m of glass, under the ${FACADE.curtainWall.minBay} m minimum`);
+        const glass = o.height - (o.spandrel ?? 0) - (o.head ?? 0);
+        if (glass < FACADE.curtainWall.minBay - 1e-6) {
+          fail(`curtain-wall bay ${o.id} carries ${glass.toFixed(2)} m of glass, under the ${FACADE.curtainWall.minBay} m minimum`);
         }
         continue;
       }

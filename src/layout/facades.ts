@@ -2,7 +2,7 @@
 // street face, aperture cuts reserved first, openings never overlapping.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U } from '../rules/tables.ts';
+import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U, SLAB_BAND } from '../rules/tables.ts';
 import { moduleWithin, onGrid, onModule } from './module.ts';
 import {
   clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
@@ -345,9 +345,10 @@ function placeMegablockCells(
 /**
  * Curtain wall: the face is glazed corner to corner in whatever strips the
  * entrance and the apertures leave free, each strip one bay running the full
- * floor height. The bottom of the bay is the spandrel band that hides the slab
- * edge; everything above it is vision glass on a mullion grid, so the glazing
- * reads continuous from floor to floor and the interior shows through.
+ * floor height. An opaque band straddles every slab line, the spandrel over it
+ * and the head band of the bay below under it; between them the bay is vision
+ * glass on a mullion grid, so the glazing reads continuous from floor to floor
+ * and the interior shows through without its slab showing with it.
  */
 function placeCurtainWallBays(
   seed: string, theme: string, tier: Tier, style: Style, outline: P2[], e: number,
@@ -356,11 +357,15 @@ function placeCurtainWallBays(
 ): void {
   const cw = FACADE.curtainWall;
   const L = edgeLength(outline, e);
-  const spandrel = Math.max(MODULE, onModule(Math.min(style.facade.spandrelHeight, level.height * 0.35), 'near'));
+  // The opaque band straddles the slab line: `head` covers the slab of the floor
+  // above from under it, `spandrel` the raised floor zone over the slab below.
+  const band = Math.max(2 * MODULE, onModule(Math.min(style.facade.spandrelHeight, level.height * 0.35), 'near'));
+  const head = SLAB_BAND.below;
+  const spandrel = quant(band - head);
   // The bay spans its floor exactly: quantizing here would leave a wall sliver
   // under every slab and break the continuity a curtain wall reads by.
   const height = level.height;
-  if (height - spandrel < 1.2) return;
+  if (height - spandrel - head < 1.2) return;
 
   // A wire anchor mounts on the skin, so the glazing runs straight across it.
   const blocks = blockedSpans((taken.get(e) ?? []).filter((t) => !t.anchor), openings, e).sort((a, b) => a.start - b.start);
@@ -379,8 +384,10 @@ function placeCurtainWallBays(
     // opening: one opening owns one stretch of an edge.
     if (b.door) {
       const sill = b.door.sill + b.door.height + cw.transomGap;
-      // Rounded down onto the grid: a transom never grows past the slab above.
-      if (height - sill >= cw.minTransom) b.door.transom = Math.floor((height - sill) * 20 + 1e-9) / 20;
+      // Rounded down onto the grid, and stopping under the band that hides the
+      // slab above, the way every bay on the face does.
+      const room = height - SLAB_BAND.below - sill;
+      if (room >= cw.minTransom) b.door.transom = Math.floor(room * 20 + 1e-9) / 20;
     }
     u = Math.max(u, b.end + OPENING.minPier);
   }
@@ -394,9 +401,9 @@ function placeCurtainWallBays(
     take(taken, e, start, start + width);
     openings.push({
       id: `w:${level.index}:${e}:${i}`, kind: 'window', edge: e,
-      offset: quantOff(start), width, height, sill: 0, spandrel,
+      offset: quantOff(start), width, height, sill: 0, spandrel, head,
       state: curtainState(seed, level.index, e, i, dist),
-      panes: modulePanes(width, height - spandrel, style.glazing),
+      panes: modulePanes(width, height - spandrel - head, style.glazing),
       material: `${theme}/window-glass/${tier}`,
     });
   });

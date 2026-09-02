@@ -71,6 +71,8 @@ export interface Opening {
   panes?: { cols: number; rows: number };
   /** curtain-wall bay: opaque spandrel band at the bottom of the opening; vision glass starts above it */
   spandrel?: number;
+  /** curtain-wall bay: opaque band at the top of the opening, covering the slab of the floor above */
+  head?: number;
   /** door and balconyDoor: swinging leaves, one node subtree each in the GLB */
   leaves?: number;
   /** door: glazed transom light carried above the head, part of this opening */
@@ -152,6 +154,8 @@ export interface Blueprint {
     panelModule: number;
     /** how far the deepest opening unit reaches behind the outline skin, measured on the built geometry */
     wallDepth: number;
+    /** the opaque band kept at every floor line, so an interior slab never reads through the glass */
+    slabBand: { below: number; above: number };
   };
   facadeArtifacts: FacadeArtifact[];
   fireEscape: { edge: number; fromFloor: number; toFloor: number } | null;

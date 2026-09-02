@@ -253,6 +253,7 @@ function windowUnit(
   const g = style.glazing;
   const fw = Math.min(g.frameWidth, (u1 - u0) / 4, (yt - yb) / 4);
   const spandrel = o.spandrel ?? 0;
+  const headBand = o.head ?? 0;
   const frameMat = mat('window-frame');
   const curtainWall = style.facade.kind === 'curtain-wall';
 
@@ -270,24 +271,25 @@ function windowUnit(
   // hole exactly. A curtain wall has no wall to sit on and its mullion is shared
   // with the bay next door, so its ring stays inside the bay and the glass is
   // the field the ring leaves.
-  const sill = spandrel > 0 ? yb + spandrel : yb;
+  const sill = yb + spandrel;
+  const headY = yt - headBand;
   const half = fw / 2;
   const down = Math.min(half, o.sill + spandrel);
   const outer = curtainWall
-    ? { u0, u1, y0: sill, y1: yt }
-    : { u0: u0 - half, u1: u1 + half, y0: sill - down, y1: yt + half };
+    ? { u0, u1, y0: sill, y1: headY }
+    : { u0: u0 - half, u1: u1 + half, y0: sill - down, y1: headY + half };
   const inner = curtainWall
-    ? { u0: u0 + fw, u1: u1 - fw, y0: sill + fw, y1: yt - fw }
-    : { u0: u0 + half, u1: u1 - half, y0: sill + half, y1: yt - half };
-  const field = curtainWall ? inner : { u0, u1, y0: sill, y1: yt };
+    ? { u0: u0 + fw, u1: u1 - fw, y0: sill + fw, y1: headY - fw }
+    : { u0: u0 + half, u1: u1 - half, y0: sill + half, y1: headY - half };
+  const field = curtainWall ? inner : { u0, u1, y0: sill, y1: headY };
   const proud = curtainWall ? g.frameProud + z : g.frameProud;
   const depth = curtainWall ? g.frameProud + g.glassInset : g.frameProud + FRAME_BITE;
   const { g0, g1, gb, gt } = { g0: field.u0, g1: field.u1, gb: field.y0, gt: field.y1 };
 
-  if (spandrel > 0) {
-    // the spandrel is an opaque matte panel, not a metal band: it hides the slab and never flares
-    strip(sink, fr, u0, u1, yb, yb + spandrel, proud, mat('column'));
-  }
+  // The bands are opaque matte panels, not metal: together they hide the slab
+  // line, the raised floor over it and the ceiling under it, and never flare.
+  if (spandrel > 0) strip(sink, fr, u0, u1, yb, sill, proud, mat('column'));
+  if (headBand > 0) strip(sink, fr, u0, u1, headY, yt, proud, mat('column'));
   // Every outer member is a closed profile: both side faces, so nothing looks into it from the street.
   member(sink, fr, outer.u0, outer.u1, inner.y1, outer.y1, proud, depth, frameMat, { bottom: true, top: true });
   member(sink, fr, outer.u0, outer.u1, outer.y0, inner.y0, proud, depth, frameMat, { top: true, bottom: true });
