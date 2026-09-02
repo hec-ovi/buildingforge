@@ -49,24 +49,22 @@ export function buildRelief(style: Style, floors: FloorLayout[], carved: CarvedA
   if (constant) {
     for (let e = 0; e < outline.length; e++) {
       const len = edgeLength(outline, e);
+      // No rib and no column ever lands on an opening or an aperture cut.
+      const forbidden: [number, number][] = [];
+      for (const fl of above) for (const o of fl.openings) if (o.edge === e) forbidden.push([o.offset - 0.2, o.offset + o.width + 0.2]);
+      for (const c of carved) if (c.aperture.face === e) {
+        const us = c.facePoly.map((p) => p[0]);
+        forbidden.push([Math.min(...us) - 0.2, Math.max(...us) + 0.2]);
+      }
+      const clear = (u: number, w: number) => !forbidden.some(([a, b]) => u + w / 2 > a && u - w / 2 < b);
       const ribs: number[] = [];
       if (f.ribWidth > 0) {
-        for (let u = f.panelModule; u < len - f.ribWidth / 2; u += f.panelModule) ribs.push(u);
+        for (let u = f.panelModule; u < len - f.ribWidth / 2; u += f.panelModule) if (clear(u, f.ribWidth)) ribs.push(u);
       }
       const columns: number[] = [];
       if (style.showColumns) {
-        // A column never lands on an opening or an aperture cut.
-        const forbidden: [number, number][] = [];
-        for (const fl of above) for (const o of fl.openings) if (o.edge === e) forbidden.push([o.offset - 0.2, o.offset + o.width + 0.2]);
-        for (const c of carved) if (c.aperture.face === e) {
-          const us = c.facePoly.map((p) => p[0]);
-          forbidden.push([Math.min(...us) - 0.2, Math.max(...us) + 0.2]);
-        }
         const w = style.columnWidth;
-        for (let u = style.columnSpacing; u < len - w; u += style.columnSpacing) {
-          if (forbidden.some(([a, b]) => u + w / 2 > a && u - w / 2 < b)) continue;
-          columns.push(u);
-        }
+        for (let u = style.columnSpacing; u < len - w; u += style.columnSpacing) if (clear(u, w)) columns.push(u);
       }
       byEdge.push({ ribs, columns });
     }

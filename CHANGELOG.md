@@ -1,5 +1,6 @@
 # Changelog
 
+- 0.23.4: a rib never lands on an opening or an aperture cut, the rule columns already followed, so a megablock's panel grid steps over its doors.
 - 0.23.3: every outer frame member is a closed profile with both side faces, so a frame standing proud of the wall never shows its hollow from the street.
 - 0.23.2: entrance fixtures are facade obstacles like ribs and anchors, registered before the sign and screen scans, so a plate lands clear of them and the overlay invariant proves it.
 - 0.23.1: every window hole is lined from the wall skin back to the frame's back plane (the style's recess plus the glass inset), so flush glazing shows no open edge beside its frame.
