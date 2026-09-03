@@ -156,6 +156,8 @@ export interface Blueprint {
     /** marquee only: one letter cell, N letters = N cells along the orientation */
     cellSize?: number;
     letterHeight?: number;
+    /** marquee only: fitted metal case around every non-blank luminous glyph */
+    glyphCase?: { size: number; depth: number; inset: number };
     center: P3;
     width: number;
     height: number;

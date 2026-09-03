@@ -168,7 +168,18 @@
             "exclusiveMinimum": 0,
             "description": "marquee only: one letter cell in meters; an N-letter text takes N cells along the orientation"
           },
-          "letterHeight": { "type": "number", "description": "marquee only: glyph height inside its cell" },
+          "letterHeight": { "type": "number", "exclusiveMinimum": 0, "description": "marquee only: glyph height inside its cell" },
+          "glyphCase": {
+            "type": "object",
+            "required": ["size", "depth", "inset"],
+            "additionalProperties": false,
+            "description": "marquee only: fitted metal case around every non-blank luminous glyph",
+            "properties": {
+              "size": { "type": "number", "exclusiveMinimum": 0 },
+              "depth": { "type": "number", "exclusiveMinimum": 0 },
+              "inset": { "type": "number", "minimum": 0 }
+            }
+          },
           "center": { "$ref": "#/$defs/point3" },
           "width": { "type": "number", "exclusiveMinimum": 0, "description": "extent along the facade" },
           "height": { "type": "number", "exclusiveMinimum": 0 },

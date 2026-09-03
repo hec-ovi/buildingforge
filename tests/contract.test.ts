@@ -274,12 +274,15 @@ describe('blueprint invariants', () => {
     expect(s.letterHeight).toBeGreaterThan(0);
     expect(s.width).toBeCloseTo(s.text!.length * s.cellSize!, 6);
 
-    // One glyph quad per non-blank letter, on top of the framed plate.
+    // Four closed casing members and one inset glyph quad per non-blank letter.
     const doc = await new NodeIO().readBinary(glb);
     const tris = doc.getRoot().listNodes().find((n) => n.getName() === 'signage:0')!
       .getMesh()!.listPrimitives().reduce((n, p) => n + p.getIndices()!.getCount() / 3, 0);
     const letters = [...s.text!].filter((c) => c.trim().length > 0).length;
-    expect(tris).toBe(24 + letters * 2); // face plate and its border plate (6 quads each) + one quad per letter
+    expect(s.glyphCase!.size).toBeGreaterThan(s.letterHeight!);
+    expect(s.glyphCase!.size).toBeLessThan(s.cellSize!);
+    expect(s.glyphCase!.inset).toBeLessThan(s.glyphCase!.depth);
+    expect(tris).toBe(24 + letters * 50); // two backing boxes, four case boxes and one glyph quad per letter
   });
 
   it('closes the marquee with a back panel standing off the wall', async () => {

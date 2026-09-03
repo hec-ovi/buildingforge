@@ -686,14 +686,16 @@ function meshSign(sink: PartSink, s: Blueprint['signage'][number], mat: (k: stri
     plate(sink, s.center, s.normal, s.width + 2 * SIGN_BORDER, s.height + 2 * SIGN_BORDER, depth - 0.02, mat('door'), s.standoff);
     plate(sink, s.center, s.normal, s.width, s.height, depth, frame, s.standoff);
     if (!cell) return;
-    // Glyph cells left to right across the band, standing just off the plate face.
-    const face = add(s.center, scale(n, depth + 0.01));
-    const size = cell * SIGNAGE.glyphFill;
+    // Each glyph is recessed inside its own shallow metal case. The casing
+    // leaves the atlas cell open, so narrow strokes and letter holes remain.
+    const face = add(s.center, scale(n, depth + SIGNAGE.glyphCase.standoff));
+    const casing = s.glyphCase!;
     for (let i = 0; i < text.length; i++) {
       const char = text[i] as string;
       if (isBlank(char)) continue;
       const cx = (i + 0.5) * cell - s.width / 2;
-      glyphQuad(sink, glyph, add(face, scale(right, cx)), right, up, size, n, char);
+      casedGlyph(sink, frame, glyph, add(face, scale(right, cx)), right, up, n,
+        casing.size, s.letterHeight!, casing.depth, casing.inset, char);
     }
     return;
   }
@@ -705,18 +707,43 @@ function meshSign(sink: PartSink, s: Blueprint['signage'][number], mat: (k: stri
   const center = add(s.center, scale(n, (back + depth) / 2));
   sink.box(frame, center, scale(right, half), scale(up, s.height / 2), scale(n, (depth - back) / 2));
   if (!cell) return;
-  const size = Math.min(cell * SIGNAGE.glyphFill, depth * 0.8);
+  const casing = s.glyphCase!;
   for (let i = 0; i < text.length; i++) {
     const char = text[i] as string;
     if (isBlank(char)) continue;
     const cy = s.height / 2 - SIGNAGE.framePad - (i + 0.5) * cell;
     for (const side of [1, -1]) {
       const outward = scale(right, side);
-      const at3 = add(add(center, scale(up, cy)), scale(right, side * (half + 0.01)));
+      const at3 = add(add(center, scale(up, cy)),
+        scale(right, side * (half + SIGNAGE.glyphCase.standoff)));
       // The far face reads from the opposite side, so its text axis flips with it.
-      glyphQuad(sink, glyph, at3, scale(n, -side), up, size, outward, char);
+      casedGlyph(sink, frame, glyph, at3, scale(n, -side), up, outward,
+        casing.size, s.letterHeight!, casing.depth, casing.inset, char);
     }
   }
+}
+
+/** A shallow four-member case with the luminous atlas cell recessed inside it. */
+function casedGlyph(
+  sink: PartSink, casingMaterial: string, glyphMaterial: string,
+  center: V3, right: V3, up: V3, outward: V3,
+  outer: number, inner: number, depth: number, inset: number, char: string,
+): void {
+  const border = (outer - inner) / 2;
+  const proud = scale(outward, depth / 2);
+  const across = (half: number): V3 => scale(right, half);
+  const rise = (half: number): V3 => scale(up, half);
+  const project = scale(outward, depth / 2);
+  for (const side of [-1, 1]) {
+    sink.box(casingMaterial,
+      add(add(center, proud), scale(right, side * (inner + border) / 2)),
+      across(border / 2), rise(outer / 2), project);
+    sink.box(casingMaterial,
+      add(add(center, proud), scale(up, side * (inner + border) / 2)),
+      across(inner / 2), rise(border / 2), project);
+  }
+  glyphQuad(sink, glyphMaterial, add(center, scale(outward, depth - inset)),
+    right, up, inner, outward, char);
 }
 
 /** One letter cell: a quad facing `outward`, UV-picked out of the letter atlas. */

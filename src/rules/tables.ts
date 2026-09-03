@@ -309,6 +309,15 @@ export const SIGNAGE = {
   minCellSize: 0.28,
   framePad: 0.12,
   glyphFill: 0.72,
+  glyphCase: {
+    /** outer size of the square metal case relative to its letter cell */
+    fill: 0.82,
+    depth: 0.035,
+    /** luminous face sits this far behind the case front */
+    inset: 0.008,
+    /** gap from the backing plate or blade side */
+    standoff: 0.008,
+  },
   marqueeProud: 0.16,
   /** clear wall kept around a sign: it never sits on a column, rib, band or opening */
   clearance: 0.12,

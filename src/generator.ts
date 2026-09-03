@@ -90,6 +90,18 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
   checkSlabBands(layout);
   checkOverlays(layout, obstacles);
   checkFacadeArtifacts(layout, obstacles);
+  for (const sign of layout.signage) {
+    if (sign.mode !== 'marquee') continue;
+    const cell = sign.cellSize ?? 0;
+    const letter = sign.letterHeight ?? 0;
+    const casing = sign.glyphCase;
+    if (!casing || cell <= 0 || letter <= 0 || casing.size > cell + 1e-6
+      || casing.size <= letter || casing.depth <= 0 || casing.inset < 0
+      || casing.inset >= casing.depth) {
+      throw new ExteriorError('E_INVARIANT',
+        'marquee glyph casing does not fit its letter cell; exterior bug, report with the request');
+    }
+  }
   for (const floor of layout.floors) {
     for (const o of floor.openings) {
       const isDoor = o.kind === 'door' || o.kind === 'balconyDoor';

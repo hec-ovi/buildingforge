@@ -188,9 +188,14 @@ function signOnFace(
       });
       if (!spot) return false;
       const cellSize = quant(Math.min(cell, (spot.height - 2 * SIGNAGE.framePad) / cells));
+      const projection = depth;
+      const caseSize = quant(Math.min(cellSize * SIGNAGE.glyphCase.fill, projection * 0.9));
+      const letterHeight = quant(Math.min(cellSize * SIGNAGE.glyphFill,
+        caseSize - 2 * SIGNAGE.glyphCase.inset));
       out.push({
         mode: 'marquee', orientation: 'vertical', text: spec.text, edge: e,
-        cellSize, letterHeight: quant(cellSize * SIGNAGE.glyphFill),
+        cellSize, letterHeight,
+        glyphCase: { size: caseSize, depth: SIGNAGE.glyphCase.depth, inset: SIGNAGE.glyphCase.inset },
         center: facePoint(ground, e, quant(spot.u), quant(spot.y)),
         width: SIGNAGE.bladeThickness, height: quant(cells * cellSize + 2 * SIGNAGE.framePad),
         standoff: quant(spot.standoff), depth: quant(spot.standoff + depth), normal,
@@ -209,9 +214,15 @@ function signOnFace(
     });
     if (!spot) return false;
     const cellSize = quant(Math.max(SIGNAGE.minCellSize, spot.width / cells));
+    const letterHeight = quant(cellSize * SIGNAGE.glyphFill);
     out.push({
       mode: 'marquee', orientation: 'horizontal', text: spec.text, edge: e,
-      cellSize, letterHeight: quant(cellSize * SIGNAGE.glyphFill),
+      cellSize, letterHeight,
+      glyphCase: {
+        size: quant(cellSize * SIGNAGE.glyphCase.fill),
+        depth: SIGNAGE.glyphCase.depth,
+        inset: SIGNAGE.glyphCase.inset,
+      },
       center: facePoint(ground, e, quant(spot.u), quant(spot.y)),
       width: quant(cells * cellSize), height: quant(cellSize + 2 * SIGNAGE.framePad),
       standoff: quant(spot.standoff), depth: quant(spot.standoff + SIGNAGE.marqueeProud), normal,

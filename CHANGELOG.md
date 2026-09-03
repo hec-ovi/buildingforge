@@ -1,5 +1,7 @@
 # Changelog
 
+0.36.0: marquee and blade letters now carry individual four-member metal cases with real depth. The luminous atlas face sits recessed inside each case, while the published outer size, depth and inset remain inside the deterministic letter cell and preserve glyph holes.
+
 0.35.0: long hotel, office, corpo and commerce frontages repeat the accepted main entrance as complete metre-aligned assemblies instead of stretching one door to represent a large building. Each opening publishes its main, secondary or service role so interior and navigation can connect it, while width, height, frame set, material and movement clearance remain consistent across the frontage.
 
 0.34.0: every floor face publishes the exact panel pitch and seams used by its built wall, including non-divisible aperture and parcel faces. The same grid identifies maximal opening-free wall runs and safe facade partition anchors, so an interior can meet solid structure without crossing glazing, a door or a connection aperture.
