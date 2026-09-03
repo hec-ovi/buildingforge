@@ -1,5 +1,7 @@
 # Changelog
 
+0.41.0: exterior walls now request the neutral concrete `panel` variant, solid fitted borders request column `plain`, and relief requests wall-trim `paint`. The blueprint publishes these named variants and the neutral palette explicitly. Facade panels keep a fixed 2 x 1 m world scale with 20 mm joints; non-divisible faces and storeys receive equal solid borders instead of stretching or shrinking the pattern. Contract tests cover rotated, stepped, tall residential, office, low storage, factory and poor-tier buildings.
+
 0.40.0: compact commerce, restaurant and coffee-shop buildings can expose a real 4 to 12 m open frontage instead of painting one into glass. The wall cut, recessed three-member surround, threshold and traversal dimensions come from one portal; `accessRole: "main"` gives interior and navigation the leafless connection, and `openFront` controls the deterministic variant.
 
 0.39.0: rich office curtain walls can carry balcony bands. One stable alternating-floor phase receives fitted 2 m glazed access doors, with vision panels retained on both sides and the door head aligned under the slab band; the full-frontage band remains one shared mesh and `balconies: "off"` removes the whole feature.

@@ -134,7 +134,17 @@ export const SLAB_BAND = { below: MODULE };
  *   skin per face, thin mullions, a spandrel band at every slab edge.
  */
 export const FACADE = {
-  panelModule: 3.0,
+  /**
+   * Default architectural field: fixed 2 x 1 m precast panels. Faces keep
+   * this world scale; unmatched space becomes a centred solid end border.
+   */
+  panel: {
+    width: 2.0,
+    height: 1.0,
+    jointWidth: 0.02,
+    origin: 'face-floor' as const,
+    boundary: 'centered-solid-border' as const,
+  },
   styles: {
     megablock: {
       ribWidth: [0.35, 0.5] as [number, number],

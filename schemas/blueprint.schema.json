@@ -4,7 +4,7 @@
   "title": "Blueprint",
   "description": "Exterior shell blueprint, the canonical schema (interior consumes the floors core). Units: meters. Same coordinate frame as the request footprint, right-handed, +Y up, floor outlines on the XZ plane, CCW winding, first point not repeated.",
   "type": "object",
-  "required": ["buildingId", "seed", "bounds", "floors", "balconyBands", "roof", "materials"],
+  "required": ["buildingId", "seed", "bounds", "floors", "balconyBands", "roof", "materials", "materialVariants"],
   "additionalProperties": false,
   "properties": {
     "buildingId": { "type": "string" },
@@ -266,7 +266,7 @@
     },
     "facade": {
       "type": "object",
-      "required": ["style", "panelModule", "wallDepth", "slabBand", "grids"],
+      "required": ["style", "panelModule", "panelPattern", "materialPlan", "wallDepth", "slabBand", "grids"],
       "additionalProperties": false,
       "properties": {
         "style": {
@@ -276,7 +276,32 @@
         "panelModule": {
           "type": "number",
           "exclusiveMinimum": 0,
-          "description": "preferred concrete panel pitch in meters; grids publishes the exact fitted pitch used on each face"
+          "description": "compatibility alias for panelPattern.width; fixed world scale, never fitted or stretched"
+        },
+        "panelPattern": {
+          "type": "object",
+          "required": ["width", "height", "jointWidth", "origin", "boundary"],
+          "additionalProperties": false,
+          "properties": {
+            "width": { "type": "number", "const": 2 },
+            "height": { "type": "number", "const": 1 },
+            "jointWidth": { "type": "number", "minimum": 0, "maximum": 0.05 },
+            "origin": { "const": "face-floor" },
+            "boundary": { "const": "centered-solid-border" }
+          },
+          "description": "fixed world-unit architectural panel field; unmatched face or storey space becomes deliberate equal borders"
+        },
+        "materialPlan": {
+          "type": "object",
+          "required": ["palette", "field", "border", "trim"],
+          "additionalProperties": false,
+          "properties": {
+            "palette": { "const": "neutral-dystopian" },
+            "field": { "$ref": "#/$defs/materialVariant" },
+            "border": { "$ref": "#/$defs/materialVariant" },
+            "trim": { "$ref": "#/$defs/materialVariant" }
+          },
+          "description": "stable material keys and named variants for the neutral concrete facade system"
         },
         "wallDepth": {
           "type": "number",
@@ -298,7 +323,7 @@
           "description": "one entry per floor face: exact map-panel seams, opening-free wall runs and the seats where an interior partition may meet the facade without crossing glazing",
           "items": {
             "type": "object",
-            "required": ["floor", "edge", "length", "panelWidth", "panelHeight", "horizontal", "vertical", "solid", "partitionAnchors"],
+            "required": ["floor", "edge", "length", "panelWidth", "panelHeight", "horizontal", "vertical", "horizontalBorders", "verticalBorders", "solid", "partitionAnchors"],
             "additionalProperties": false,
             "properties": {
               "floor": { "type": "integer" },
@@ -314,6 +339,8 @@
                 "type": "array", "minItems": 2, "items": { "type": "number", "minimum": 0 },
                 "description": "panel seam offsets above this floor, including 0 and floor height"
               },
+              "horizontalBorders": { "$ref": "#/$defs/point2", "description": "equal deliberate solid borders before and after the complete fixed-width panel run" },
+              "verticalBorders": { "$ref": "#/$defs/point2", "description": "equal deliberate solid borders below and above the complete fixed-height panel run" },
               "solid": {
                 "type": "array", "items": { "$ref": "#/$defs/span" },
                 "description": "maximal opening-free wall runs [start, end] along this face"
@@ -421,9 +448,23 @@
       "type": "array",
       "items": { "type": "string" },
       "description": "every theme/kind/tier key used in the GLB, deduplicated, sorted"
+    },
+    "materialVariants": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "minLength": 1 },
+      "description": "canonical material key to required named variant for surfaces whose appearance is intentionally stable"
     }
   },
   "$defs": {
+    "materialVariant": {
+      "type": "object",
+      "required": ["key", "variantId"],
+      "additionalProperties": false,
+      "properties": {
+        "key": { "type": "string", "pattern": "^[a-z0-9_-]+/[a-z0-9_-]+/[a-z0-9_-]+$" },
+        "variantId": { "type": "string", "minLength": 1 }
+      }
+    },
     "point2": {
       "type": "array",
       "prefixItems": [{ "type": "number" }, { "type": "number" }],

@@ -164,8 +164,8 @@ function baseOutline(
 
 /** Half a side, snapped down so the whole side is a whole number of wall panels. */
 function onPanel(half: number): number {
-  const panels = Math.floor((2 * half) / FACADE.panelModule + 1e-9);
-  return (Math.max(1, panels) * FACADE.panelModule) / 2;
+  const panels = Math.floor((2 * half) / FACADE.panel.width + 1e-9);
+  return (Math.max(1, panels) * FACADE.panel.width) / 2;
 }
 
 function clone(ring: P2[]): P2[] {

@@ -3,22 +3,20 @@
 
 import { ExteriorError } from '../core/errors.ts';
 import { edgeLength } from '../core/polygon.ts';
-import { panelOn } from './module.ts';
+import { fixedPanelAxis } from './module.ts';
 import type { Blueprint, Floor } from '../types.ts';
 
 const MIN_PARTITION_SEAT = 0.15;
 
 export function buildFacadeGrids(
-  floors: readonly Floor[], declaredPanel: number,
+  floors: readonly Floor[], panelWidth: number, panelHeight: number,
 ): Blueprint['facade']['grids'] {
   const grids: Blueprint['facade']['grids'] = [];
   for (const floor of floors) {
     for (let edge = 0; edge < floor.outline.length; edge++) {
       const length = edgeLength(floor.outline, edge);
-      const panelWidth = panelOn(length, declaredPanel);
-      const panelHeight = panelOn(floor.height, declaredPanel);
-      const horizontal = boundaries(length, panelWidth);
-      const vertical = boundaries(floor.height, panelHeight);
+      const horizontalAxis = fixedPanelAxis(length, panelWidth);
+      const verticalAxis = fixedPanelAxis(floor.height, panelHeight);
       const occupied = merge(floor.openings
         .filter((opening) => opening.edge === edge)
         .map((opening): [number, number] => [opening.offset, opening.offset + opening.width]));
@@ -35,8 +33,10 @@ export function buildFacadeGrids(
         length: mm(length),
         panelWidth: mm(panelWidth),
         panelHeight: mm(panelHeight),
-        horizontal,
-        vertical,
+        horizontal: horizontalAxis.boundaries,
+        vertical: verticalAxis.boundaries,
+        horizontalBorders: horizontalAxis.borders,
+        verticalBorders: verticalAxis.borders,
         solid,
         partitionAnchors,
       });
@@ -44,13 +44,6 @@ export function buildFacadeGrids(
   }
   checkFacadeGrids(floors, grids);
   return grids;
-}
-
-function boundaries(span: number, module: number): number[] {
-  const count = Math.max(1, Math.round(span / module));
-  const out: number[] = [];
-  for (let i = 0; i <= count; i++) out.push(i === count ? mm(span) : mm(i * module));
-  return out;
 }
 
 function merge(input: [number, number][]): [number, number][] {
@@ -90,6 +83,19 @@ function checkFacadeGrids(
     }
     if (grid.vertical[0] !== 0 || Math.abs(grid.vertical.at(-1)! - floor.height) > 0.001) {
       fail('does not close on the storey');
+    }
+    const [left, right] = grid.horizontalBorders;
+    const [bottom, top] = grid.verticalBorders;
+    if (Math.abs(left - right) > 0.001 || Math.abs(bottom - top) > 0.001
+      || left < -1e-9 || left >= grid.panelWidth / 2 + 0.001
+      || bottom < -1e-9 || bottom >= grid.panelHeight / 2 + 0.001) {
+      fail('has invalid centred solid borders');
+    }
+    const fieldWidth = grid.length - left - right;
+    const fieldHeight = floor.height - bottom - top;
+    if (Math.abs(fieldWidth / grid.panelWidth - Math.round(fieldWidth / grid.panelWidth)) > 0.001
+      || Math.abs(fieldHeight / grid.panelHeight - Math.round(fieldHeight / grid.panelHeight)) > 0.001) {
+      fail('changes the fixed panel scale instead of fitting complete panels');
     }
     const openings = floor.openings.filter((opening) => opening.edge === grid.edge);
     for (const [start, end] of grid.solid) {

@@ -9,7 +9,7 @@ import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { AC_UNITS, BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
-import { panelOn } from '../layout/module.ts';
+import { fixedPanelAxis } from '../layout/module.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
 import type { BalconyBand, Blueprint, DoorAssembly, Opening } from '../types.ts';
 
@@ -41,7 +41,7 @@ interface Frame { v: P2; dir: P2; n: P2; len: number }
 export function buildMesh(layout: Layout): MeshBuilder {
   const mb = new MeshBuilder();
   const { theme, tier } = layout;
-  const mat = (kind: string) => `${theme}/${kind}/${tier}`;
+  const mat = (kind: string) => `${theme}/${kind === 'wall' ? 'concrete' : kind}/${tier}`;
   const floors = layout.floors;
   const above = floors.filter((f) => f.index >= 0);
   const lowest = floors[0]!;
@@ -49,6 +49,7 @@ export function buildMesh(layout: Layout): MeshBuilder {
   const top = topFloor.elevation + topFloor.height;
   // One tiling grid for every horizontal surface of the building.
   const caps = capFrame(floors.find((f) => f.index === 0)!.outline);
+  const panelBorders = mb.part('facade-panel-borders');
 
   // Floor separator planes, faced both ways: seen from below through the glazing
   // a one-sided slab is invisible and the shell reads hollow. Each keeps its node
@@ -85,15 +86,20 @@ export function buildMesh(layout: Layout): MeshBuilder {
         if (c.aperture.face === e) holes.push({ poly: c.facePoly });
       }
       const sink = mb.part(`wall:${f.index}/${e}`);
-      // Whole panels both ways: the map is scaled to the panel this face and this
-      // storey really carry, so a corner and a floor line never cut one in half.
-      const panel = layout.style.facade.panelModule;
-      const su = panel / panelOn(fr.len, panel);
-      const sv = panel / panelOn(f.height, panel);
+      // World-metre UVs preserve the material's physical scale. The field begins
+      // after the centred solid border, so every visible joint agrees with the
+      // fixed panel grid instead of stretching to close the face.
+      const horizontal = fixedPanelAxis(fr.len, layout.style.facade.panelWidth);
+      const vertical = fixedPanelAxis(f.height, layout.style.facade.panelHeight);
+      const uOrigin = horizontal.borders[0];
+      const yOrigin = f.elevation + vertical.borders[0];
       for (const piece of cutWall(fr.len, f.elevation, f.elevation + f.height, holes)) {
-        const uvs = [piece.bl, piece.br, piece.tr, piece.tl].map(([u, y]) => [u * su, (f.elevation - y) * sv] as [number, number]);
+        const uvs = [piece.bl, piece.br, piece.tr, piece.tl]
+          .map(([u, y]) => [u - uOrigin, yOrigin - y] as [number, number]);
         sink.quadFacing(mat('wall'), at(fr, piece.bl), at(fr, piece.br), at(fr, piece.tr), at(fr, piece.tl), n3(fr), uvs);
       }
+      meshPanelBorders(panelBorders, fr, f, holes,
+        horizontal.borders, vertical.borders, mat('column'));
     }
     for (const o of f.openings) meshOpening(mb, layout, f, o, mat);
   }
@@ -127,6 +133,45 @@ export function buildMesh(layout: Layout): MeshBuilder {
   meshFireEscape(mb, layout, above, mat);
 
   return mb;
+}
+
+/**
+ * Cover the unmatched remainder with deliberate solid concrete border regions.
+ * The panel field beneath keeps its fixed UV scale, while no partial panel is
+ * visible at a face corner or storey line. Holes are cut from the borders too.
+ */
+function meshPanelBorders(
+  sink: PartSink, fr: Frame, floor: FloorLayout, holes: Hole[],
+  horizontal: [number, number], vertical: [number, number], material: string,
+): void {
+  const [left, right] = horizontal;
+  const [bottom, top] = vertical;
+  const y0 = floor.elevation, y1 = floor.elevation + floor.height;
+  const middleStart = left, middleEnd = fr.len - right;
+  borderRegion(sink, fr, 0, left, y0, y1, holes, material);
+  borderRegion(sink, fr, fr.len - right, fr.len, y0, y1, holes, material);
+  borderRegion(sink, fr, middleStart, middleEnd, y0, y0 + bottom, holes, material);
+  borderRegion(sink, fr, middleStart, middleEnd, y1 - top, y1, holes, material);
+}
+
+function borderRegion(
+  sink: PartSink, fr: Frame, u0: number, u1: number, y0: number, y1: number,
+  holes: Hole[], material: string,
+): void {
+  if (u1 - u0 < 0.001 || y1 - y0 < 0.001) return;
+  const localHoles = holes.map((hole): Hole => ({
+    poly: hole.poly.map(([u, y]) => [u - u0, y]),
+  }));
+  for (const piece of cutWall(u1 - u0, y0, y1, localHoles)) {
+    const translate = ([u, y]: [number, number]): [number, number] => [u + u0, y];
+    const bl = translate(piece.bl), br = translate(piece.br), tr = translate(piece.tr), tl = translate(piece.tl);
+    const uvs = [bl, br, tr, tl].map(([u, y]) => [u, floorUv(y)] as [number, number]);
+    sink.quadFacing(material, at(fr, bl, 0.006), at(fr, br, 0.006), at(fr, tr, 0.006), at(fr, tl, 0.006), n3(fr), uvs);
+  }
+}
+
+function floorUv(y: number): number {
+  return -y;
 }
 
 function frame(outline: P2[], e: number): Frame {

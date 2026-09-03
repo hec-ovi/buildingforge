@@ -57,7 +57,12 @@ function buildFacade(seed: string, family: Family, tier: Tier): Style['facade'] 
   const rng = new Rng(seed, 'facade');
   return {
     kind,
-    panelModule: FACADE.panelModule,
+    panelModule: FACADE.panel.width,
+    panelWidth: FACADE.panel.width,
+    panelHeight: FACADE.panel.height,
+    panelJointWidth: FACADE.panel.jointWidth,
+    panelOrigin: FACADE.panel.origin,
+    panelBoundary: FACADE.panel.boundary,
     ribWidth: quant(rng.range(...s.ribWidth)),
     ribDepth: quant(rng.range(...s.ribDepth)),
     bandHeight: quant(rng.range(...s.bandHeight)),

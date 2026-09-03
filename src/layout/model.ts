@@ -29,6 +29,11 @@ export interface Style {
   facade: {
     kind: 'megablock' | 'panel' | 'glass' | 'curtain-wall';
     panelModule: number;
+    panelWidth: number;
+    panelHeight: number;
+    panelJointWidth: number;
+    panelOrigin: 'face-floor';
+    panelBoundary: 'centered-solid-border';
     ribWidth: number;
     ribDepth: number;
     bandHeight: number;
@@ -82,6 +87,22 @@ export interface Layout {
   facadeArtifacts: Blueprint['facadeArtifacts'];
   fireEscape: Blueprint['fireEscape'];
   roof: Blueprint['roof'];
+}
+
+export interface FacadeMaterialPlan {
+  palette: 'neutral-dystopian';
+  field: { key: string; variantId: 'panel' };
+  border: { key: string; variantId: 'plain' };
+  trim: { key: string; variantId: 'paint' };
+}
+
+export function facadeMaterialPlan(theme: string, tier: Tier): FacadeMaterialPlan {
+  return {
+    palette: 'neutral-dystopian',
+    field: { key: materialKey(theme, 'concrete', tier), variantId: 'panel' },
+    border: { key: materialKey(theme, 'column', tier), variantId: 'plain' },
+    trim: { key: materialKey(theme, 'wall-trim', tier), variantId: 'paint' },
+  };
 }
 
 export function materialKey(theme: string, kind: string, tier: Tier): string {

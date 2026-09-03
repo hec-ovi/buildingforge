@@ -6,7 +6,7 @@ This map records which layer owns each requirement from the September 2026 visua
 
 | Requirement | Published geometry or rule |
 | --- | --- |
-| Floor and panel alignment | `floors`, `slabBands`, `facade.grids`, and `facadeWindows` share the same metre-based floor and bay arithmetic. |
+| Floor and panel alignment | `floors`, `slabBands`, `facade.grids`, and `facadeWindows` share the same metre-based floor and bay arithmetic. Panels stay 2 x 1 m; equal solid borders absorb remainders. |
 | Door proportions | `door` assemblies publish the set, frame, reveal, threshold, motion clearance, and access role. Long frontages repeat fitted assemblies without cutting structural piers. |
 | Curtain walls and service faces | Window panes follow the facade grid. Opening-free solid spans and safe partition anchors are published per face. |
 | Balconies | `balconyBands` own one shared slab and rail run. Doors reference the band rather than adding overlapping slabs. |
@@ -23,6 +23,6 @@ This map records which layer owns each requirement from the September 2026 visua
 | Interior partitions and service cores | Interior consumes `floors`, `slabBands`, `facade.grids`, door roles, and portal clear volumes. Exterior publishes safe solid anchors but does not place interior walls. |
 | Highway supports and under-building structure | Atlas and connections reserve the shared corridor and provide required apertures. Exterior preserves those cuts but does not place supports in street-owned space. |
 | Sidewalk approaches and public gardens | Streets owns pedestrian clearances, curb zones, and shared ground. Exterior keeps entrances and portals explicit so those routes can terminate at them. |
-| Material appearance | Materials owns every canonical material key. Exterior selects those keys and owns UV scale and geometry orientation. |
+| Material appearance | Materials owns every canonical material key and its maps. Exterior requests concrete `panel`, column `plain`, and wall-trim `paint`, publishes the neutral palette contract, and owns world-scale UVs and geometry orientation. |
 
 Any new cross-layer dimension must enter through a schema-validated input or output. Do not infer it from another layer's private code.

@@ -210,6 +210,19 @@ export interface Blueprint {
   facade: {
     style: 'megablock' | 'panel' | 'glass' | 'curtain-wall';
     panelModule: number;
+    panelPattern: {
+      width: number;
+      height: number;
+      jointWidth: number;
+      origin: 'face-floor';
+      boundary: 'centered-solid-border';
+    };
+    materialPlan: {
+      palette: 'neutral-dystopian';
+      field: { key: string; variantId: 'panel' };
+      border: { key: string; variantId: 'plain' };
+      trim: { key: string; variantId: 'paint' };
+    };
     /** how far the deepest opening unit reaches behind the outline skin, measured on the built geometry */
     wallDepth: number;
     /** the opaque band kept at every floor line, so an interior slab never reads through the glass */
@@ -223,6 +236,8 @@ export interface Blueprint {
       panelHeight: number;
       horizontal: number[];
       vertical: number[];
+      horizontalBorders: P2;
+      verticalBorders: P2;
       solid: P2[];
       partitionAnchors: { offset: number; width: number }[];
     }[];
@@ -238,6 +253,8 @@ export interface Blueprint {
     artifacts: RoofArtifact[];
   };
   materials: string[];
+  /** Explicit named variants for surfaces whose appearance must not be seed-random. */
+  materialVariants: Record<string, string>;
 }
 
 export interface GenerateOptions {

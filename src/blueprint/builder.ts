@@ -5,10 +5,16 @@ import type { Layout } from '../layout/model.ts';
 import { measureWallDepth } from '../mesh/wallDepth.ts';
 import { SLAB_BAND } from '../rules/tables.ts';
 import { buildFacadeGrids } from '../layout/facadeGrid.ts';
+import { facadeMaterialPlan } from '../layout/model.ts';
+import { preferredVariantForKey } from '../materials/apply.ts';
 import type { MeshBuilder } from '../mesh/primitives.ts';
 
 export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
   const topFloor = layout.floors[layout.floors.length - 1]!;
+  const materials = mb.materialKeys();
+  const materialVariants = Object.fromEntries(materials
+    .map((key) => [key, preferredVariantForKey(key)] as const)
+    .filter((entry): entry is [string, string] => entry[1] !== undefined));
   return {
     buildingId: layout.request.buildingId,
     seed: layout.request.seed,
@@ -32,17 +38,26 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     facade: {
       style: layout.style.facade.kind,
       panelModule: layout.style.facade.panelModule,
+      panelPattern: {
+        width: layout.style.facade.panelWidth,
+        height: layout.style.facade.panelHeight,
+        jointWidth: layout.style.facade.panelJointWidth,
+        origin: layout.style.facade.panelOrigin,
+        boundary: layout.style.facade.panelBoundary,
+      },
+      materialPlan: facadeMaterialPlan(layout.theme, layout.tier),
       wallDepth: measureWallDepth(layout, mb),
       slabBand: {
         below: SLAB_BAND.below,
         above: spandrelBand(layout),
       },
-      grids: buildFacadeGrids(layout.floors, layout.style.facade.panelModule),
+      grids: buildFacadeGrids(layout.floors, layout.style.facade.panelWidth, layout.style.facade.panelHeight),
     },
     facadeArtifacts: layout.facadeArtifacts,
     fireEscape: layout.fireEscape,
     roof: layout.roof,
-    materials: mb.materialKeys(),
+    materials,
+    materialVariants,
   };
 }
 

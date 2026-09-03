@@ -42,7 +42,21 @@ type MapSlot = typeof MAP_SLOTS[number];
  * joint, and an exterior lantern as the lamp its housing is shaped for, not a
  * ceiling strip or panel. Everything else varies from building to building.
  */
-const CANONICAL_KINDS = new Set(['window-frame', 'door', 'roof', 'floor-slab', 'light-fixture']);
+const NAMED_VARIANTS: Readonly<Record<string, string>> = {
+  concrete: 'panel',
+  column: 'plain',
+  'wall-trim': 'paint',
+  'window-frame': 'paint',
+  door: 'paint',
+  roof: 'plain',
+  'floor-slab': 'plain',
+  'light-fixture': 'lamp',
+};
+
+/** Stable named variant requested by the exterior contract for this key. */
+export function preferredVariantForKey(key: string): string | undefined {
+  return NAMED_VARIANTS[key.split('/')[1] ?? ''];
+}
 
 /** Untextured materials named by the canonical key: what a keys-only consumer resolves itself. */
 function keysOnly(doc: Document, keys: string[], reason?: string): MaterialPlan {
@@ -79,9 +93,14 @@ export function createMaterials(
     if (!entry) {
       throw new ExteriorError('E_MATERIAL_UNRESOLVED', `theme "${theme}" has no entry for material key ${key}`, { key });
     }
-    const variant = CANONICAL_KINDS.has(key.split('/')[1] ?? '')
-      ? entry.variants[0]!
-      : entry.variants[new Rng(seed, `material:${key}`).int(0, entry.variants.length - 1)]!;
+    const preferred = preferredVariantForKey(key);
+    const variant = preferred
+      ? entry.variants.find((candidate) => candidate.id === preferred)
+      : entry.variants[new Rng(seed, `material:${key}`).int(0, entry.variants.length - 1)];
+    if (!variant) {
+      throw new ExteriorError('E_MATERIAL_UNRESOLVED',
+        `material key ${key} has no required variant "${preferred}"`, { key, variant: preferred });
+    }
     const p = entry.physical;
     const material = doc.createMaterial(key)
       .setDoubleSided(false)

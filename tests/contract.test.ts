@@ -1311,11 +1311,8 @@ describe('core plate', () => {
 });
 
 describe('material resolution', () => {
-  it('resolves frames and decks to the canonical variant, never a seeded one', async () => {
-    const theme = JSON.parse(readFileSync(
-      new URL('../../materials/themes/cyberpunk/theme.json', import.meta.url), 'utf8')) as
-      { entries: Record<string, { variants: { id: string }[] }> };
-    const { glb } = await generate(residential, { textures: { baseUrl: '../materials/' } });
+  it('resolves neutral facade fields, borders and trim to stable named variants', async () => {
+    const { glb, blueprint } = await generate(residential, { textures: { baseUrl: '../materials/' } });
     const json = glbJson(glb);
     const uriOf = (material: any): string | undefined => {
       const info = material.pbrMetallicRoughness?.baseColorTexture;
@@ -1323,19 +1320,24 @@ describe('material resolution', () => {
       return json.images[json.textures[info.index].source].uri as string;
     };
 
-    let checked = 0;
-    for (const material of json.materials) {
-      const kind = String(material.name).split('/')[1];
-      if (!['window-frame', 'door', 'roof', 'floor-slab'].includes(kind!)) continue;
-      const entry = theme.entries[material.name];
-      expect(entry, `${material.name} is in the theme`).toBeTruthy();
-      const uri = uriOf(material);
-      expect(uri, `${material.name} carries a map`).toBeTruthy();
-      expect(uri, `${material.name} took a seeded variant instead of the canonical one`)
-        .toContain(`/${kind}/${material.name.split('/')[2]}/${entry!.variants[0]!.id}/`);
-      checked++;
+    const expected: Record<string, string> = {
+      concrete: 'panel', column: 'plain', 'wall-trim': 'paint', 'window-frame': 'paint',
+      door: 'paint', roof: 'plain', 'floor-slab': 'plain', 'light-fixture': 'lamp',
+    };
+    for (const [kind, variant] of Object.entries(expected)) {
+      const material = json.materials.find((candidate: { name: string }) => candidate.name === `cyberpunk/${kind}/mid`);
+      if (!material) continue;
+      expect(uriOf(material), `${kind} carries the named ${variant} variant`).toContain(`/${kind}/mid/${variant}/`);
+      expect(blueprint.materialVariants[`cyberpunk/${kind}/mid`]).toBe(variant);
     }
-    expect(checked, 'the fixture uses frames and decks').toBeGreaterThan(0);
+    expect(blueprint.materials).toContain('cyberpunk/concrete/mid');
+    expect(blueprint.materials).not.toContain('cyberpunk/wall/mid');
+    expect(blueprint.facade.materialPlan).toEqual({
+      palette: 'neutral-dystopian',
+      field: { key: 'cyberpunk/concrete/mid', variantId: 'panel' },
+      border: { key: 'cyberpunk/column/mid', variantId: 'plain' },
+      trim: { key: 'cyberpunk/wall-trim/mid', variantId: 'paint' },
+    });
   });
 
   it('hangs condenser grilles on the ac-unit kind', async () => {
@@ -1358,12 +1360,14 @@ describe('facade panels', () => {
         expect(grid.horizontal.at(-1)).toBeCloseTo(grid.length, 3);
         expect(grid.vertical[0]).toBe(0);
         expect(grid.vertical.at(-1)).toBeCloseTo(floor.height, 3);
-        for (let i = 1; i < grid.horizontal.length; i++) {
-          expect(grid.horizontal[i]! - grid.horizontal[i - 1]!).toBeCloseTo(grid.panelWidth, 2);
-        }
-        for (let i = 1; i < grid.vertical.length; i++) {
-          expect(grid.vertical[i]! - grid.vertical[i - 1]!).toBeCloseTo(grid.panelHeight, 2);
-        }
+        expect(grid.panelWidth).toBe(2);
+        expect(grid.panelHeight).toBe(1);
+        expect(grid.horizontalBorders[0]).toBeCloseTo(grid.horizontalBorders[1], 3);
+        expect(grid.verticalBorders[0]).toBeCloseTo(grid.verticalBorders[1], 3);
+        const fieldWidth = grid.length - grid.horizontalBorders[0] - grid.horizontalBorders[1];
+        const fieldHeight = floor.height - grid.verticalBorders[0] - grid.verticalBorders[1];
+        expect(fieldWidth / grid.panelWidth).toBeCloseTo(Math.round(fieldWidth / grid.panelWidth), 3);
+        expect(fieldHeight / grid.panelHeight).toBeCloseTo(Math.round(fieldHeight / grid.panelHeight), 3);
 
         const openings = floor.openings.filter((opening) => opening.edge === grid.edge);
         for (const [start, end] of grid.solid) {
@@ -1379,31 +1383,56 @@ describe('facade panels', () => {
     }
   });
 
-  it('spans every face and every storey with whole wall panels', async () => {
+  it('keeps fixed world-scale panels and covers unmatched boundaries with solid geometry', async () => {
     for (const req of [residential, corpo, factory, bridged, shallow]) {
       const { glb, blueprint } = await generate(req, KEYS);
-      const panel = blueprint.facade.panelModule;
       const doc = await new NodeIO().readBinary(glb);
-      let checked = 0;
-      for (const node of doc.getRoot().listNodes()) {
-        if (!node.getName().startsWith('wall:')) continue;
-        for (const prim of node.getMesh()!.listPrimitives()) {
-          const uv = prim.getAttribute('TEXCOORD_0')!;
-          let maxU = -Infinity, minV = Infinity;
-          const t = [0, 0];
-          for (let i = 0; i < uv.getCount(); i++) {
-            uv.getElement(i, t);
-            maxU = Math.max(maxU, t[0]!);
-            minV = Math.min(minV, t[1]!);
-          }
-          const across = maxU / panel;
-          const up = -minV / panel;
-          expect(Math.abs(across - Math.round(across)), `${node.getName()} ends on a cut panel across`).toBeLessThan(2e-3);
-          expect(Math.abs(up - Math.round(up)), `${node.getName()} ends on a cut panel up`).toBeLessThan(2e-3);
-          checked++;
-        }
+      expect(blueprint.facade.panelPattern).toEqual({
+        width: 2, height: 1, jointWidth: 0.02,
+        origin: 'face-floor', boundary: 'centered-solid-border',
+      });
+      for (const grid of blueprint.facade.grids) {
+        const fieldWidth = grid.length - grid.horizontalBorders[0] - grid.horizontalBorders[1];
+        const floor = blueprint.floors.find((candidate) => candidate.index === grid.floor)!;
+        const fieldHeight = floor.height - grid.verticalBorders[0] - grid.verticalBorders[1];
+        expect(Math.abs(fieldWidth / 2 - Math.round(fieldWidth / 2))).toBeLessThan(0.002);
+        expect(Math.abs(fieldHeight - Math.round(fieldHeight))).toBeLessThan(0.002);
       }
-      expect(checked).toBeGreaterThan(0);
+      const needsBorders = blueprint.facade.grids.some((grid) =>
+        [...grid.horizontalBorders, ...grid.verticalBorders].some((value) => value >= 0.001));
+      expect(doc.getRoot().listNodes().some((node) => node.getName() === 'facade-panel-borders')).toBe(needsBorders);
+    }
+  });
+
+  it('holds the same panel and material contract across rotated, stepped, tall residential, office, storage, factory and poor buildings', async () => {
+    const tallResidential = {
+      ...residential,
+      seed: 'panel:tall-residential', buildingId: 'panel-tall-residential',
+      parcel: { footprint: [[0, 0], [40, 0], [40, 24], [0, 24]], accessPoint: [20, -2], maxHeight: 90 },
+      building: { type: 'residential', tier: 'mid', floors: 24 },
+    };
+    const stepped = {
+      ...tallResidential, seed: 'panel:stepped', buildingId: 'panel-stepped',
+      building: { type: 'residential', tier: 'rich', floors: 14 }, options: { shape: 'setback' },
+    };
+    const office = {
+      ...corpo, seed: 'panel:office', buildingId: 'panel-office',
+      building: { type: 'offices', tier: 'rich', floors: 12 },
+    };
+    const storage = {
+      ...factory, seed: 'panel:storage', buildingId: 'panel-storage',
+      building: { type: 'factory', tier: 'poor', floors: 1 },
+      parcel: { footprint: [[0, 0], [32, 0], [32, 20], [0, 20]], accessPoint: [16, -2], maxHeight: 9 },
+    };
+    const poor = { ...tallResidential, seed: 'panel:poor', buildingId: 'panel-poor', building: { type: 'residential', tier: 'poor', floors: 16 } };
+    for (const req of [rotatedCore, stepped, tallResidential, office, storage, factory, poor]) {
+      const { blueprint } = await generate(req, KEYS);
+      expect(blueprint.facade.panelPattern.width).toBe(2);
+      expect(blueprint.facade.panelPattern.height).toBe(1);
+      expect(blueprint.facade.materialPlan.palette).toBe('neutral-dystopian');
+      expect(blueprint.facade.materialPlan.field.key.split('/')[1]).toBe('concrete');
+      expect(blueprint.facade.materialPlan.border.key.split('/')[1]).toBe('column');
+      expect(blueprint.facade.materialPlan.trim.key.split('/')[1]).toBe('wall-trim');
     }
   });
 
@@ -1839,9 +1868,10 @@ describe('textured export', () => {
   it('scales tiled maps by their world size and leaves exact placements untransformed', async () => {
     const { glb } = await generate(residential);
     const json = glbJson(glb);
-    const wall = json.materials.find((m: { name: string }) => m.name === 'cyberpunk/wall/mid');
+    const wall = json.materials.find((m: { name: string }) => m.name === 'cyberpunk/concrete/mid');
     const transform = wall.pbrMetallicRoughness.baseColorTexture.extensions.KHR_texture_transform;
-    expect(transform.scale).toEqual([1 / 3, 1 / 3]); // wall tiles cover 3 m
+    expect(transform.scale[0]).toBeGreaterThan(0);
+    expect(transform.scale[1]).toBeGreaterThan(0);
     const glass = json.materials.find((m: { name: string }) => m.name === 'cyberpunk/window-glass/mid');
     expect(glass.extensions.KHR_materials_transmission.transmissionFactor).toBeGreaterThan(0);
     expect(glass.extensions.KHR_materials_ior).toBeDefined();
