@@ -5,6 +5,8 @@ import { MeshBuilder, type PartSink, type V3, add, scale, sub, cross, dot, norm 
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown, capFrame, type CapFrame } from './caps.ts';
 import { meshAnchorMount } from './anchorMount.ts';
+import { meshRoofArtifacts } from './mastAssembly.ts';
+import { tubeSegment } from './tube.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { AC_UNITS, BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
@@ -764,37 +766,6 @@ function meshFacadeServices(mb: MeshBuilder, layout: Layout): void {
   }
 }
 
-const OCTAGON: [number, number][] = [
-  [1, 0], [Math.SQRT1_2, Math.SQRT1_2], [0, 1], [-Math.SQRT1_2, Math.SQRT1_2],
-  [-1, 0], [-Math.SQRT1_2, -Math.SQRT1_2], [0, -1], [Math.SQRT1_2, -Math.SQRT1_2],
-];
-
-/** Eight-sided tube with U around its real circumference and V along its real length. */
-function tubeSegment(sink: PartSink, material: string, start: V3, end: V3, radius: number): void {
-  const axisVector = sub(end, start);
-  const length = Math.sqrt(dot(axisVector, axisVector));
-  if (length < 1e-6) return;
-  const axis = norm(axisVector);
-  const reference: V3 = Math.abs(axis[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
-  const side = norm(cross(axis, reference));
-  const up = norm(cross(side, axis));
-  const ring = (center: V3, point: [number, number]): V3 => add(center,
-    add(scale(side, radius * point[0]), scale(up, radius * point[1])));
-  const circumference = 2 * Math.PI * radius;
-  for (let i = 0; i < OCTAGON.length; i++) {
-    const j = (i + 1) % OCTAGON.length;
-    const a = ring(start, OCTAGON[i]!);
-    const b = ring(start, OCTAGON[j]!);
-    const c = ring(end, OCTAGON[j]!);
-    const d = ring(end, OCTAGON[i]!);
-    const outward = norm(add(sub(a, start), sub(b, start)));
-    sink.quadFacing(material, a, b, c, d, outward, [
-      [circumference * i / 8, length], [circumference * (i + 1) / 8, length],
-      [circumference * (i + 1) / 8, 0], [circumference * i / 8, 0],
-    ]);
-  }
-}
-
 function meshClothItem(
   sink: PartSink, item: Layout['facadeServices']['clotheslines'][number]['items'][number], outward: V3,
 ): void {
@@ -889,17 +860,6 @@ function meshBulkhead(
   }
   capUp(sink, mat('roof'), caps, ring, yTop);
   capDown(sink, mat('floor-slab'), caps, ring, yTop);
-}
-
-function meshRoofArtifacts(mb: MeshBuilder, layout: Layout, top: number, mat: (k: string) => string): void {
-  if (layout.roof.artifacts.length === 0) return;
-  const sink = mb.part('roof-artifacts');
-  for (const a of layout.roof.artifacts) {
-    const [w, d, h] = a.size;
-    const ww = a.rotationDeg === 90 ? d : w;
-    const dd = a.rotationDeg === 90 ? w : d;
-    sink.aabox(mat('roof-artifact'), [a.center[0], top + h / 2, a.center[1]], ww, dd, h);
-  }
 }
 
 function meshFeatures(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {

@@ -12,6 +12,7 @@ import type { Blueprint, BuildingRequest, P3, RoofArtifact, Signage } from '../t
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
 import type { FloorLayout, Style } from './model.ts';
+import { buildMastAssembly } from './mastAssembly.ts';
 
 export interface Features {
   signage: Blueprint['signage'];
@@ -472,7 +473,11 @@ function buildRoof(
       const spot = findRoofSpot(outline, placed, ww, dd, cx0, cz0, rng, rule.kind === 'helipad' || rule.kind === 'penthouse-screen');
       if (!spot) continue;
       placed.push({ cx: spot[0], cz: spot[1], hw: ww / 2 + 0.4, hd: dd / 2 + 0.4 });
-      artifacts.push({ kind: rule.kind, center: [quant(spot[0]), quant(spot[1])], size: [w, d, h], rotationDeg });
+      const artifact: RoofArtifact = {
+        kind: rule.kind, center: [quant(spot[0]), quant(spot[1])], size: [w, d, h], rotationDeg,
+      };
+      if (rule.mastVariant) artifact.mastAssembly = buildMastAssembly(artifact, top, rule.mastVariant);
+      artifacts.push(artifact);
     }
   }
   return { elevation: quant(top), outline, parapetHeight: style.parapetHeight, bulkhead, artifacts };

@@ -3,6 +3,7 @@
 
 import { FEASIBILITY, type FeasibilityConstants, type Family, type Tier } from './families.ts';
 import { PROPORTIONS } from './proportions.ts';
+import type { MastVariant, RoofArtifactKind } from '../types.ts';
 
 /**
  * The facade module: every storey height, bay, window width, sill and window
@@ -390,16 +391,17 @@ export const ROOF_ACCESS = {
 };
 
 export interface RoofArtifactRule {
-  kind: string;
+  kind: RoofArtifactKind;
   size: [[number, number], [number, number], [number, number]];
   chance: number;
+  mastVariant?: MastVariant;
 }
 
 export const ROOF_ARTIFACTS: Record<Family, RoofArtifactRule[]> = {
   residential: [
     { kind: 'water-tank', size: [[3.0, 4.5], [3.0, 4.5], [3.5, 5.0]], chance: 0.6 },
     { kind: 'hvac', size: [[1.0, 1.6], [0.6, 1.0], [0.7, 1.0]], chance: 0.8 },
-    { kind: 'antenna', size: [[0.1, 0.2], [0.1, 0.2], [3.0, 6.0]], chance: 0.7 },
+    { kind: 'antenna', size: [[0.8, 1.2], [0.8, 1.2], [3.0, 6.0]], chance: 0.7, mastVariant: 'whip' },
     { kind: 'solar', size: [[2.0, 4.0], [1.0, 2.0], [0.15, 0.25]], chance: 0.3 },
   ],
   hotel: [
@@ -410,13 +412,13 @@ export const ROOF_ARTIFACTS: Record<Family, RoofArtifactRule[]> = {
   office: [
     { kind: 'penthouse-screen', size: [[6.0, 12.0], [4.0, 8.0], [2.5, 4.0]], chance: 1 },
     { kind: 'cooling-tower', size: [[3.0, 6.0], [3.0, 6.0], [2.5, 4.0]], chance: 0.8 },
-    { kind: 'antenna', size: [[0.15, 0.3], [0.15, 0.3], [4.0, 8.0]], chance: 0.6 },
+    { kind: 'antenna', size: [[1.0, 1.5], [1.0, 1.5], [4.0, 8.0]], chance: 0.6, mastVariant: 'whip' },
   ],
   corpo: [
     { kind: 'penthouse-screen', size: [[8.0, 14.0], [5.0, 9.0], [3.0, 4.5]], chance: 1 },
     { kind: 'cooling-tower', size: [[3.0, 6.0], [3.0, 6.0], [2.5, 4.0]], chance: 0.7 },
     { kind: 'helipad', size: [[12.0, 14.0], [12.0, 14.0], [0.3, 0.5]], chance: 0.5 },
-    { kind: 'antenna', size: [[0.2, 0.4], [0.2, 0.4], [6.0, 12.0]], chance: 0.8 },
+    { kind: 'mast', size: [[2.0, 3.2], [1.6, 2.4], [6.0, 12.0]], chance: 0.8, mastVariant: 'crossarm-mast' },
   ],
   hospital: [
     { kind: 'helipad', size: [[12.0, 14.0], [12.0, 14.0], [0.3, 0.5]], chance: 0.8 },
@@ -424,7 +426,7 @@ export const ROOF_ARTIFACTS: Record<Family, RoofArtifactRule[]> = {
     { kind: 'stack', size: [[0.6, 1.0], [0.6, 1.0], [3.0, 5.0]], chance: 0.6 },
   ],
   security: [
-    { kind: 'antenna', size: [[0.8, 1.6], [0.8, 1.6], [5.0, 12.0]], chance: 1 },
+    { kind: 'mast', size: [[2.0, 3.5], [1.6, 2.6], [5.0, 12.0]], chance: 1, mastVariant: 'crossarm-mast' },
     { kind: 'dish', size: [[1.5, 2.5], [1.5, 2.5], [1.5, 2.5]], chance: 0.7 },
     { kind: 'hvac', size: [[1.5, 2.5], [1.0, 1.8], [1.0, 1.5]], chance: 0.7 },
   ],

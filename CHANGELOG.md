@@ -1,5 +1,7 @@
 # Changelog
 
+0.43.0: roof antennas and crossarm masts are fitted assemblies with exact masts, arms, four-point supports, cable attachment points and connected cable paths. Their blueprint records drive the GLB geometry and their complete footprint stays clear of roof access.
+
 0.42.1: curtain-wall spandrels now occupy the head of each storey, covering the interior ceiling plenum and slab edge. The blueprint publishes the full band below the next walking surface, with zero lower spandrel, and the built vision glass stops below that head on irregular as well as module-height floors.
 
 0.42.0: facades publish bounded service detail from a contract-isolated arithmetic layer. Condenser clusters connect to fitted boxes through supported pipe graphs, industrial faces may add rectangular duct routes, and poor or mid residential faces may carry clotheslines fixed to wall supports. All routes clear openings and published access or fixture reservations and stay inside concave parcels. Window damage is an explicit sparse option targeting one named pane with solid fractured or open missing collision.

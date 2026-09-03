@@ -127,7 +127,38 @@ export interface Floor {
   openings: Opening[];
 }
 
-export interface RoofArtifact { kind: string; center: P2; size: P3; rotationDeg: number }
+export type MastVariant = 'whip' | 'crossarm-mast';
+export type RoofArtifactKind =
+  | 'water-tank' | 'bulkhead' | 'hvac' | 'cooling-tower' | 'antenna' | 'mast' | 'dish'
+  | 'solar' | 'helipad' | 'vent' | 'stack' | 'penthouse-screen' | 'pool' | 'bar';
+
+export interface FittedSegment {
+  from: P3;
+  to: P3;
+}
+
+export interface FittedCable {
+  id: string;
+  path: P3[];
+}
+
+/** Exact support and cable routes for an antenna or utility mast. */
+export interface MastAssembly {
+  variant: MastVariant;
+  mast: FittedSegment;
+  arms: FittedSegment[];
+  supports: FittedSegment[];
+  cableAttachments: P3[];
+  cables: FittedCable[];
+}
+
+export interface RoofArtifact {
+  kind: RoofArtifactKind;
+  center: P2;
+  size: P3;
+  rotationDeg: number;
+  mastAssembly?: MastAssembly;
+}
 
 export interface BalconyBand {
   id: string;

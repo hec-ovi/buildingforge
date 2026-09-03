@@ -1881,6 +1881,36 @@ describe('roof access', () => {
     }
   });
 
+  it('publishes and meshes fitted whip antennas and connected crossarm masts', async () => {
+    const cases = [
+      { request: residential, kind: 'antenna', variant: 'whip', arms: 0 },
+      { request: corpo, kind: 'mast', variant: 'crossarm-mast', arms: 3 },
+    ];
+    for (const expected of cases) {
+      const { blueprint, glb } = await generate(expected.request, KEYS);
+      const artifact = blueprint.roof.artifacts.find((item) => item.kind === expected.kind)!;
+      expect(artifact).toBeDefined();
+      const assembly = artifact.mastAssembly!;
+      expect(assembly.variant).toBe(expected.variant);
+      expect(assembly.arms).toHaveLength(expected.arms);
+      expect(assembly.supports).toHaveLength(4);
+      expect(assembly.cableAttachments.length).toBeGreaterThan(0);
+      expect(assembly.cables).toHaveLength(assembly.cableAttachments.length);
+      for (let index = 0; index < assembly.cables.length; index++) {
+        expect(assembly.cables[index]!.path[0]).toEqual(assembly.cableAttachments[index]);
+        expect(assembly.cables[index]!.path.at(-1)).toEqual(assembly.cables[0]!.path.at(-1));
+      }
+      expect(assembly.mast.from[1]).toBeGreaterThanOrEqual(blueprint.roof.elevation);
+      expect(assembly.mast.to[1]).toBeCloseTo(blueprint.roof.elevation + artifact.size[2], 3);
+
+      const document = await new NodeIO().readBinary(glb);
+      const node = document.getRoot().listNodes().find((item) => item.getName() === 'roof-artifacts')!;
+      const materials = new Set(node.getMesh()!.listPrimitives().map((primitive) => primitive.getMaterial()!.getName()));
+      expect([...materials].some((name) => name.startsWith('cyberpunk/roof-artifact/'))).toBe(true);
+      expect([...materials].some((name) => name.startsWith('cyberpunk/metal/'))).toBe(true);
+    }
+  });
+
   it('keeps roof artifacts clear of the bulkhead and its walk space', async () => {
     for (const req of [residential, corpo, factory, bridged]) {
       const { blueprint } = await generate(req, KEYS);

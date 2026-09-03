@@ -20,6 +20,7 @@ import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.
 import { bestCoreFit, coreRects, facadeDepth } from './layout/core.ts';
 import { acClusterName } from './layout/acUnits.ts';
 import { buildFeatures } from './layout/features.ts';
+import { validateMastAssemblies } from './layout/mastAssembly.ts';
 import { buildFacadeServiceDetails } from './layout/facadeServiceAdapter.ts';
 import { buildMesh } from './mesh/mesher.ts';
 import { writeGlb } from './glb/writer.ts';
@@ -101,6 +102,7 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
   checkFacadeArtifacts(layout, obstacles);
   checkLights(layout);
   checkBalconyBands(layout);
+  validateMastAssemblies(layout.roof.artifacts, layout.roof.elevation);
   for (const sign of layout.signage) {
     if (sign.mode !== 'marquee') continue;
     const cell = sign.cellSize ?? 0;
