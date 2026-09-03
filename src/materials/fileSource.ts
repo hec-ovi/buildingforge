@@ -1,5 +1,5 @@
 // Node materials source: the materials box as a directory on disk.
-// vite.config.ts swaps this module for browserSource.ts in the preview bundle.
+// The browser preview supplies its HTTP source directly to the GLB writer.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';

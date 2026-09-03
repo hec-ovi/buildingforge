@@ -1267,8 +1267,8 @@ describe('core plate', () => {
   });
 
   it('masses a box the interior can core, on a lot whose bounding box flatters it', async () => {
-    // A commerce lot of about 680 m2 set on the diagonal: the old massing took a
-    // shallow slice of it and the interior could not fit its core rectangle.
+    // A diagonal commerce lot whose valid exterior plate must retain the
+    // interior's complete core rectangle.
     const { blueprint } = await generate({
       seed: 'urbe-core:p3', buildingId: 'p3',
       parcel: { footprint: [[0, 14], [20, 0], [40, 14], [20, 34]], accessPoint: [0, 15], maxHeight: 14 },

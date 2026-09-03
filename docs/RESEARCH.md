@@ -65,7 +65,7 @@ Verified 2026-08-31 against npm and current engine/tooling docs. These choices d
 - Billboard formats: bulletin 3.43:1, poster 2.14:1; logo plates 1:1, 3:2, 16:9 are real formats. LED media facades (pitch 40-100 mm, 40-70% transparent) only on corpo/office/hotel in dense zones.
 
 ### Roofs
-- Parapet 1.07 m accessible (0.9-1.1 visually). Old residential: wooden water tank (4-6 m dia) on 3-6 m dunnage, bulkhead box 3-4 m, vents, antennas. Modern/rich residential: bulkhead, AC condenser rows, terrace, solar (1x2 m tilted modules).
+- Parapet 1.07 m accessible (0.9-1.1 visually). Traditional residential: wooden water tank (4-6 m dia) on 3-6 m dunnage, bulkhead box 3-4 m, vents, antennas. Modern/rich residential: bulkhead, AC condenser rows, terrace, solar (1x2 m tilted modules).
 - Office/corpo: cooling towers (3-8 m boxes), RTU clusters, BMU rail, masts; screened mechanical penthouse (louver band) is the realistic tower default. Hospital: helipad ~14x14 m with H, air handlers, generator. Factory: sawtooth glazing, stacks, ventilators, pipe bridges. Police/military: lattice comms masts 5-15 m, dishes, floodlights.
 
 ### Curtain states (field data: Rubin 1978, Rea 1984, Foster & Oreszczyn 2001)

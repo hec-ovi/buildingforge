@@ -55,7 +55,7 @@ export function buildMastAssembly(
   return { variant, mast: { from: base, to: top }, arms, supports, cableAttachments, cables };
 }
 
-/** Fails closed when published mast records no longer describe their fitted geometry. */
+/** Fails closed unless each published mast record describes its fitted geometry. */
 export function validateMastAssemblies(artifacts: RoofArtifact[], roof: number): void {
   for (const artifact of artifacts) {
     const isMast = artifact.kind === 'antenna' || artifact.kind === 'mast';
