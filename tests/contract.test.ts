@@ -2069,6 +2069,18 @@ describe('roof access', () => {
       }
       expect(assembly.mast.from[1]).toBeGreaterThanOrEqual(blueprint.roof.elevation);
       expect(assembly.mast.to[1]).toBeCloseTo(blueprint.roof.elevation + artifact.size[2], 3);
+      expect(artifact.id).toMatch(new RegExp(`^roof-artifact:${expected.kind}:`));
+      expect(assembly.externalAttachments).toHaveLength(expected.variant === 'whip' ? 1 : 2);
+      for (const [index, attachment] of assembly.externalAttachments.entries()) {
+        expect(attachment.id).toBe(`${artifact.id}:external:${index}`);
+        expect(attachment.clearanceRadius).toBeGreaterThan(0);
+        if (attachment.orientation === 'directional') {
+          expect(Math.hypot(...attachment.normal)).toBeCloseTo(1, 6);
+          expect(attachment.normal[1]).toBe(0);
+        } else {
+          expect(attachment.position).toEqual(assembly.mast.to);
+        }
+      }
 
       const document = await new NodeIO().readBinary(glb);
       const node = document.getRoot().listNodes().find((item) => item.getName() === 'roof-artifacts')!;
@@ -2076,6 +2088,62 @@ describe('roof access', () => {
       expect([...materials].some((name) => name.startsWith('cyberpunk/roof-artifact/'))).toBe(true);
       expect([...materials].some((name) => name.startsWith('cyberpunk/metal/'))).toBe(true);
     }
+  });
+
+  it('builds the exact p2 cooling tower as fitted fan equipment rather than a box', async () => {
+    const req = reviewP2 as any;
+    const { blueprint, glb } = await generate({
+      ...req,
+      options: { ...req.options, glb: 'named' },
+    }, KEYS);
+    const artifact = blueprint.roof.artifacts.find((item) => item.kind === 'cooling-tower')!;
+    expect(artifact).toMatchObject({
+      id: 'roof-artifact:cooling-tower:0',
+      center: [278.2, 604.95],
+      size: [2.85, 3.05, 2.1],
+      rotationDeg: 90,
+    });
+    const document = await new NodeIO().readBinary(glb);
+    const node = document.getRoot().listNodes().find((item) => item.getName() === 'roof-artifacts')!;
+    const primitives = node.getMesh()!.listPrimitives();
+    expect(primitives.reduce((sum, primitive) => sum + primitive.getAttribute('POSITION')!.getCount(), 0),
+      'the cooling tower has a casing, louvers, top fan, guard, spokes and blades').toBeGreaterThan(900);
+    expect(new Set(primitives.map((primitive) => primitive.getMaterial()!.getName())))
+      .toEqual(new Set(['cyberpunk/metal/poor', 'cyberpunk/roof-artifact/poor']));
+
+    const angle = artifact.rotationDeg * Math.PI / 180;
+    const u = [Math.cos(angle), Math.sin(angle)];
+    const v = [-Math.sin(angle), Math.cos(angle)];
+    const point = [0, 0, 0];
+    for (const primitive of primitives) {
+      const positions = primitive.getAttribute('POSITION')!;
+      for (let index = 0; index < positions.getCount(); index++) {
+        positions.getElement(index, point);
+        const dx = point[0]! - artifact.center[0];
+        const dz = point[2]! - artifact.center[1];
+        expect(Math.abs(dx * u[0]! + dz * u[1]!)).toBeLessThanOrEqual(artifact.size[0] / 2 + 1e-4);
+        expect(Math.abs(dx * v[0]! + dz * v[1]!)).toBeLessThanOrEqual(artifact.size[1] / 2 + 1e-4);
+        expect(point[1]!).toBeGreaterThanOrEqual(blueprint.roof.elevation - 1e-4);
+        expect(point[1]!).toBeLessThanOrEqual(blueprint.roof.elevation + artifact.size[2] + 1e-4);
+      }
+    }
+  });
+
+  it('publishes the external attachment contract and permits a quiet roof', async () => {
+    const schema = JSON.parse(readFileSync(
+      new URL('../schemas/blueprint.schema.json', import.meta.url), 'utf8'));
+    expect(schema.$defs.mastAssembly.properties.externalAttachments.items.$ref)
+      .toBe('external-attachment.schema.json');
+    const attachmentSchema = JSON.parse(readFileSync(
+      new URL('../schemas/external-attachment.schema.json', import.meta.url), 'utf8'));
+    expect(attachmentSchema.oneOf).toHaveLength(2);
+
+    const req = residential as any;
+    const { blueprint } = await generate({
+      ...req,
+      options: { ...req.options, roofArtifacts: 'off' },
+    }, KEYS);
+    expect(blueprint.roof.artifacts).toEqual([]);
   });
 
   it('anchors fitted masts to the published roof above connection-fitted floors', async () => {

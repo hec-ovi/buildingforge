@@ -461,7 +461,7 @@
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["kind", "center", "size", "rotationDeg"],
+            "required": ["id", "kind", "center", "size", "rotationDeg"],
             "additionalProperties": false,
             "allOf": [{
               "if": {
@@ -471,6 +471,7 @@
               "then": { "required": ["mastAssembly"] }
             }],
             "properties": {
+              "id": { "type": "string", "minLength": 1, "description": "deterministic artifact identity, stable for the same request" },
               "kind": { "enum": ["water-tank", "bulkhead", "hvac", "cooling-tower", "antenna", "mast", "dish", "solar", "helipad", "vent", "stack", "penthouse-screen", "pool", "bar"] },
               "center": { "$ref": "#/$defs/point2" },
               "size": {
@@ -523,7 +524,7 @@
     },
     "mastAssembly": {
       "type": "object",
-      "required": ["variant", "mast", "arms", "supports", "cableAttachments", "cables"],
+      "required": ["variant", "mast", "arms", "supports", "cableAttachments", "cables", "externalAttachments"],
       "additionalProperties": false,
       "properties": {
         "variant": { "enum": ["whip", "crossarm-mast"] },
@@ -544,6 +545,13 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/fittedCable" }
+        },
+        "externalAttachments": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "description": "stable fitted endpoints offered to a downstream interbuilding cable generator",
+          "items": { "$ref": "external-attachment.schema.json" }
         }
       }
     },

@@ -1,5 +1,6 @@
 import type { Layout } from '../layout/model.ts';
 import { type MeshBuilder, type V3 } from './primitives.ts';
+import { meshRoofEquipment } from './roofEquipment.ts';
 import { tubeSegment } from './tube.ts';
 
 /** Emits ordinary roof equipment and fitted antenna or crossarm-mast assemblies. */
@@ -14,8 +15,7 @@ export function meshRoofArtifacts(
     const placedDepth = artifact.rotationDeg === 90 ? width : depth;
     const assembly = artifact.mastAssembly;
     if (!assembly) {
-      sink.aabox(mat('roof-artifact'), [artifact.center[0], top + height / 2, artifact.center[1]],
-        placedWidth, placedDepth, height);
+      meshRoofEquipment(sink, artifact, top, mat('roof-artifact'), mat('metal'));
       continue;
     }
 

@@ -155,6 +155,19 @@ export interface FittedCable {
   path: P3[];
 }
 
+export type ExternalAttachment = {
+  id: string;
+  position: P3;
+  orientation: 'omnidirectional';
+  clearanceRadius: number;
+} | {
+  id: string;
+  position: P3;
+  orientation: 'directional';
+  normal: P3;
+  clearanceRadius: number;
+};
+
 /** Exact support and cable routes for an antenna or utility mast. */
 export interface MastAssembly {
   variant: MastVariant;
@@ -163,9 +176,11 @@ export interface MastAssembly {
   supports: FittedSegment[];
   cableAttachments: P3[];
   cables: FittedCable[];
+  externalAttachments: ExternalAttachment[];
 }
 
 export interface RoofArtifact {
+  id: string;
   kind: RoofArtifactKind;
   center: P2;
   size: P3;

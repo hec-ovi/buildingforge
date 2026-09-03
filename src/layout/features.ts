@@ -462,7 +462,7 @@ function buildRoof(
     // The stair head and the walk space around it are taken before anything lands.
     if (bulkhead) placed.push(bulkheadKeepOut(bulkhead));
     const [cx0, cz0] = centroid(outline);
-    for (const rule of ROOF_ARTIFACTS[family]) {
+    for (const [ruleIndex, rule] of ROOF_ARTIFACTS[family].entries()) {
       if (!rng.chance(rule.chance)) continue;
       const w = quant(rng.range(...rule.size[0]));
       const d = quant(rng.range(...rule.size[1]));
@@ -475,6 +475,7 @@ function buildRoof(
       if (!spot) continue;
       placed.push({ cx: spot[0], cz: spot[1], hw: ww / 2 + 0.4, hd: dd / 2 + 0.4 });
       const artifact: RoofArtifact = {
+        id: `roof-artifact:${rule.kind}:${ruleIndex}`,
         kind: rule.kind, center: [quant(spot[0]), quant(spot[1])], size: [w, d, h], rotationDeg,
       };
       if (rule.mastVariant) artifact.mastAssembly = buildMastAssembly(artifact, elevation, rule.mastVariant);
