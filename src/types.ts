@@ -168,7 +168,18 @@ export interface Blueprint {
     normal: P2;
   }[];
   screens: { edge: number; center: P3; width: number; height: number; standoff: number; normal: P2 }[];
-  lights: { kind: 'entrance' | 'accent'; position: P3; normal: P2 }[];
+  lights: {
+    kind: 'entrance' | 'accent';
+    /** carrying ground-outline edge */
+    edge: number;
+    /** centre of the fixture's rear mounting face on the facade plane */
+    position: P3;
+    normal: P2;
+    /** width, height, outward depth */
+    size: P3;
+    /** distance from the wall plane to the mounting face, for a flush relief mount */
+    standoff: number;
+  }[];
   facade: {
     style: 'megablock' | 'panel' | 'glass' | 'curtain-wall';
     panelModule: number;

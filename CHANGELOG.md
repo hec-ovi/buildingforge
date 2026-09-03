@@ -1,5 +1,7 @@
 # Changelog
 
+0.37.0: exterior fixtures now mount in the carrying facade's basis instead of the world axes. Their rear face sits flush on wall or relief, world Y stays upright, and only one exact front quad uses the emissive light material; the other five housing faces use painted frame metal. The blueprint publishes edge, anchor, size, standoff and outward normal, with cardinal-orientation geometry tests.
+
 0.36.0: marquee and blade letters now carry individual four-member metal cases with real depth. The luminous atlas face sits recessed inside each case, while the published outer size, depth and inset remain inside the deterministic letter cell and preserve glyph holes.
 
 0.35.0: long hotel, office, corpo and commerce frontages repeat the accepted main entrance as complete metre-aligned assemblies instead of stretching one door to represent a large building. Each opening publishes its main, secondary or service role so interior and navigation can connect it, while width, height, frame set, material and movement clearance remain consistent across the frontage.

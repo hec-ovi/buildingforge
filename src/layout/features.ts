@@ -315,9 +315,6 @@ function placeScreens(
   }
 }
 
-/** The fixture box the mesher builds (0.16 wide, 0.28 tall) plus the clearance a plate keeps from it. */
-const FIXTURE = { width: 0.16, height: 0.28, clearance: 0.05 };
-
 function placeLights(
   req: BuildingRequest, family: Family, ground: P2[], streetEdge: number,
   groundFloor: FloorLayout, out: Blueprint['lights'], obstacles: Map<number, Rect[]>,
@@ -326,18 +323,10 @@ function placeLights(
   // the face's obstacle map before any sign or screen is scanned in.
   for (const o of groundFloor.openings) {
     if (o.kind !== 'door') continue;
-    const normal = edgeNormal(ground, o.edge);
     const y = cellCentre(Math.min(o.height + 0.4, groundFloor.height - 0.2), MODULE);
     // one lantern in the centre of the panel either side of the door, on the panel row over its head
     for (const u of [o.offset - MODULE_U / 2, o.offset + o.width + MODULE_U / 2]) {
-      out.push({ kind: 'entrance', position: facePoint(ground, o.edge, u, y), normal });
-      const list = obstacles.get(o.edge) ?? [];
-      list.push({
-        u0: u - FIXTURE.width / 2 - FIXTURE.clearance, u1: u + FIXTURE.width / 2 + FIXTURE.clearance,
-        y0: y - FIXTURE.height / 2 - FIXTURE.clearance, y1: y + FIXTURE.height / 2 + FIXTURE.clearance,
-        what: 'entrance fixture', kind: 'relief', depth: 0.16,
-      });
-      obstacles.set(o.edge, list);
+      mountLight('entrance', ground, o.edge, u, y, out, obstacles);
     }
   }
   if (!LIGHTING.accentFamilies.includes(family)) return;
@@ -352,8 +341,41 @@ function placeLights(
   for (let u = OPENING.cornerMargin + spacing / 2; u < L - OPENING.cornerMargin; u += spacing) {
     const overOpening = openingsOnEdge.some((o) => u > o.offset - 0.3 && u < o.offset + o.width + 0.3 && y > o.sill && y < o.sill + o.height + 0.5);
     if (overOpening) continue;
-    out.push({ kind: 'accent', position: facePoint(ground, e, cellCentre(u, MODULE_U), y), normal: edgeNormal(ground, e) });
+    mountLight('accent', ground, e, cellCentre(u, MODULE_U), y, out, obstacles);
   }
+}
+
+/** Mount one upright fixture on the outermost surface at its facade seat. */
+function mountLight(
+  kind: 'entrance' | 'accent', ground: P2[], edge: number, u: number, y: number,
+  out: Blueprint['lights'], obstacles: Map<number, Rect[]>,
+): boolean {
+  const fixture = LIGHTING.fixture;
+  const footprint: Rect = {
+    u0: u - fixture.width / 2,
+    u1: u + fixture.width / 2,
+    y0: y - fixture.height / 2,
+    y1: y + fixture.height / 2,
+    what: `${kind} light fixture`, kind: 'opening', depth: 0,
+  };
+  const on = crossed(obstacles.get(edge), footprint);
+  if (on.some((item) => item.kind === 'opening' || item.kind === 'glazing')) return false;
+  const standoff = on.reduce((depth, item) => Math.max(depth, item.depth), 0);
+  out.push({
+    kind, edge, position: facePoint(ground, edge, u, y), normal: edgeNormal(ground, edge),
+    size: [fixture.width, fixture.height, fixture.depth], standoff,
+  });
+  const list = obstacles.get(edge) ?? [];
+  list.push({
+    ...footprint,
+    u0: footprint.u0 - fixture.clearance,
+    u1: footprint.u1 + fixture.clearance,
+    y0: footprint.y0 - fixture.clearance,
+    y1: footprint.y1 + fixture.clearance,
+    depth: standoff + fixture.depth,
+  });
+  obstacles.set(edge, list);
+  return true;
 }
 
 function placeFireEscape(

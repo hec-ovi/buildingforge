@@ -22,7 +22,7 @@ import { buildFeatures } from './layout/features.ts';
 import { buildMesh } from './mesh/mesher.ts';
 import { writeGlb } from './glb/writer.ts';
 import { buildBlueprint } from './blueprint/builder.ts';
-import { area, edgeLength, pointSegmentDistance, type P2 } from './core/polygon.ts';
+import { area, edgeLength, edgeNormal, pointSegmentDistance, type P2 } from './core/polygon.ts';
 import { ExteriorError } from './core/errors.ts';
 import type { FloorLayout, Layout } from './layout/model.ts';
 import type { GenerateOptions, GenerateResult, P3 } from './types.ts';
@@ -90,6 +90,7 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
   checkSlabBands(layout);
   checkOverlays(layout, obstacles);
   checkFacadeArtifacts(layout, obstacles);
+  checkLights(layout);
   for (const sign of layout.signage) {
     if (sign.mode !== 'marquee') continue;
     const cell = sign.cellSize ?? 0;
@@ -141,6 +142,25 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
       }
     }
     checkEdgeRuns(floor);
+  }
+}
+
+/** Fixture anchors and outward axes remain tied to the carrying facade. */
+function checkLights(layout: Layout): void {
+  const ground = layout.floors.find((floor) => floor.index === 0)!;
+  for (const light of layout.lights) {
+    const edge = light.edge;
+    const normal = edge < ground.outline.length ? edgeNormal(ground.outline, edge) : null;
+    const onFace = edge < ground.outline.length
+      && pointSegmentDistance([light.position[0], light.position[2]],
+        ground.outline[edge]!, ground.outline[(edge + 1) % ground.outline.length]!) < 1e-6;
+    const oriented = normal !== null
+      && Math.abs(light.normal[0] - normal[0]) < 1e-9
+      && Math.abs(light.normal[1] - normal[1]) < 1e-9;
+    if (!onFace || !oriented || light.size.some((value) => value <= 0) || light.standoff < 0) {
+      throw new ExteriorError('E_INVARIANT',
+        `light on edge ${edge} has an invalid mount anchor, size or outward axis; exterior bug, report with the request`);
+    }
   }
 }
 

@@ -548,6 +548,75 @@ describe('blueprint invariants', () => {
   });
 });
 
+describe('exterior light orientation', () => {
+  it('mounts one upright emissive face outward on every cardinal facade', async () => {
+    const sides = [
+      { access: [10, -3], normal: [0, -1] },
+      { access: [23, 10], normal: [1, 0] },
+      { access: [10, 23], normal: [0, 1] },
+      { access: [-3, 10], normal: [-1, 0] },
+    ] as const;
+
+    for (const [side, expected] of sides.entries()) {
+      const request = {
+        seed: `light-side-${side}`, buildingId: `light-${side}`,
+        parcel: { footprint: [[0, 0], [20, 0], [20, 20], [0, 20]], accessPoint: expected.access, maxHeight: 16 },
+        building: { type: 'police', tier: 'mid', floors: 2 },
+        theme: 'cyberpunk',
+        options: { shape: 'box', windows: 'none', balconies: 'off', signage: null },
+      };
+      const { glb, blueprint } = await generate(request, KEYS);
+      const ground = blueprint.floors.find((floor) => floor.index === 0)!;
+      const entrance = ground.openings.find((opening) => opening.id === 'entrance')!;
+      const lights = blueprint.lights.filter((light) => light.kind === 'entrance');
+      expect(lights.length).toBeGreaterThan(0);
+      expect(lights.every((light) => light.edge === entrance.edge)).toBe(true);
+      expect(new Set(lights.map((light) => light.position.join(','))).size).toBe(lights.length);
+      expect(lights.every((light) => light.normal[0] === expected.normal[0]
+        && light.normal[1] === expected.normal[1])).toBe(true);
+
+      const doc = await new NodeIO().readBinary(glb);
+      for (const [i, light] of blueprint.lights.entries()) {
+        const mesh = doc.getRoot().listNodes().find((node) => node.getName() === `light:${i}`)!.getMesh()!;
+        const lens = mesh.listPrimitives()
+          .find((primitive) => primitive.getMaterial()!.getName().split('/')[1] === 'light-fixture')!;
+        const housing = mesh.listPrimitives()
+          .find((primitive) => primitive.getMaterial()!.getName().split('/')[1] === 'window-frame')!;
+        expect(lens.getAttribute('POSITION')!.getCount()).toBe(4);
+        expect(housing).toBeDefined();
+        expect(light.size).toEqual([0.16, 0.28, 0.08]);
+
+        const position = lens.getAttribute('POSITION')!;
+        const normal = lens.getAttribute('NORMAL')!;
+        const ys: number[] = [];
+        for (let v = 0; v < position.getCount(); v++) {
+          const p = position.getElement(v, [0, 0, 0]) as number[];
+          const n = normal.getElement(v, [0, 0, 0]) as number[];
+          const depth = (p[0]! - light.position[0]) * light.normal[0]
+            + (p[2]! - light.position[2]) * light.normal[1];
+          expect(depth).toBeCloseTo(light.standoff + light.size[2] + 0.001, 5);
+          expect(n[0]).toBeCloseTo(light.normal[0], 6);
+          expect(n[1]).toBeCloseTo(0, 6);
+          expect(n[2]).toBeCloseTo(light.normal[1], 6);
+          ys.push(p[1]!);
+        }
+        expect(Math.min(...ys)).toBeCloseTo(light.position[1] - light.size[1] / 2, 5);
+        expect(Math.max(...ys)).toBeCloseTo(light.position[1] + light.size[1] / 2, 5);
+
+        const housingPosition = housing.getAttribute('POSITION')!;
+        const housingDepths: number[] = [];
+        for (let v = 0; v < housingPosition.getCount(); v++) {
+          const p = housingPosition.getElement(v, [0, 0, 0]) as number[];
+          housingDepths.push((p[0]! - light.position[0]) * light.normal[0]
+            + (p[2]! - light.position[2]) * light.normal[1]);
+        }
+        expect(Math.min(...housingDepths)).toBeCloseTo(light.standoff, 5);
+        expect(Math.max(...housingDepths)).toBeCloseTo(light.standoff + light.size[2], 5);
+      }
+    }
+  });
+});
+
 describe('apertures', () => {
   let bp: Blueprint;
 

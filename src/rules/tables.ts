@@ -294,6 +294,7 @@ export const FIRE_ESCAPE = {
 };
 
 export const LIGHTING = {
+  fixture: { width: 0.16, height: 0.28, depth: 0.08, clearance: 0.05 },
   accentSpacing: [4, 8] as [number, number],
   accentFamilies: ['corpo', 'office', 'hotel', 'commerce'] as string[],
 };

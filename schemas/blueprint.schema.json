@@ -211,12 +211,15 @@
       "default": [],
       "items": {
         "type": "object",
-        "required": ["kind", "position", "normal"],
+        "required": ["kind", "edge", "position", "normal", "size", "standoff"],
         "additionalProperties": false,
         "properties": {
           "kind": { "enum": ["entrance", "accent"] },
-          "position": { "$ref": "#/$defs/point3" },
-          "normal": { "$ref": "#/$defs/point2" }
+          "edge": { "type": "integer", "minimum": 0, "description": "carrying ground-outline edge" },
+          "position": { "$ref": "#/$defs/point3", "description": "centre of the rear mounting face on the facade plane" },
+          "normal": { "$ref": "#/$defs/point2", "description": "unit outward direction of the luminous face" },
+          "size": { "$ref": "#/$defs/point3", "description": "fixture width, height and outward depth" },
+          "standoff": { "type": "number", "minimum": 0, "description": "distance from wall plane to rear mounting face; equals crossed facade relief depth for a flush mount" }
         }
       }
     },

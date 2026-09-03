@@ -661,8 +661,23 @@ function meshFeatures(mb: MeshBuilder, layout: Layout, mat: (k: string) => strin
   layout.signage.forEach((s, i) => meshSign(mb.part(`signage:${i}`), s, mat));
   layout.screens.forEach((s, i) => plate(mb.part(`screen:${i}`), s.center, s.normal, s.width, s.height, s.standoff + 0.1, mat('ad-screen'), s.standoff));
   layout.lights.forEach((l, i) => {
-    const c = add(l.position, [l.normal[0] * 0.1, 0, l.normal[1] * 0.1]);
-    mb.part(`light:${i}`).aabox(mat('light-fixture'), c, 0.16, 0.16, 0.28);
+    const sink = mb.part(`light:${i}`);
+    const n: V3 = [l.normal[0], 0, l.normal[1]];
+    const right: V3 = [l.normal[1], 0, -l.normal[0]];
+    const up: V3 = [0, 1, 0];
+    const [width, height, depth] = l.size;
+    const mount = add(l.position, scale(n, l.standoff));
+    sink.box(mat('window-frame'), add(mount, scale(n, depth / 2)),
+      scale(right, width / 2), scale(up, height / 2), scale(n, depth / 2));
+    const front = add(mount, scale(n, depth + 0.001));
+    const h = scale(right, width / 2);
+    const v = scale(up, height / 2);
+    sink.quadFacing(mat('light-fixture'),
+      add(add(front, scale(h, -1)), scale(v, -1)),
+      add(add(front, h), scale(v, -1)),
+      add(add(front, h), v),
+      add(add(front, scale(h, -1)), v),
+      n, [[0, 1], [1, 1], [1, 0], [0, 0]]);
   });
 }
 
