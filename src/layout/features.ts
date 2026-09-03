@@ -453,6 +453,7 @@ function buildRoof(
 ): Blueprint['roof'] {
   const topFloor = floors[floors.length - 1]!;
   const outline = topFloor.outline;
+  const elevation = quant(top);
   const artifacts: RoofArtifact[] = [];
   const bulkhead = placeBulkhead(req, floors, coreFrameAxis);
   if ((req.options?.roofArtifacts ?? 'auto') !== 'off') {
@@ -476,11 +477,11 @@ function buildRoof(
       const artifact: RoofArtifact = {
         kind: rule.kind, center: [quant(spot[0]), quant(spot[1])], size: [w, d, h], rotationDeg,
       };
-      if (rule.mastVariant) artifact.mastAssembly = buildMastAssembly(artifact, top, rule.mastVariant);
+      if (rule.mastVariant) artifact.mastAssembly = buildMastAssembly(artifact, elevation, rule.mastVariant);
       artifacts.push(artifact);
     }
   }
-  return { elevation: quant(top), outline, parapetHeight: style.parapetHeight, bulkhead, artifacts };
+  return { elevation, outline, parapetHeight: style.parapetHeight, bulkhead, artifacts };
 }
 
 /**

@@ -1,5 +1,7 @@
 # Changelog
 
+0.43.1: fitted mast assemblies use the published roof elevation, including buildings whose connection apertures produce non-module floor heights.
+
 0.43.0: roof antennas and crossarm masts are fitted assemblies with exact masts, arms, four-point supports, cable attachment points and connected cable paths. Their blueprint records drive the GLB geometry and their complete footprint stays clear of roof access.
 
 0.42.1: curtain-wall spandrels now occupy the head of each storey, covering the interior ceiling plenum and slab edge. The blueprint publishes the full band below the next walking surface, with zero lower spandrel, and the built vision glass stops below that head on irregular as well as module-height floors.

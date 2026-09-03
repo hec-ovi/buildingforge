@@ -30,6 +30,7 @@ const shallow = fixture('shallow-tower');
 const pinned = fixture('pinned-tower');
 const rotatedCore = fixture('rotated-core');
 const urbeP15 = fixture('urbe-p15');
+const urbeP7 = fixture('urbe-p7');
 
 async function code(req: unknown): Promise<string> {
   try {
@@ -1909,6 +1910,14 @@ describe('roof access', () => {
       expect([...materials].some((name) => name.startsWith('cyberpunk/roof-artifact/'))).toBe(true);
       expect([...materials].some((name) => name.startsWith('cyberpunk/metal/'))).toBe(true);
     }
+  });
+
+  it('anchors fitted masts to the published roof above connection-fitted floors', async () => {
+    const { blueprint } = await generate(urbeP7, KEYS);
+    const artifact = blueprint.roof.artifacts.find((item) => item.kind === 'antenna')!;
+    expect(artifact.mastAssembly!.mast.from[1]).toBeCloseTo(blueprint.roof.elevation + 0.1, 3);
+    expect(artifact.mastAssembly!.mast.to[1])
+      .toBeCloseTo(blueprint.roof.elevation + artifact.size[2], 3);
   });
 
   it('keeps roof artifacts clear of the bulkhead and its walk space', async () => {

@@ -2,7 +2,7 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.43.0, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
+Status: v0.43.1, implemented. Schemas stable to build against; additive fields may come, breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
@@ -99,7 +99,7 @@ Thrown as `ExteriorError { code, message, details? }`:
 - Every balconyDoor resolves through `balcony.bandId` to exactly one band on the same floor and face. Its width and depth match the band, its opening lies within the band run, and every band lists at least one real access door. Balconies protrude beyond the outline but stay inside the parcel footprint. An aperture-pinned or otherwise constrained face with no room keeps the window instead.
 - Office curtain-wall balcony doors occur on one alternating-floor phase, retain glazing beside them, and stop under the same head band as the vision panels. `options.balconies: "off"` removes them and their bands.
 - The structure never exceeds the parcel footprint; it need not fill it. Whole candidate edges are checked against every interval of a concave boundary, including massing rings, roof housings, roof artifacts and condenser runs, so an edge cannot leave and re-enter through a notch between otherwise valid corners.
-- Every antenna and mast has one fitted assembly. Every cable starts at its matching published attachment, all paths terminate at the assembly junction, and all support and arm endpoints stay inside the accepted artifact footprint.
+- Every antenna and mast has one fitted assembly anchored to the published `roof.elevation`. Every cable starts at its matching published attachment, all paths terminate at the assembly junction, and all support and arm endpoints stay inside the accepted artifact footprint.
 - Every facade-service segment joins published nodes, every endpoint resolves to a published artifact or emitted service unit, and every route support lies on its segment and reaches the wall. Clothesline supports terminate on their line and every item attaches to it. Services and clothes remain clear of all reserved openings, fixtures and access routes and stay within the published service limits.
 - Blueprint floors match GLB geometry exactly (same outlines, same opening rectangles).
 
