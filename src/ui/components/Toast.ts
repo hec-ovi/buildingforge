@@ -5,10 +5,6 @@ export interface ToastOptions {
   type?: ToastType;
 }
 
-/**
- * Toast Notification System with square corners, fast slide/fade transitions,
- * and dark technical styling.
- */
 export class ToastManager {
   private static instance: ToastManager | null = null;
   readonly root: HTMLElement;
@@ -54,13 +50,12 @@ export class ToastManager {
       if (timer) clearTimeout(timer);
       toast.classList.add('toast-exit');
       toast.addEventListener(
-        'animationend',
+        'transitionend',
         () => {
           toast.remove();
         },
         { once: true },
       );
-      // Fallback removal if animationend doesn't fire in test environment
       setTimeout(() => toast.remove(), 160);
     };
 

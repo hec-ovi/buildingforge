@@ -2,7 +2,6 @@
 *::before,
 *::after {
   box-sizing: border-box;
-  border-radius: 0 !important;
 }
 
 :root {
@@ -227,6 +226,8 @@ body {
 /* Inputs & Selects */
 select,
 input[type="text"] {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
   height: 30px;
   background: var(--bg-input);
@@ -259,6 +260,8 @@ select {
 
 /* Buttons */
 button {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
   height: 30px;
   padding: 5px 12px;
@@ -368,12 +371,12 @@ input[type="range"]::-moz-range-track {
 }
 
 input[type="range"]::-moz-range-thumb {
+  appearance: none;
   width: 12px;
   height: 12px;
   background: var(--accent-cyan);
   border: 1px solid #7dd3fc;
   box-shadow: 0 0 4px rgba(56, 189, 248, 0.4);
-  border-radius: 0;
 }
 
 /* Toggles */
