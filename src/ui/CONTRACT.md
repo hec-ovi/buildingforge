@@ -2,7 +2,7 @@
 
 Purpose: renders one generated exterior in a browser and exposes fixture, seed, camera, clipping and inspection controls.
 
-Status: v0.44.0, implemented.
+Status: v0.46.1, implemented.
 
 ## Entry
 
@@ -37,6 +37,7 @@ A failed theme fetch supplies `null`, so the generator reports its normal keys f
 ## Invariants
 
 - Presentation code calls the root generator and contains no building rules.
+- The initial browser module graph contains no Node filesystem adapter. Core-fit constants come from Interior's published JSON schema through a static data import.
 - Requests are cloned before the seed is applied; fixtures remain unchanged.
 - The seed field always shows the seed sent to generation.
 - A theme fetch is cached once per theme. Generated GLB and blueprint values always come from the same call.

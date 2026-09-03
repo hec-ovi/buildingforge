@@ -8,7 +8,7 @@
 
 - src/core: seeded rng, random seeds for standalone runs, polygon math, request validation, error set.
 - src/rules: template families, the researched numeric tables (docs/RESEARCH.md), the published proportion table and its fit arithmetic, and the signage glyph cells.
-- src/layout: style freeze, massing and the shared core placement every plate keeps (src/layout/core.ts, read from the interior's published constants and stair recipe), floor stack, facade bays, shared balcony bands, exact panel seams and partition anchors, glazing pane grids, facade relief, the per-face obstacle map and its clear-rectangle scan, condenser unit clusters, stable roof artifact IDs, fitted mast assemblies and external cable attachments, features. Depends on core and rules.
+- src/layout: style freeze, massing and the shared core placement every plate keeps (src/layout/core.ts, using the browser-safe static view of Interior's published constants in src/layout/coreFeasibility.ts), floor stack, facade bays, shared balcony bands, exact panel seams and partition anchors, glazing pane grids, facade relief, the per-face obstacle map and its clear-rectangle scan, condenser unit clusters, stable roof artifact IDs, fitted mast assemblies and external cable attachments, features. Depends on core and rules.
 - src/mesh: winding-safe primitives, shared tube sections, fitted facade relief, recognizable facade and roof equipment, mast geometry, trapezoid wall cutting, caps, mesher, the wall depth measure. Depends on layout.
 - src/materials: the materials box seen from here: theme index types, key resolution, glTF material building, and the sources that read the database from disk or over HTTP.
 - src/glb + src/blueprint: output writers. Depend on mesh, layout and materials.

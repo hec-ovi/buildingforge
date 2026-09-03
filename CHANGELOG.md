@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.1: the browser preview reads Interior's published core-fit constants as static data, so its initial module graph has no Node filesystem adapter.
+
 0.46.0: roof equipment uses fitted use-specific geometry, including guarded HVAC and cooling-tower fans, tanks, stacks, vents, solar panels and dishes. Each artifact has a stable ID. Whip antennas and crossarm masts publish schema-defined external cable attachments with exact position, orientation and reserved roof-plane clearance.
 
 0.45.0: facade condensers have modeled fan guards, spokes, blades, hubs and wall brackets over their exact grille material. Cable-bundle profiles build 12 or 15 separate slack strands through their published bends, fitted holders and a detailed wall entry.

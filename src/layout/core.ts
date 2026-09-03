@@ -2,9 +2,9 @@
 // interior's published schema; this module deliberately imports no interior
 // implementation code.
 
-import { readFileSync } from 'node:fs';
 import { CORE_PLATE } from '../rules/tables.ts';
 import { pointInPolygon, type P2 } from '../core/polygon.ts';
+import { CORE_CONSTANTS } from './coreFeasibility.ts';
 
 export interface CoreRect {
   /** required run along the core frame */
@@ -16,94 +16,7 @@ export interface CoreRect {
   columnDepth?: number;
 }
 
-interface Constants {
-  snap: number;
-  corridorWidth: number;
-  elevatorShaft: number;
-  riserShaft: number;
-  serviceStub: number;
-  margin: number;
-  minStripDepth: number;
-  singleLoadedBelowDepth: number;
-  vFaceScanRange: number;
-  frameSweepStepDeg: number;
-  stairColumnWidth: number;
-  walkupMaxFloors: number;
-  stairRiserMin: number;
-  stairRiserIdeal: number;
-  stairRiserMax: number;
-  stairTread: number;
-  maxRisersPerFlight: number;
-  stairLanding: number;
-  wallThickness: number;
-  twoStairsAreaOver: number;
-  twoStairsFloorsOver: number;
-  facadeDepth: Record<string, number>;
-}
-
-const FALLBACK: Constants = {
-  snap: 0.5,
-  corridorWidth: 2.5,
-  elevatorShaft: 2.5,
-  riserShaft: 1.2,
-  serviceStub: 1.2,
-  margin: 0.5,
-  minStripDepth: 3,
-  singleLoadedBelowDepth: 12.5,
-  vFaceScanRange: 8,
-  frameSweepStepDeg: 5,
-  stairColumnWidth: 2.5,
-  walkupMaxFloors: 6,
-  stairRiserMin: 0.16,
-  stairRiserIdeal: 0.17,
-  stairRiserMax: 0.18,
-  stairTread: 0.28,
-  maxRisersPerFlight: 14,
-  stairLanding: 1.2,
-  wallThickness: 0.1,
-  twoStairsAreaOver: 460,
-  twoStairsFloorsOver: 4,
-  facadeDepth: {},
-};
-
-const CONSTANTS = readConstants();
-
-function readConstants(): Constants {
-  try {
-    const raw = JSON.parse(readFileSync(
-      new URL('../../../interior/schemas/core-feasibility.json', import.meta.url), 'utf8')).constants as Record<string, unknown>;
-    const values: Constants = {
-      snap: raw.snap as number,
-      corridorWidth: raw.corridorWidth as number,
-      elevatorShaft: raw.elevatorShaft as number,
-      riserShaft: raw.riserShaft as number,
-      serviceStub: raw.serviceStub as number,
-      margin: raw.margin as number,
-      minStripDepth: raw.minStripDepth as number,
-      singleLoadedBelowDepth: raw.singleLoadedBelowDepth as number,
-      vFaceScanRange: raw.vFaceScanRange as number,
-      frameSweepStepDeg: raw.frameSweepStepDeg as number,
-      stairColumnWidth: raw.stairColumnWidth as number,
-      walkupMaxFloors: raw.walkupMaxFloors as number,
-      stairRiserMin: raw.stairRiserMin as number,
-      stairRiserIdeal: raw.stairRiserIdeal as number,
-      stairRiserMax: raw.stairRiserMax as number,
-      stairTread: raw.stairTread as number,
-      maxRisersPerFlight: raw.maxRisersPerFlight as number,
-      stairLanding: raw.stairLanding as number,
-      wallThickness: raw.wallThickness as number,
-      twoStairsAreaOver: raw.twoStairsAreaOver as number,
-      twoStairsFloorsOver: raw.twoStairsFloorsOver as number,
-      facadeDepth: raw.facadeDepth as Record<string, number>,
-    };
-    const scalars = Object.entries(values).filter(([key]) => key !== 'facadeDepth').map(([, value]) => value);
-    if (!scalars.every((value) => Number.isFinite(value) && (value as number) > 0)) return FALLBACK;
-    if (!values.facadeDepth || !Object.values(values.facadeDepth).every((v) => Number.isFinite(v) && v > 0)) return FALLBACK;
-    return values;
-  } catch {
-    return FALLBACK;
-  }
-}
+const CONSTANTS = CORE_CONSTANTS;
 
 /** How far behind the outline skin the interior plate starts, by facade style. */
 export function facadeDepth(style: string): number {

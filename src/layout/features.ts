@@ -1,6 +1,5 @@
 // Facade and roof features: signage, ad screens, lights, fire escape, roof artifacts.
 
-import { readFileSync } from 'node:fs';
 import { ExteriorError } from '../core/errors.ts';
 import { cellCentre } from './module.ts';
 import { Rng } from '../core/rng.ts';
@@ -13,6 +12,7 @@ import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
 import type { FloorLayout, Style } from './model.ts';
 import { buildMastAssembly } from './mastAssembly.ts';
+import { CORE_CONSTANTS } from './coreFeasibility.ts';
 
 export interface Features {
   signage: Blueprint['signage'];
@@ -567,7 +567,16 @@ function spanZ(outline: P2[]): number {
 }
 
 /** The interior's stair constants, as it publishes them for consumers (../interior/schemas/core-feasibility.json). */
-const STAIR_CONSTANTS = readStairConstants();
+const STAIR_CONSTANTS: StairConstants = {
+  columnWidth: CORE_CONSTANTS.stairColumnWidth,
+  riserMin: CORE_CONSTANTS.stairRiserMin,
+  riserIdeal: CORE_CONSTANTS.stairRiserIdeal,
+  riserMax: CORE_CONSTANTS.stairRiserMax,
+  tread: CORE_CONSTANTS.stairTread,
+  maxRisersPerFlight: CORE_CONSTANTS.maxRisersPerFlight,
+  landing: CORE_CONSTANTS.stairLanding,
+  wallThickness: CORE_CONSTANTS.wallThickness,
+};
 
 interface StairConstants {
   columnWidth: number;
@@ -580,25 +589,6 @@ interface StairConstants {
   wallThickness: number;
 }
 
-function readStairConstants(): StairConstants | null {
-  try {
-    const c = JSON.parse(readFileSync(new URL('../../../interior/schemas/core-feasibility.json', import.meta.url), 'utf8')).constants;
-    const values: StairConstants = {
-      columnWidth: c.stairColumnWidth,
-      riserMin: c.stairRiserMin,
-      riserIdeal: c.stairRiserIdeal,
-      riserMax: c.stairRiserMax,
-      tread: c.stairTread,
-      maxRisersPerFlight: c.maxRisersPerFlight,
-      landing: c.stairLanding,
-      wallThickness: c.wallThickness,
-    };
-    return Object.values(values).every((v) => Number.isFinite(v) && v > 0) ? values : null;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * The side of the square the stair head needs: the stair column width or the
  * shaft depth, whichever is longer, by the interior's own recipe (step 5 of
@@ -608,7 +598,7 @@ function readStairConstants(): StairConstants | null {
  */
 function stairHeadSide(floorHeights: number[]): number | null {
   const c = STAIR_CONSTANTS;
-  if (!c || floorHeights.length === 0) return null;
+  if (floorHeights.length === 0) return null;
   const climbs = [...floorHeights];
   for (let i = 0; i + 1 < floorHeights.length; i++) climbs.push(floorHeights[i]! + floorHeights[i + 1]!);
   let worst = 0;
