@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { userEvent } from '@testing-library/user-event';
 import { getByText } from '@testing-library/dom';
+import { DoubleSide } from 'three';
 import { RequestPanel } from '../src/ui/widgets/RequestPanel.ts';
 import { flatMaterialFor } from '../src/ui/views/flatMaterials.ts';
 import { streetEyeCamera } from '../src/ui/views/cameras.ts';
@@ -113,5 +114,6 @@ describe('preview textures', () => {
     expect(wall.transparent).toBe(false);
     expect(wall.opacity).toBe(1);
     expect(flatMaterialFor('cyberpunk/window-glass/mid').transparent).toBe(true);
+    expect(flatMaterialFor('cyberpunk/curtain/mid').side).toBe(DoubleSide);
   });
 });

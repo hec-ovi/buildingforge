@@ -2,7 +2,7 @@
 // the textured building is too busy. Walls stay opaque and single sided, so a
 // solid facade never reads as a hole.
 
-import { MeshStandardMaterial } from 'three';
+import { DoubleSide, MeshStandardMaterial } from 'three';
 
 const KIND_COLORS: Record<string, { color: number; opacity?: number }> = {
   'wall': { color: 0x8a8a92 },
@@ -37,5 +37,6 @@ export function flatMaterialFor(materialName: string): MeshStandardMaterial {
     opacity: spec.opacity ?? 1,
     metalness: 0.1,
     roughness: 0.85,
+    ...(kind === 'curtain' ? { side: DoubleSide } : {}),
   });
 }
