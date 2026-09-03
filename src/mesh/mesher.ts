@@ -6,6 +6,7 @@ import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown, capFrame, type CapFrame } from './caps.ts';
 import { meshAnchorMount } from './anchorMount.ts';
 import { meshRoofArtifacts } from './mastAssembly.ts';
+import { meshFacadeRelief } from './facadeRelief.ts';
 import { tubeSegment } from './tube.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { AC_UNITS, BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
@@ -647,40 +648,6 @@ function meshBalconyBand(
   // Side rails.
   for (const s of [-1, 1]) {
     sink.box(mat('balcony-rail'), at(fr, [uc + s * (width / 2 - railT / 2), railY], depth / 2), [fr.dir[0] * railT / 2, 0, fr.dir[1] * railT / 2], [0, railH / 2, 0], [fr.n[0] * depth / 2, 0, fr.n[1] * depth / 2]);
-  }
-}
-
-/**
- * Panel relief: vertical ribs on the whole-tile grid the wall material tiles on,
- * and a band at each floor line. The megablock tier reads heavy, the panel tier
- * thin, glass facades get none.
- */
-function meshFacadeRelief(mb: MeshBuilder, layout: Layout, above: FloorLayout[], top: number, mat: (k: string) => string): void {
-  const f = layout.style.facade;
-  const relief = layout.relief;
-  if (f.ribWidth <= 0 || above.length === 0) return;
-  const sink = mb.part('facade-relief');
-  const material = mat('wall-trim');
-
-  relief.byEdge.forEach((face, e) => {
-    const fr = frame(relief.outline, e);
-    for (const u of face.ribs) {
-      sink.box(material, at(fr, [u, top / 2], f.ribDepth / 2),
-        [fr.dir[0] * f.ribWidth / 2, 0, fr.dir[1] * f.ribWidth / 2],
-        [0, top / 2, 0],
-        [fr.n[0] * f.ribDepth / 2, 0, fr.n[1] * f.ribDepth / 2]);
-    }
-  });
-
-  for (const fl of above) {
-    if (fl.index === 0) continue; // the ground band would sit on the pavement
-    for (let e = 0; e < fl.outline.length; e++) {
-      const fr = frame(fl.outline, e);
-      sink.box(material, at(fr, [fr.len / 2, fl.elevation], f.bandProud / 2),
-        [fr.dir[0] * fr.len / 2, 0, fr.dir[1] * fr.len / 2],
-        [0, f.bandHeight / 2, 0],
-        [fr.n[0] * f.bandProud / 2, 0, fr.n[1] * f.bandProud / 2]);
-    }
   }
 }
 

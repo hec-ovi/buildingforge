@@ -31,6 +31,7 @@ const pinned = fixture('pinned-tower');
 const rotatedCore = fixture('rotated-core');
 const urbeP15 = fixture('urbe-p15');
 const urbeP7 = fixture('urbe-p7');
+const reviewP2 = fixture('review-urbe-p2');
 
 async function code(req: unknown): Promise<string> {
   try {
@@ -1633,6 +1634,52 @@ describe('window units', () => {
         }
       }
       expect(checked, 'the fixture carries punched windows').toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('facade relief', () => {
+  it('wraps every p2 floor band through each convex building corner', async () => {
+    const request = {
+      ...reviewP2,
+      options: { ...(reviewP2.options as Record<string, unknown>), glb: 'named' },
+    };
+    const { glb, blueprint } = await generate(request, KEYS);
+    expect(blueprint.seed).toBe('urbe:p2');
+    const doc = await new NodeIO().readBinary(glb);
+    const node = doc.getRoot().listNodes().find((candidate) => candidate.getName() === 'facade-relief')!;
+    const vertices: [number, number, number][] = [];
+    const point: number[] = [];
+    for (const primitive of node.getMesh()!.listPrimitives()) {
+      const positions = primitive.getAttribute('POSITION')!;
+      for (let index = 0; index < positions.getCount(); index++) {
+        positions.getElement(index, point);
+        vertices.push([point[0]!, point[1]!, point[2]!]);
+      }
+    }
+
+    const floors = blueprint.floors.filter((floor) => floor.index > 0);
+    expect(floors.length).toBeGreaterThan(0);
+    for (const floor of floors) {
+      const outline = floor.outline;
+      const signedArea = outline.reduce((sum, vertex, index) => {
+        const next = outline[(index + 1) % outline.length]!;
+        return sum + vertex[0] * next[1] - next[0] * vertex[1];
+      }, 0);
+      for (let index = 0; index < outline.length; index++) {
+        const previous = (index + outline.length - 1) % outline.length;
+        const a = outline[previous]!, b = outline[index]!, c = outline[(index + 1) % outline.length]!;
+        const previousDirection: [number, number] = [b[0] - a[0], b[1] - a[1]];
+        const nextDirection: [number, number] = [c[0] - b[0], c[1] - b[1]];
+        const turn = previousDirection[0] * nextDirection[1] - previousDirection[1] * nextDirection[0];
+        if (turn * signedArea <= 0) continue;
+        const previousNormal = outwardNormal(outline, previous);
+        const nextNormal = outwardNormal(outline, index);
+        const joined = vertices.some(([x, y, z]) => Math.abs(y - floor.elevation) < 0.5
+          && (x - b[0]) * previousNormal[0] + (z - b[1]) * previousNormal[1] > 0.005
+          && (x - b[0]) * nextNormal[0] + (z - b[1]) * nextNormal[1] > 0.005);
+        expect(joined, `floor ${floor.index} band stops at corner ${index}`).toBe(true);
+      }
     }
   });
 });
