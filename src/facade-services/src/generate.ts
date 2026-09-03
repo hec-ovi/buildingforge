@@ -10,9 +10,17 @@ const PIPE_DIAMETER = 0.06;
 const PIPE_RADIUS = PIPE_DIAMETER / 2;
 const DUCT_WIDTH = 0.22;
 const DUCT_DEPTH = 0.16;
+const CABLE_DIAMETER = 0.012;
+const CABLE_SPACING = 0.022;
+const CABLE_ROWS = 3 as const;
+const CABLE_SLACK = 0.045;
+const CABLE_SUPPORT_SPACING = 0.8;
 const UNIT_WIDTH = 0.44;
 const UNIT_HEIGHT = 0.42;
 const UNIT_DEPTH = 0.18;
+const ENTRY_WIDTH = 0.28;
+const ENTRY_HEIGHT = 0.28;
+const ENTRY_DEPTH = 0.12;
 const SUPPORT_SPACING = 1.2;
 
 export const DEFAULT_FACADE_SERVICE_LIMITS: Readonly<FacadeServiceLimits> = Object.freeze({
@@ -58,6 +66,7 @@ export function generateFacadeServices(input: FacadeServicesInput): FacadeServic
   if (input.modes.services === 'on') {
     buildPipeNetworks(input, faces, reservations, output);
     buildDuctNetworks(input, faces, reservations, output);
+    buildCableBundle(input, faces, reservations, output);
   }
   if (input.modes.clothes === 'on') buildClotheslines(input, faces, reservations, output);
   if (input.modes.windowDamage === 'sparse') buildDamage(input, output);
@@ -67,6 +76,111 @@ export function generateFacadeServices(input: FacadeServicesInput): FacadeServic
   const result: FacadeServicesOutput = { ...output, stats };
   checkOutput(input, faces, result);
   return result;
+}
+
+/** One sparse, organized 12- or 15-cable run between a service box and wall entry. */
+function buildCableBundle(
+  input: FacadeServicesInput,
+  faces: Map<string, FaceInput>,
+  reservations: Map<string, ReservationInput[]>,
+  output: MutableOutput,
+): void {
+  if (output.networks.length >= input.limits.maxNetworks
+    || output.units.length + 2 > input.limits.maxUnits) return;
+  const ordered = [...faces.values()].filter((face) => face.floor >= 1)
+    .sort((a, b) => stable(input.seed, `cable:${faceKey(a)}`) - stable(input.seed, `cable:${faceKey(b)}`));
+  for (const face of ordered) {
+    if (stable01(input.seed, `cable-density:${faceKey(face)}`) > input.density) continue;
+    const made = makeCableBundle(input, face, reservations.get(faceKey(face)) ?? [], output.networks.length);
+    if (!made || countSegments(output.networks) + made.network.segments.length > input.limits.maxSegments
+      || countSupports(output.networks) + made.network.supports.length > input.limits.maxSupports) continue;
+    output.units.push(...made.units);
+    output.networks.push(made.network);
+    for (const unit of made.units) registerUnitAndNetwork(reservations, unit, undefined);
+    registerUnitAndNetwork(reservations, undefined, made.network);
+    return;
+  }
+}
+
+function makeCableBundle(
+  input: FacadeServicesInput, face: FaceInput, reservations: ReservationInput[], ordinal: number,
+): { units: [ServiceUnit, ServiceUnit]; network: ServiceNetwork } | null {
+  const vCandidates = unique([
+    ...face.panelV.slice(1, -1).map((value) => value - 0.42),
+    face.height * 0.28,
+    face.height * 0.72,
+  ]);
+  for (const v of vCandidates) {
+    const entryV = mm(v + 0.28);
+    const low = Math.min(v - UNIT_HEIGHT / 2, entryV - ENTRY_HEIGHT / 2) - CLEARANCE;
+    const high = Math.max(v + UNIT_HEIGHT / 2, entryV + ENTRY_HEIGHT / 2) + CLEARANCE;
+    if (low < 0.2 || high > face.height - 0.2) continue;
+    const occupied = reservations
+      .filter((item) => item.kind !== 'relief' && item.rect[1] < high && item.rect[3] > low)
+      .map((item) => [item.rect[0] - CLEARANCE, item.rect[2] + CLEARANCE] as P2);
+    const spans = complement(0.25, face.length - 0.25, occupied)
+      .filter(([start, end]) => end - start >= 2.4)
+      .sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]));
+    for (const [start, availableEnd] of spans) {
+      const end = Math.min(availableEnd, start + 4.2);
+      const boxU = mm(start + UNIT_WIDTH / 2);
+      const entryU = mm(end - ENTRY_WIDTH / 2);
+      const boxRect: Rect = [boxU - UNIT_WIDTH / 2, v - UNIT_HEIGHT / 2,
+        boxU + UNIT_WIDTH / 2, v + UNIT_HEIGHT / 2];
+      const entryRect: Rect = [entryU - ENTRY_WIDTH / 2, entryV - ENTRY_HEIGHT / 2,
+        entryU + ENTRY_WIDTH / 2, entryV + ENTRY_HEIGHT / 2];
+      const corridor: Rect = [boxRect[2], Math.min(v, entryV) - 0.12,
+        entryRect[0], Math.max(v, entryV) + 0.12];
+      if (blocked(reservations, corridor, CLEARANCE)) continue;
+      const relief = [...crossed(reservations, boxRect, 0), ...crossed(reservations, entryRect, 0),
+        ...crossed(reservations, corridor, 0)]
+        .filter((item) => item.kind === 'relief')
+        .reduce((depth, item) => Math.max(depth, item.depth), 0);
+      const standoff = mm(relief > 0 ? relief + 0.04 : 0);
+      const boxFront = standoff + UNIT_DEPTH;
+      const entryFront = standoff + ENTRY_DEPTH;
+      const routeDepth = mm(Math.max(boxFront, entryFront) + 0.09);
+      if (!insideParcel(input.parcel, face, boxRect[0], entryRect[2], routeDepth + 0.06)) continue;
+
+      const boxId = `service-unit:cable:${face.floor}:${face.edge}:${ordinal}:box`;
+      const entryId = `service-unit:cable:${face.floor}:${face.edge}:${ordinal}:entry`;
+      const units: [ServiceUnit, ServiceUnit] = [
+        fittedUnit(input, face, boxId, 'junction-box', boxRect, standoff,
+          [UNIT_WIDTH, UNIT_HEIGHT, UNIT_DEPTH]),
+        fittedUnit(input, face, entryId, 'wall-entry', entryRect, standoff,
+          [ENTRY_WIDTH, ENTRY_HEIGHT, ENTRY_DEPTH]),
+      ];
+      const midU = mm((boxRect[2] + entryRect[0]) / 2);
+      const nodes: NetworkNode[] = [
+        networkNode(face, 'n0', 'endpoint', [boxRect[2], v, boxFront], boxId),
+        networkNode(face, 'n1', 'bend', [boxRect[2] + 0.1, v, routeDepth]),
+        networkNode(face, 'n2', 'bend', [midU, v, routeDepth]),
+        networkNode(face, 'n3', 'bend', [midU, entryV, routeDepth]),
+        networkNode(face, 'n4', 'bend', [entryRect[0] - 0.1, entryV, routeDepth]),
+        networkNode(face, 'n5', 'endpoint', [entryRect[0], entryV, entryFront], entryId),
+      ];
+      const segments = nodes.slice(1).map((node, index) => segment(index, nodes[index]!, node, 0.06));
+      const supports = supportsFor(face, nodes, segments, CABLE_SUPPORT_SPACING);
+      const cableCount = stable(input.seed, `cable-count:${faceKey(face)}:${ordinal}`) % 2 === 0 ? 12 : 15;
+      return {
+        units,
+        network: {
+          id: `service-network:cable:${face.floor}:${face.edge}:${ordinal}`,
+          kind: 'cable-bundle', face: ref(face),
+          profile: {
+            shape: 'bundle',
+            width: mm((Math.ceil(cableCount / CABLE_ROWS) - 1) * CABLE_SPACING + CABLE_DIAMETER),
+            depth: mm((CABLE_ROWS - 1) * CABLE_SPACING + CABLE_DIAMETER),
+            cableCount, cableDiameter: CABLE_DIAMETER,
+            spacing: CABLE_SPACING, rows: CABLE_ROWS, slack: CABLE_SLACK,
+          },
+          materialKey: input.materials.metal, nodes, segments, supports,
+          length: mm(segments.reduce((sum, item) => sum + item.length, 0)),
+        },
+      };
+    }
+  }
+  return null;
 }
 
 function buildPipeNetworks(
@@ -427,7 +541,7 @@ function registerUnitAndNetwork(
   });
   if (!network) return;
   const byId = new Map(network.nodes.map((node) => [node.id, node]));
-  const radius = network.profile.shape === 'round' ? network.profile.diameter / 2 : network.profile.width / 2;
+  const radius = networkRadius(network);
   for (const item of network.segments) {
     const a = byId.get(item.from)!, b = byId.get(item.to)!;
     addReservation(reservations, {
@@ -442,11 +556,19 @@ function registerUnitAndNetwork(
 function serviceUnit(
   input: FacadeServicesInput, face: FaceInput, id: string, rect: Rect, standoff: number,
 ): ServiceUnit {
+  return fittedUnit(input, face, id, 'junction-box', rect, standoff,
+    [UNIT_WIDTH, UNIT_HEIGHT, UNIT_DEPTH]);
+}
+
+function fittedUnit(
+  input: FacadeServicesInput, face: FaceInput, id: string, kind: ServiceUnit['kind'],
+  rect: Rect, standoff: number, size: P3,
+): ServiceUnit {
   const u = (rect[0] + rect[2]) / 2, v = (rect[1] + rect[3]) / 2;
   return {
-    id, kind: 'junction-box', face: ref(face), rect: rect.map(mm) as Rect,
-    size: [UNIT_WIDTH, UNIT_HEIGHT, UNIT_DEPTH], standoff,
-    center: world(face, [u, v, standoff + UNIT_DEPTH / 2]), materialKey: input.materials.metal,
+    id, kind, face: ref(face), rect: rect.map(mm) as Rect,
+    size, standoff,
+    center: world(face, [u, v, standoff + size[2] / 2]), materialKey: input.materials.metal,
   };
 }
 
@@ -490,10 +612,16 @@ function measure(output: MutableOutput): FacadeServicesStats {
   const clothItems = countItems(output.clotheslines);
   const pipeSegments = output.networks.filter((network) => network.kind === 'pipe')
     .reduce((sum, network) => sum + network.segments.length, 0);
-  const ductSegments = segments - pipeSegments;
+  const ductSegments = output.networks.filter((network) => network.kind === 'duct')
+    .reduce((sum, network) => sum + network.segments.length, 0);
+  const cableTriangles = output.networks.filter((network) => network.kind === 'cable-bundle')
+    .reduce((sum, network) => sum + network.segments.length
+      * (network.profile.shape === 'bundle' ? network.profile.cableCount : 0) * 16, 0);
+  const visibleNodes = output.networks.filter((network) => network.kind !== 'cable-bundle')
+    .reduce((sum, network) => sum + network.nodes.length, 0);
   const lineSegments = output.clotheslines.reduce((sum, line) => sum + line.line.length - 1, 0);
-  const triangles = output.units.length * 12 + pipeSegments * 16 + ductSegments * 12
-    + supports * 12 + output.networks.reduce((sum, network) => sum + network.nodes.length * 12, 0)
+  const triangles = output.units.length * 12 + pipeSegments * 16 + ductSegments * 12 + cableTriangles
+    + supports * 24 + visibleNodes * 12
     + output.clotheslines.length * 24 + lineSegments * 16 + clothItems * 4
     + output.damagedWindows.length * 8;
   const keys = new Set<string>();
@@ -581,6 +709,17 @@ function checkOutput(
       || endpoints.some((node) => !node.targetId || !endpointTargets.has(node.targetId))
       || Math.abs(length - network.length) > 0.002) {
       throw new Error(`facade-services invariant: network ${network.id} does not join its endpoints`);
+    }
+    if (network.kind === 'cable-bundle') {
+      const profile = network.profile;
+      const unitKinds = new Map(output.units.map((unit) => [unit.id, unit.kind]));
+      if (profile.shape !== 'bundle' || ![12, 15].includes(profile.cableCount)
+        || profile.rows !== 3 || profile.slack <= 0
+        || network.nodes.filter((node) => node.kind === 'bend').length < 3
+        || network.supports.length === 0
+        || !endpoints.some((node) => unitKinds.get(node.targetId!) === 'wall-entry')) {
+        throw new Error(`facade-services invariant: incomplete cable bundle ${network.id}`);
+      }
     }
     for (const support of network.supports) {
       if (!nodes.has(network.segments.find((item) => item.id === support.segmentId)?.from ?? '')
@@ -742,6 +881,12 @@ function countSupports(networks: ServiceNetwork[]): number {
 
 function countItems(lines: Clothesline[]): number {
   return lines.reduce((sum, line) => sum + line.items.length, 0);
+}
+
+function networkRadius(network: ServiceNetwork): number {
+  if (network.profile.shape === 'round') return network.profile.diameter / 2;
+  if (network.profile.shape === 'rect') return Math.max(network.profile.width, network.profile.depth) / 2;
+  return Math.max(network.profile.width, network.profile.depth) / 2;
 }
 
 function complement(lo: number, hi: number, intervals: P2[]): P2[] {

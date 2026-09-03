@@ -71,7 +71,7 @@ export interface FacadeServicesInput {
 
 export interface ServiceUnit {
   id: string;
-  kind: 'junction-box';
+  kind: 'junction-box' | 'wall-entry';
   face: FaceRef;
   rect: [number, number, number, number];
   size: P3;
@@ -105,11 +105,21 @@ export interface RouteSupport {
 
 export interface ServiceNetwork {
   id: string;
-  kind: 'pipe' | 'duct';
+  kind: 'pipe' | 'duct' | 'cable-bundle';
   face: FaceRef;
   profile:
     | { shape: 'round'; diameter: number }
-    | { shape: 'rect'; width: number; depth: number };
+    | { shape: 'rect'; width: number; depth: number }
+    | {
+      shape: 'bundle';
+      width: number;
+      depth: number;
+      cableCount: 12 | 15;
+      cableDiameter: number;
+      spacing: number;
+      rows: 3;
+      slack: number;
+    };
   materialKey: string;
   nodes: NetworkNode[];
   segments: NetworkSegment[];

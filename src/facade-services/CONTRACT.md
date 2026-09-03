@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Builds deterministic facade-local pipes, ducts, junction units, supported clotheslines, and sparse explicit window damage from dimensioned facade faces.
+Builds deterministic facade-local pipes, ducts, cable bundles, service units, supported clotheslines, and sparse explicit window damage from dimensioned facade faces.
 
 ## Inputs
 
@@ -18,8 +18,8 @@ Preconditions: face-local U starts at the face origin and V starts at the floor 
 ## Outputs
 
 - `FacadeServicesOutput` follows [schema/output.schema.json](schema/output.schema.json).
-- Each network publishes its profile, endpoint and junction nodes, exact segments, bend radius, wall supports, material key, and total fitted length.
-- Each attached unit publishes its face-local rectangle, exact size, standoff, world center, and material key.
+- Each network publishes its profile, endpoint and junction nodes, exact segments, bend radius, wall supports, material key, and total fitted length. A cable-bundle profile adds its exact 12 or 15 cable count, three-row spacing, cable diameter and visible slack.
+- Each attached unit publishes its kind, face-local rectangle, exact size, standoff, world center, and material key. A cable bundle terminates in a fitted `wall-entry` unit.
 - Each clothesline publishes two wall-to-tip supports, a sagged line, attached item corners, its reserved face rectangle, and material keys.
 - Each damaged window names one pane, an explicit `fractured-pane` or `missing-pane` variant, and matching collision state.
 - `stats` reports the accepted geometry, material, and draw-call counts against the echoed limits.
@@ -40,7 +40,7 @@ None. The entry point is pure and synchronous.
 
 - The same input produces byte-identical JSON.
 - A route is accepted only when its face-local corridor stays inside its face and clear of openings, access zones, fixtures, artifacts, and accepted routes. Relief may be crossed only at a greater outward standoff.
-- Pipe endpoints touch the published condenser and junction-unit surfaces. Duct endpoints touch two published junction units.
+- Pipe endpoints touch the published condenser and junction-unit surfaces. Duct endpoints touch two published junction units. One sparse cable bundle connects a junction unit to a wall-entry unit through at least three direction changes.
 - Route supports occur no farther apart than the requested support-spacing rule permits on facade-parallel runs.
 - A clothesline has two wall-connected supports, stays outside reserved access and opening rectangles, remains inside the parcel projection, and carries no unattached cloth.
 - Window damage is disabled unless `sparse` is explicit. Sparse mode affects at most one opening per forty candidates, with a minimum of one when candidates exist, and never exceeds `maxDamagedWindows`.

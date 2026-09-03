@@ -15,7 +15,7 @@
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string" },
-          "kind": { "const": "junction-box" },
+          "kind": { "enum": ["junction-box", "wall-entry"] },
           "face": { "$ref": "#/$defs/faceRef" },
           "rect": { "$ref": "#/$defs/rect" },
           "size": { "$ref": "#/$defs/point3" },
@@ -33,7 +33,7 @@
         "additionalProperties": false,
         "properties": {
           "id": { "type": "string" },
-          "kind": { "enum": ["pipe", "duct"] },
+          "kind": { "enum": ["pipe", "duct", "cable-bundle"] },
           "face": { "$ref": "#/$defs/faceRef" },
           "profile": {
             "oneOf": [
@@ -51,6 +51,21 @@
                   "shape": { "const": "rect" },
                   "width": { "type": "number", "exclusiveMinimum": 0 },
                   "depth": { "type": "number", "exclusiveMinimum": 0 }
+                }
+              },
+              {
+                "type": "object",
+                "required": ["shape", "width", "depth", "cableCount", "cableDiameter", "spacing", "rows", "slack"],
+                "additionalProperties": false,
+                "properties": {
+                  "shape": { "const": "bundle" },
+                  "width": { "type": "number", "exclusiveMinimum": 0 },
+                  "depth": { "type": "number", "exclusiveMinimum": 0 },
+                  "cableCount": { "enum": [12, 15] },
+                  "cableDiameter": { "type": "number", "exclusiveMinimum": 0 },
+                  "spacing": { "type": "number", "exclusiveMinimum": 0 },
+                  "rows": { "const": 3 },
+                  "slack": { "type": "number", "exclusiveMinimum": 0 }
                 }
               }
             ]
