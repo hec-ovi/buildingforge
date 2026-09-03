@@ -9,3 +9,4 @@
 - src/glb + src/blueprint: output writers. Depend on mesh, layout and materials.
 - src/ui: preview app (views/, widgets/, components/), orbit and street-eye cameras. Depends on the generator entry only.
 - schemas/, fixtures/, tests/: the contract surface and its proof.
+- reference coverage and cross-layer ownership: docs/REFERENCE-COVERAGE.md.
