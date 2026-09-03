@@ -1,6 +1,6 @@
 // Internal layout model: everything the mesher and blueprint builder consume.
 
-import type { P2, P3, Opening, Blueprint, BuildingRequest, Aperture } from '../types.ts';
+import type { P2, P3, Opening, Blueprint, BuildingRequest, Aperture, BalconyBand } from '../types.ts';
 import type { Relief } from './relief.ts';
 import type { AnchorMount } from './anchors.ts';
 import type { Family, Tier } from '../rules/families.ts';
@@ -73,6 +73,7 @@ export interface Layout {
   /** ribs, columns and floor bands, the one source both the mesher and the placement scan read */
   relief: Relief;
   floors: FloorLayout[];
+  balconyBands: BalconyBand[];
   carved: CarvedAperture[];
   anchors: AnchorMount[];
   signage: Blueprint['signage'];

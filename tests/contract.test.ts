@@ -101,6 +101,48 @@ describe('blueprint invariants', () => {
     for (const o of balconyDoors) {
       expect(o.balcony).toBeDefined();
       expect(o.balcony!.width).toBeGreaterThan(0);
+      expect(blueprint.balconyBands.some((band) => band.id === o.balcony!.bandId
+        && band.doors.includes(o.id))).toBe(true);
+    }
+  });
+
+  it('builds one continuous aligned band for all doors on a forced full-balcony face', async () => {
+    const request = {
+      seed: 'full-balcony-test', buildingId: 'full-balcony',
+      parcel: { footprint: [[0, 0], [36, 0], [36, 28], [0, 28]], accessPoint: [18, -2], maxHeight: 42 },
+      building: { type: 'residential', tier: 'rich', floors: 10 },
+      theme: 'cyberpunk',
+      options: { shape: 'box', balconies: 'on', balconyStyle: 'full', signage: null },
+    };
+    const { glb, blueprint } = await generate(request, KEYS);
+    const full = blueprint.balconyBands.filter((band) => band.style === 'full');
+    expect(full.length).toBeGreaterThan(0);
+    expect(full.some((band) => band.doors.length > 1 && band.width > 12)).toBe(true);
+    const doc = await new NodeIO().readBinary(glb);
+
+    for (const band of full) {
+      const floor = blueprint.floors.find((candidate) => candidate.index === band.floor)!;
+      expect(band.offset).toBe(OPENING.cornerMargin);
+      expect(band.width).toBeCloseTo(edgeLen(floor.outline, band.edge) - 2 * OPENING.cornerMargin, 6);
+      for (const id of band.doors) {
+        const door = floor.openings.find((opening) => opening.id === id)!;
+        expect(door.kind).toBe('balconyDoor');
+        expect(door.balcony!.bandId).toBe(band.id);
+        expect(door.offset).toBeGreaterThanOrEqual(band.offset);
+        expect(door.offset + door.width).toBeLessThanOrEqual(band.offset + band.width);
+      }
+
+      const mesh = doc.getRoot().listNodes()
+        .find((node) => node.getName() === `balcony-band:${band.id}`)!.getMesh()!;
+      const slab = mesh.listPrimitives()
+        .find((primitive) => primitive.getMaterial()!.getName().split('/')[1] === 'balcony-slab')!;
+      const position = slab.getAttribute('POSITION')!;
+      const ys: number[] = [];
+      for (let i = 0; i < position.getCount(); i++) {
+        ys.push((position.getElement(i, [0, 0, 0]) as number[])[1]!);
+      }
+      expect(Math.max(...ys)).toBeCloseTo(floor.elevation, 6);
+      expect(Math.min(...ys)).toBeCloseTo(floor.elevation - band.slabThickness, 6);
     }
   });
 

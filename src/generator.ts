@@ -13,6 +13,7 @@ import { buildMassing } from './layout/massing.ts';
 import { coreAxis } from './layout/plate.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
 import { buildFacades } from './layout/facades.ts';
+import { buildBalconyBands } from './layout/balconies.ts';
 import { buildRelief } from './layout/relief.ts';
 import { mountAnchors } from './layout/anchors.ts';
 import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.ts';
@@ -38,6 +39,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
     req, family, tier, style.balconyDepth, facadeInset, stack.levels.map((floor) => floor.height));
   const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
   const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
+  const balconyBands = buildBalconyBands(req, family, tier, style, facades.floors);
   const corePlate = inspectCorePlate(
     facades.floors, facadeInset, facades.floors.filter((floor) => floor.index >= 0).length);
   const relief = buildRelief(style, facades.floors, facades.carved);
@@ -48,7 +50,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
 
   const layout: Layout = {
     request: req, family, tier, theme: req.theme, style, relief,
-    floors: facades.floors, carved: facades.carved, anchors,
+    floors: facades.floors, balconyBands, carved: facades.carved, anchors,
     ...features,
   };
   checkInvariants(layout, obstacles);
@@ -91,6 +93,7 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
   checkOverlays(layout, obstacles);
   checkFacadeArtifacts(layout, obstacles);
   checkLights(layout);
+  checkBalconyBands(layout);
   for (const sign of layout.signage) {
     if (sign.mode !== 'marquee') continue;
     const cell = sign.cellSize ?? 0;
@@ -142,6 +145,49 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
       }
     }
     checkEdgeRuns(floor);
+  }
+}
+
+/** Every balcony access resolves to one shared, dimensionally matching band. */
+function checkBalconyBands(layout: Layout): void {
+  const ids = new Set<string>();
+  const doors = new Map<string, { floor: FloorLayout; opening: FloorLayout['openings'][number] }>();
+  for (const floor of layout.floors) {
+    for (const opening of floor.openings) {
+      if (opening.kind === 'balconyDoor') doors.set(opening.id, { floor, opening });
+    }
+  }
+  const served = new Set<string>();
+  for (const band of layout.balconyBands) {
+    const floor = layout.floors.find((candidate) => candidate.index === band.floor);
+    const length = floor && band.edge < floor.outline.length ? edgeLength(floor.outline, band.edge) : 0;
+    const dimensions = band.offset >= 0 && band.width > 0 && band.offset + band.width <= length + 1e-6
+      && band.railHeight > 0 && band.depth >= 0
+      && (band.depth > 0 ? band.slabThickness > 0 : band.slabThickness === 0);
+    if (ids.has(band.id) || !floor || !dimensions || band.doors.length === 0) {
+      throw new ExteriorError('E_INVARIANT',
+        `balcony band ${band.id} has an invalid id, floor, edge or dimensions; exterior bug, report with the request`);
+    }
+    ids.add(band.id);
+    for (const doorId of band.doors) {
+      const found = doors.get(doorId);
+      const door = found?.opening;
+      const matched = found?.floor.index === band.floor && door?.edge === band.edge
+        && door.balcony?.bandId === band.id
+        && Math.abs((door.balcony?.width ?? 0) - band.width) < 1e-6
+        && Math.abs((door.balcony?.depth ?? -1) - band.depth) < 1e-6
+        && door.offset >= band.offset - 1e-6
+        && door.offset + door.width <= band.offset + band.width + 1e-6;
+      if (!matched || served.has(doorId)) {
+        throw new ExteriorError('E_INVARIANT',
+          `balcony band ${band.id} does not uniquely fit door ${doorId}; exterior bug, report with the request`);
+      }
+      served.add(doorId);
+    }
+  }
+  if (served.size !== doors.size) {
+    throw new ExteriorError('E_INVARIANT',
+      `balcony bands serve ${served.size} of ${doors.size} balcony doors; exterior bug, report with the request`);
   }
 }
 

@@ -24,6 +24,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
       outline: f.outline,
       openings: f.openings,
     })),
+    balconyBands: layout.balconyBands,
     anchors: layout.anchors.map(({ id, position, normal }) => ({ id, position, normal })),
     signage: layout.signage,
     screens: layout.screens,

@@ -45,6 +45,7 @@ export interface BuildingRequest {
     shape?: 'auto' | 'box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
     glb?: 'named' | 'merged';
     balconies?: 'auto' | 'on' | 'off';
+    balconyStyle?: 'auto' | 'bay' | 'full';
     fireEscape?: boolean | 'auto' | 'on' | 'off';
     windows?: 'auto' | 'none';
     signage?: Signage;
@@ -95,7 +96,7 @@ export interface Opening {
   doorRole?: 'main' | 'secondary' | 'service';
   /** door: glazed transom light carried above the head, part of this opening */
   transom?: number;
-  balcony?: { depth: number; width: number };
+  balcony?: { depth: number; width: number; bandId?: string };
   material?: string;
 }
 
@@ -109,6 +110,19 @@ export interface Floor {
 }
 
 export interface RoofArtifact { kind: string; center: P2; size: P3; rotationDeg: number }
+
+export interface BalconyBand {
+  id: string;
+  floor: number;
+  edge: number;
+  offset: number;
+  width: number;
+  depth: number;
+  slabThickness: number;
+  railHeight: number;
+  style: 'bay' | 'full' | 'juliet';
+  doors: string[];
+}
 
 /**
  * Roof access. `center` and `axis` (a unit vector along `width`) place an
@@ -144,6 +158,7 @@ export interface Blueprint {
   seed: string;
   bounds: { footprint: P2[]; height: number };
   floors: Floor[];
+  balconyBands: BalconyBand[];
   anchors: { id: string; position: P3; normal: P2 }[];
   signage: {
     mode: 'marquee' | 'logo';

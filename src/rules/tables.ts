@@ -104,6 +104,11 @@ export const BALCONY = {
   depth: { poor: [0, 0], mid: [1.2, 1.5], rich: [1.5, 2.0], high_rich: [1.8, 2.5] } as Record<Tier, [number, number]>,
   julietDepth: 0.15,
   railing: 1.07,
+  slabThickness: 0.15,
+  railThickness: 0.05,
+  fullFamilies: ['residential', 'hotel'] as string[],
+  fullTiers: ['rich', 'high_rich'] as Tier[],
+  fullChance: { rich: 0.35, high_rich: 0.55 } as Record<string, number>,
   maxCantilever: 2.0,
 };
 

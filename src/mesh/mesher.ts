@@ -11,7 +11,7 @@ import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
 import { panelOn } from '../layout/module.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
-import type { Blueprint, DoorAssembly, Opening } from '../types.ts';
+import type { BalconyBand, Blueprint, DoorAssembly, Opening } from '../types.ts';
 
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
@@ -97,6 +97,7 @@ export function buildMesh(layout: Layout): MeshBuilder {
     }
     for (const o of f.openings) meshOpening(mb, layout, f, o, mat);
   }
+  meshBalconyBands(mb, layout, mat);
 
   // Roof, parapet, bottom cap. The roof is the top floor's ceiling too, cut open
   // where the stair head comes up.
@@ -172,7 +173,6 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
       delete light.spandrel;
       windowUnit(frame, fr, u0, u1, tb, tb + o.transom, light, layout.style, mat);
     }
-    if (o.kind === 'balconyDoor' && o.balcony) meshBalcony(frame, fr, o, f.elevation, mat);
     return;
   }
   // Aperture: reveal ring around the exact cut, mouth left open.
@@ -468,22 +468,32 @@ function reveal(sink: PartSink, fr: Frame, poly: P2[], depth: number, includeBot
   }
 }
 
-function meshBalcony(sink: PartSink, fr: Frame, o: Opening, elevation: number, mat: (k: string) => string): void {
-  const { depth, width } = o.balcony!;
-  const uc = o.offset + o.width / 2;
-  const railT = 0.05;
-  const railH = BALCONY.railing;
+function meshBalconyBands(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {
+  const floors = new Map(layout.floors.map((floor) => [floor.index, floor]));
+  for (const band of layout.balconyBands) {
+    const floor = floors.get(band.floor)!;
+    meshBalconyBand(mb.part(`balcony-band:${band.id}`), frame(floor.outline, band.edge),
+      band, floor.elevation, mat);
+  }
+}
+
+function meshBalconyBand(
+  sink: PartSink, fr: Frame, band: BalconyBand, elevation: number, mat: (k: string) => string,
+): void {
+  const { depth, width } = band;
+  const uc = band.offset + width / 2;
+  const railT = BALCONY.railThickness;
+  const railH = band.railHeight;
   if (depth <= 0) {
     // Juliet: railing panel directly in front of the door.
-    const w = o.width + 0.3;
     const c = at(fr, [uc, elevation + railH / 2], BALCONY.julietDepth);
-    sink.box(mat('balcony-rail'), c, [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2], [0, railH / 2, 0], [fr.n[0] * railT / 2, 0, fr.n[1] * railT / 2]);
+    sink.box(mat('balcony-rail'), c, [fr.dir[0] * width / 2, 0, fr.dir[1] * width / 2], [0, railH / 2, 0], [fr.n[0] * railT / 2, 0, fr.n[1] * railT / 2]);
     return;
   }
-  const slabT = 0.15;
-  const slabC = at(fr, [uc, elevation + 0.02 - slabT / 2], depth / 2);
+  const slabT = band.slabThickness;
+  const slabC = at(fr, [uc, elevation - slabT / 2], depth / 2);
   sink.box(mat('balcony-slab'), slabC, [fr.dir[0] * width / 2, 0, fr.dir[1] * width / 2], [0, slabT / 2, 0], [fr.n[0] * depth / 2, 0, fr.n[1] * depth / 2]);
-  const railY = elevation + 0.02 + railH / 2;
+  const railY = elevation + railH / 2;
   // Front rail.
   sink.box(mat('balcony-rail'), at(fr, [uc, railY], depth - railT / 2), [fr.dir[0] * width / 2, 0, fr.dir[1] * width / 2], [0, railH / 2, 0], [fr.n[0] * railT / 2, 0, fr.n[1] * railT / 2]);
   // Side rails.

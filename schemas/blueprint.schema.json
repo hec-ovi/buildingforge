@@ -4,7 +4,7 @@
   "title": "Blueprint",
   "description": "Exterior shell blueprint, the canonical schema (interior consumes the floors core). Units: meters. Same coordinate frame as the request footprint, right-handed, +Y up, floor outlines on the XZ plane, CCW winding, first point not repeated.",
   "type": "object",
-  "required": ["buildingId", "seed", "bounds", "floors", "roof", "materials"],
+  "required": ["buildingId", "seed", "bounds", "floors", "balconyBands", "roof", "materials"],
   "additionalProperties": false,
   "properties": {
     "buildingId": { "type": "string" },
@@ -117,18 +117,41 @@
                 },
                 "balcony": {
                   "type": "object",
-                  "required": ["depth", "width"],
+                  "required": ["depth", "width", "bandId"],
                   "additionalProperties": false,
                   "properties": {
                     "depth": { "type": "number", "minimum": 0, "description": "0 = juliet railing" },
-                    "width": { "type": "number", "exclusiveMinimum": 0 }
+                    "width": { "type": "number", "exclusiveMinimum": 0 },
+                    "bandId": { "type": "string", "minLength": 1, "description": "balconyBands id carrying this access door" }
                   },
-                  "description": "present exactly when kind = balconyDoor; slab centered on the opening"
+                  "description": "present exactly when kind = balconyDoor; points to the shared band carrying this access"
                 },
                 "material": { "type": "string", "description": "theme/kind/tier key of the fill (glass, door leaf)" }
               }
             }
           }
+        }
+      }
+    },
+    "balconyBands": {
+      "type": "array",
+      "default": [],
+      "description": "shared balcony slabs and rails; one band may serve several doors without duplicated geometry",
+      "items": {
+        "type": "object",
+        "required": ["id", "floor", "edge", "offset", "width", "depth", "slabThickness", "railHeight", "style", "doors"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "floor": { "type": "integer", "minimum": 1 },
+          "edge": { "type": "integer", "minimum": 0 },
+          "offset": { "type": "number", "minimum": 0 },
+          "width": { "type": "number", "exclusiveMinimum": 0 },
+          "depth": { "type": "number", "minimum": 0 },
+          "slabThickness": { "type": "number", "minimum": 0 },
+          "railHeight": { "type": "number", "exclusiveMinimum": 0 },
+          "style": { "enum": ["bay", "full", "juliet"] },
+          "doors": { "type": "array", "minItems": 1, "items": { "type": "string" } }
         }
       }
     },
