@@ -1,15 +1,16 @@
 // Turns a Layout into mesh parts. Every visible face goes through quadFacing or
 // the cap winding check, so nothing can face inward.
 
-import { MeshBuilder, type PartSink, type V3, add, scale, sub, cross, dot, norm } from './primitives.ts';
+import { MeshBuilder, type PartSink, type V3, add, scale } from './primitives.ts';
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown, capFrame, type CapFrame } from './caps.ts';
 import { meshAnchorMount } from './anchorMount.ts';
 import { meshRoofArtifacts } from './mastAssembly.ts';
 import { meshFacadeRelief } from './facadeRelief.ts';
-import { tubeSegment } from './tube.ts';
+import { meshAcUnits } from './acUnit.ts';
+import { meshFacadeServices } from './facadeServices.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
-import { AC_UNITS, BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
+import { BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
 import { fixedPanelAxis } from '../layout/module.ts';
@@ -667,140 +668,6 @@ function meshFacadeArtifacts(mb: MeshBuilder, layout: Layout, mat: (k: string) =
       [0, h / 2, 0],
       [fr.n[0] * d / 2, 0, fr.n[1] * d / 2]);
   }
-}
-
-/**
- * Facade condenser units: a housing with a grille face standing on a bracket,
- * a shelf carried by two struts back to the wall. Every member is painted steel.
- */
-function meshAcUnits(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {
-  const units = layout.facadeArtifacts.filter((a) => a.kind === 'ac-unit');
-  if (units.length === 0) return;
-  const sink = mb.part('facade-ac');
-  const byFloor = new Map(layout.floors.map((f) => [f.index, f]));
-  const metal = mat('metal');
-  const { grille, bracket } = AC_UNITS;
-  for (const a of units) {
-    const floor = byFloor.get(a.floor);
-    if (!floor) continue;
-    const fr = frame(floor.outline, a.edge);
-    const [w, h, d] = a.size;
-    const back = a.standoff ?? 0;
-    const uc = a.offset + w / 2;
-    const base = floor.elevation + a.sill;
-    const across = (half: number): V3 => [fr.dir[0] * half, 0, fr.dir[1] * half];
-    const out = (half: number): V3 => [fr.n[0] * half, 0, fr.n[1] * half];
-
-    sink.box(metal, at(fr, [uc, base + h / 2], back + d / 2), across(w / 2), [0, h / 2, 0], out(d / 2));
-    sink.box(mat('ac-unit'), at(fr, [uc, base + h / 2], back + d + grille.proud / 2),
-      across(w / 2 - grille.inset), [0, h / 2 - grille.inset, 0], out(grille.proud / 2), 'exact');
-    sink.box(metal, at(fr, [uc, base - bracket.shelf / 2], back + d / 2),
-      across(w / 2), [0, bracket.shelf / 2, 0], out(d / 2), 'along');
-    for (const side of [-1, 1]) {
-      const u = uc + side * (w / 2 - bracket.strut);
-      sink.slantedBox(metal,
-        at(fr, [u, base - bracket.shelf - bracket.drop], back),
-        at(fr, [u, base - bracket.shelf], back + d),
-        across(1), bracket.strut, bracket.strut);
-    }
-  }
-}
-
-/** Facade-local service networks and clothes are consolidated by material. */
-function meshFacadeServices(mb: MeshBuilder, layout: Layout): void {
-  const details = layout.facadeServices;
-  if (details.units.length === 0 && details.networks.length === 0 && details.clotheslines.length === 0) return;
-  const sink = mb.part('facade-services');
-  const byFloor = new Map(layout.floors.map((floor) => [floor.index, floor]));
-
-  for (const unit of details.units) {
-    const floor = byFloor.get(unit.face.floor);
-    if (!floor || unit.face.edge >= floor.outline.length) continue;
-    const fr = frame(floor.outline, unit.face.edge);
-    const [w, h, d] = unit.size;
-    sink.box(unit.materialKey, unit.center,
-      [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2], [0, h / 2, 0],
-      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2]);
-  }
-
-  for (const network of details.networks) {
-    const floor = byFloor.get(network.face.floor);
-    if (!floor || network.face.edge >= floor.outline.length) continue;
-    const fr = frame(floor.outline, network.face.edge);
-    const nodes = new Map(network.nodes.map((node) => [node.id, node]));
-    const radius = network.profile.shape === 'round'
-      ? network.profile.diameter / 2 : Math.max(network.profile.width, network.profile.depth) / 2;
-    for (const segment of network.segments) {
-      const a = nodes.get(segment.from)!, b = nodes.get(segment.to)!;
-      if (network.profile.shape === 'round') {
-        tubeSegment(sink, network.materialKey, a.position, b.position, network.profile.diameter / 2);
-      } else {
-        const axis = sub(b.position, a.position);
-        const vertical = Math.abs(axis[1]) >= Math.hypot(axis[0], axis[2]);
-        const normalRun = Math.abs(dot(norm(axis), [fr.n[0], 0, fr.n[1]])) > 0.7;
-        const widthDir: V3 = vertical || normalRun
-          ? [fr.dir[0], 0, fr.dir[1]] : [0, 1, 0];
-        sink.slantedBox(network.materialKey, a.position, b.position, widthDir,
-          network.profile.width, network.profile.depth);
-      }
-    }
-    for (const node of network.nodes.filter((item) => item.kind !== 'endpoint')) {
-      sink.box(network.materialKey, node.position,
-        [fr.dir[0] * radius, 0, fr.dir[1] * radius], [0, radius, 0],
-        [fr.n[0] * radius, 0, fr.n[1] * radius]);
-    }
-    for (const support of network.supports) {
-      sink.slantedBox(network.materialKey, support.wallPosition, support.position,
-        [fr.dir[0], 0, fr.dir[1]], 0.04, 0.04);
-    }
-  }
-
-  for (const line of details.clotheslines) {
-    const floor = byFloor.get(line.face.floor);
-    if (!floor || line.face.edge >= floor.outline.length) continue;
-    const fr = frame(floor.outline, line.face.edge);
-    for (const support of line.supports) {
-      tubeSegment(sink, line.supportMaterialKey, support.wall, support.tip, 0.025);
-      sink.box(line.supportMaterialKey, support.wall,
-        [fr.dir[0] * 0.06, 0, fr.dir[1] * 0.06], [0, 0.06, 0],
-        [fr.n[0] * 0.02, 0, fr.n[1] * 0.02]);
-    }
-    for (let i = 1; i < line.line.length; i++) {
-      tubeSegment(sink, line.lineMaterialKey, line.line[i - 1]!, line.line[i]!, line.diameter / 2);
-    }
-    for (const item of line.items) meshClothItem(sink, item, [fr.n[0], 0, fr.n[1]]);
-  }
-}
-
-function meshClothItem(
-  sink: PartSink, item: Layout['facadeServices']['clotheslines'][number]['items'][number], outward: V3,
-): void {
-  const [tl, tr, br, bl] = item.positions;
-  const mix = (a: V3, b: V3, t: number): V3 => [
-    a[0] + (b[0] - a[0]) * t,
-    a[1] + (b[1] - a[1]) * t,
-    a[2] + (b[2] - a[2]) * t,
-  ];
-  const quad = (a: V3, b: V3, c: V3, d: V3) => {
-    const width = Math.max(0.001, Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]));
-    const height = Math.max(0.001, (distance3(a, d) + distance3(b, c)) / 2);
-    sink.quadFacing(item.materialKey, d, c, b, a, outward,
-      [[0, height], [width, height], [width, 0], [0, 0]]);
-  };
-  if (item.variant === 'sheet') {
-    quad(tl, tr, br, bl);
-  } else if (item.variant === 'shirt') {
-    quad(tl, tr, mix(tr, br, 0.88), mix(tl, bl, 0.88));
-  } else {
-    const leftMid = mix(tl, bl, 0.45), rightMid = mix(tr, br, 0.45);
-    quad(tl, tr, rightMid, leftMid);
-    quad(leftMid, mix(leftMid, rightMid, 0.43), mix(bl, br, 0.43), bl);
-    quad(mix(leftMid, rightMid, 0.57), rightMid, br, mix(bl, br, 0.57));
-  }
-}
-
-function distance3(a: V3, b: V3): number {
-  return Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
 }
 
 function meshColumns(mb: MeshBuilder, layout: Layout, above: FloorLayout[], top: number, mat: (k: string) => string): void {

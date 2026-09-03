@@ -1896,6 +1896,12 @@ describe('facade condenser units', () => {
     const doc = await new NodeIO().readBinary(glb);
     const node = doc.getRoot().listNodes().find((n) => n.getName() === 'facade-ac');
     expect(node, 'the GLB carries the units as their own node').toBeTruthy();
+    const primitives = new Map(node!.getMesh()!.listPrimitives().map((primitive) => [
+      primitive.getMaterial()!.getName(), primitive.getAttribute('POSITION')!.getCount(),
+    ]));
+    expect(primitives.get('cyberpunk/ac-unit/mid')).toBe(units.length * 24);
+    expect(primitives.get('cyberpunk/metal/mid'), 'each condenser has a modeled fan and guard')
+      .toBeGreaterThanOrEqual(units.length * 800);
     const parcel = (residential as any).parcel.footprint as [number, number][];
     const v = [0, 0, 0];
     for (const prim of node!.getMesh()!.listPrimitives()) {
@@ -1905,6 +1911,7 @@ describe('facade condenser units', () => {
         expect(pointInPoly(parcel, [v[0]!, v[2]!]), 'a condenser unit reaches off the parcel').toBe(true);
       }
     }
+    for (const unit of units) expect(unit.size).toEqual([0.9, 1, 0.45]);
   });
 
   it('leaves a curtain wall bare: it has no wall to hang a bracket on', async () => {

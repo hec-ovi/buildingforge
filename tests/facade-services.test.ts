@@ -69,7 +69,66 @@ describe('public facade service integration', () => {
     expect(blueprint.materials).toContain('cyberpunk/metal/mid');
     expect(blueprint.materials).toContain('cyberpunk/fabric/mid');
     const doc = await new NodeIO().readBinary(glb);
-    expect(doc.getRoot().listNodes().some((node) => node.getName() === 'facade-services')).toBe(true);
+    const serviceNode = doc.getRoot().listNodes().find((node) => node.getName() === 'facade-services');
+    expect(serviceNode).toBeDefined();
+
+    const bundle = detail.networks.find((network) => network.kind === 'cable-bundle')!;
+    expect(bundle).toBeDefined();
+    if (bundle.profile.shape !== 'bundle') return;
+    const wallEntries = new Set(detail.units.filter((unit) => unit.kind === 'wall-entry').map((unit) => unit.id));
+    expect(bundle.nodes.some((node) => node.kind === 'endpoint' && wallEntries.has(node.targetId!))).toBe(true);
+    expect(bundle.nodes.filter((node) => node.kind === 'bend').length).toBeGreaterThanOrEqual(3);
+    expect(bundle.supports.length).toBeGreaterThan(0);
+
+    const nodes = new Map(bundle.nodes.map((node) => [node.id, node]));
+    const straight = bundle.segments.find((segment) => {
+      const a = nodes.get(segment.from)!.local;
+      const b = nodes.get(segment.to)!.local;
+      return Math.abs(b[0] - a[0]) > 0.5 && Math.abs(b[1] - a[1]) < 0.001;
+    })!;
+    expect(straight).toBeDefined();
+    expect(bundle.segments.some((segment) => {
+      const a = nodes.get(segment.from)!.local;
+      const b = nodes.get(segment.to)!.local;
+      return Math.abs(b[2] - a[2]) > 0.01;
+    }), 'the final run turns inward into its fitted wall entry').toBe(true);
+
+    const metal = serviceNode!.getMesh()!.listPrimitives()
+      .find((primitive) => primitive.getMaterial()!.getName() === bundle.materialKey)!;
+    expect(metal.getAttribute('POSITION')!.getCount(), 'the bundle is modeled as separate cables')
+      .toBeGreaterThanOrEqual(bundle.profile.cableCount * bundle.segments.length * 32);
+
+    const floor = blueprint.floors.find((candidate) => candidate.index === bundle.face.floor)!;
+    const origin = floor.outline[bundle.face.edge]!;
+    const next = floor.outline[(bundle.face.edge + 1) % floor.outline.length]!;
+    const edgeLength = Math.hypot(next[0] - origin[0], next[1] - origin[1]);
+    const tangent = [(next[0] - origin[0]) / edgeLength, (next[1] - origin[1]) / edgeLength];
+    const reference = bundle.nodes.find((node) => node.local[2] > 0)!;
+    const normal = [
+      (reference.position[0] - origin[0] - tangent[0]! * reference.local[0]) / reference.local[2],
+      (reference.position[2] - origin[1] - tangent[1]! * reference.local[0]) / reference.local[2],
+    ];
+    const start = nodes.get(straight.from)!.local;
+    const end = nodes.get(straight.to)!.local;
+    const mid = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2, (start[2] + end[2]) / 2];
+    const positions = metal.getAttribute('POSITION')!;
+    const point = [0, 0, 0];
+    let proudest = -Infinity;
+    let middleVertices = 0;
+    for (let index = 0; index < positions.getCount(); index++) {
+      positions.getElement(index, point);
+      const dx = point[0]! - origin[0];
+      const dz = point[2]! - origin[1];
+      const u = dx * tangent[0]! + dz * tangent[1]!;
+      const depth = dx * normal[0]! + dz * normal[1]!;
+      if (Math.abs(u - mid[0]!) < 0.025 && Math.abs(point[1]! - (floor.elevation + mid[1]!)) < 0.09) {
+        middleVertices++;
+        proudest = Math.max(proudest, depth);
+      }
+    }
+    expect(middleVertices).toBeGreaterThan(bundle.profile.cableCount * 4);
+    expect(proudest, 'facade-parallel cable strands carry the published visible slack')
+      .toBeGreaterThan(mid[2]! + bundle.profile.slack * 0.7);
   });
 
   it('fits an industrial duct between attached junction units', async () => {

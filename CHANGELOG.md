@@ -1,5 +1,7 @@
 # Changelog
 
+0.45.0: facade condensers have modeled fan guards, spokes, blades, hubs and wall brackets over their exact grille material. Cable-bundle profiles build 12 or 15 separate slack strands through their published bends, fitted holders and a detailed wall entry.
+
 0.44.1: facade floor bands wrap convex outline corners with capped mitred joins. The exact urbe p2 seed and parcel is a review fixture, and its contract test proves every band crosses each convex corner without exposing a wall strip.
 
 0.44.0: windows and glazed balcony doors publish exact roller-shade closure from 0 to 100 percent and build fitted cassettes, fabric seams and bottom rails behind neutral glass. Per-opening open percentages produce complementary closure, including 30 percent open as 70 percent closed. Contract tests prove the seeded range, overrides, geometry and closed frame corners.
