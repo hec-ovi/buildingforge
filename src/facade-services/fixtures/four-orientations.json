@@ -1,0 +1,48 @@
+{
+  "seed": "facade-services-four-ways",
+  "profile": "generic",
+  "density": 1,
+  "modes": { "services": "on", "clothes": "on", "windowDamage": "sparse" },
+  "parcel": [[-2, -2], [14, -2], [14, 14], [-2, 14]],
+  "materials": {
+    "metal": "cyberpunk/metal/mid",
+    "fabric": "cyberpunk/fabric/mid",
+    "glass": "cyberpunk/window-glass/mid"
+  },
+  "faces": [
+    { "floor": 1, "edge": 0, "origin": [0, 3, 0], "tangent": [1, 0, 0], "normal": [0, 0, -1], "length": 12, "height": 3, "panelU": [0, 2, 4, 6, 8, 10, 12], "panelV": [0, 1, 2, 3] },
+    { "floor": 1, "edge": 1, "origin": [12, 3, 0], "tangent": [0, 0, 1], "normal": [1, 0, 0], "length": 12, "height": 3, "panelU": [0, 2, 4, 6, 8, 10, 12], "panelV": [0, 1, 2, 3] },
+    { "floor": 1, "edge": 2, "origin": [12, 3, 12], "tangent": [-1, 0, 0], "normal": [0, 0, 1], "length": 12, "height": 3, "panelU": [0, 2, 4, 6, 8, 10, 12], "panelV": [0, 1, 2, 3] },
+    { "floor": 1, "edge": 3, "origin": [0, 3, 12], "tangent": [0, 0, -1], "normal": [-1, 0, 0], "length": 12, "height": 3, "panelU": [0, 2, 4, 6, 8, 10, 12], "panelV": [0, 1, 2, 3] }
+  ],
+  "reservations": [
+    { "id": "window:0", "face": { "floor": 1, "edge": 0 }, "kind": "opening", "rect": [5, 1, 8, 2.2], "depth": 0.1 },
+    { "id": "window:1", "face": { "floor": 1, "edge": 1 }, "kind": "opening", "rect": [5, 1, 8, 2.2], "depth": 0.1 },
+    { "id": "window:2", "face": { "floor": 1, "edge": 2 }, "kind": "opening", "rect": [5, 1, 8, 2.2], "depth": 0.1 },
+    { "id": "window:3", "face": { "floor": 1, "edge": 3 }, "kind": "opening", "rect": [5, 1, 8, 2.2], "depth": 0.1 }
+  ],
+  "artifacts": [
+    { "id": "ac:0", "face": { "floor": 1, "edge": 0 }, "kind": "ac-unit", "rect": [1, 0.55, 1.9, 1.55], "depth": 0.45, "standoff": 0 },
+    { "id": "ac:1", "face": { "floor": 1, "edge": 1 }, "kind": "ac-unit", "rect": [1, 0.55, 1.9, 1.55], "depth": 0.45, "standoff": 0 },
+    { "id": "ac:2", "face": { "floor": 1, "edge": 2 }, "kind": "ac-unit", "rect": [1, 0.55, 1.9, 1.55], "depth": 0.45, "standoff": 0 },
+    { "id": "ac:3", "face": { "floor": 1, "edge": 3 }, "kind": "ac-unit", "rect": [1, 0.55, 1.9, 1.55], "depth": 0.45, "standoff": 0 }
+  ],
+  "windows": [
+    { "openingId": "window:0", "face": { "floor": 1, "edge": 0 }, "rect": [5, 1, 8, 2.2], "panes": { "cols": 3, "rows": 2 } },
+    { "openingId": "window:1", "face": { "floor": 1, "edge": 1 }, "rect": [5, 1, 8, 2.2], "panes": { "cols": 3, "rows": 2 } },
+    { "openingId": "window:2", "face": { "floor": 1, "edge": 2 }, "rect": [5, 1, 8, 2.2], "panes": { "cols": 3, "rows": 2 } },
+    { "openingId": "window:3", "face": { "floor": 1, "edge": 3 }, "rect": [5, 1, 8, 2.2], "panes": { "cols": 3, "rows": 2 } }
+  ],
+  "limits": {
+    "maxNetworks": 12,
+    "maxSegments": 96,
+    "maxSupports": 96,
+    "maxUnits": 24,
+    "maxClotheslines": 4,
+    "maxClothItems": 16,
+    "maxDamagedWindows": 3,
+    "maxTriangles": 6000,
+    "maxMaterialKeys": 3,
+    "maxDrawCalls": 3
+  }
+}

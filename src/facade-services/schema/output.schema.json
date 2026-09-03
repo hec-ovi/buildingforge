@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urbe/exterior/facade-services/output",
+  "title": "FacadeServicesOutput",
+  "type": "object",
+  "required": ["version", "units", "networks", "clotheslines", "damagedWindows", "stats", "limits"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "units": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "face", "rect", "size", "standoff", "center", "materialKey"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "const": "junction-box" },
+          "face": { "$ref": "#/$defs/faceRef" },
+          "rect": { "$ref": "#/$defs/rect" },
+          "size": { "$ref": "#/$defs/point3" },
+          "standoff": { "type": "number", "minimum": 0 },
+          "center": { "$ref": "#/$defs/point3" },
+          "materialKey": { "$ref": "#/$defs/materialKey" }
+        }
+      }
+    },
+    "networks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "face", "profile", "materialKey", "nodes", "segments", "supports", "length"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "enum": ["pipe", "duct"] },
+          "face": { "$ref": "#/$defs/faceRef" },
+          "profile": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["shape", "diameter"],
+                "additionalProperties": false,
+                "properties": { "shape": { "const": "round" }, "diameter": { "type": "number", "exclusiveMinimum": 0 } }
+              },
+              {
+                "type": "object",
+                "required": ["shape", "width", "depth"],
+                "additionalProperties": false,
+                "properties": {
+                  "shape": { "const": "rect" },
+                  "width": { "type": "number", "exclusiveMinimum": 0 },
+                  "depth": { "type": "number", "exclusiveMinimum": 0 }
+                }
+              }
+            ]
+          },
+          "materialKey": { "$ref": "#/$defs/materialKey" },
+          "nodes": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["id", "kind", "local", "position"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string" },
+                "kind": { "enum": ["endpoint", "bend", "junction"] },
+                "targetId": { "type": "string" },
+                "local": { "$ref": "#/$defs/point3" },
+                "position": { "$ref": "#/$defs/point3" }
+              }
+            }
+          },
+          "segments": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "from", "to", "length", "bendRadius"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string" },
+                "from": { "type": "string" },
+                "to": { "type": "string" },
+                "length": { "type": "number", "exclusiveMinimum": 0 },
+                "bendRadius": { "type": "number", "minimum": 0 }
+              }
+            }
+          },
+          "supports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["segmentId", "local", "position", "wallPosition"],
+              "additionalProperties": false,
+              "properties": {
+                "segmentId": { "type": "string" },
+                "local": { "$ref": "#/$defs/point3" },
+                "position": { "$ref": "#/$defs/point3" },
+                "wallPosition": { "$ref": "#/$defs/point3" }
+              }
+            }
+          },
+          "length": { "type": "number", "exclusiveMinimum": 0 }
+        }
+      }
+    },
+    "clotheslines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "face", "diameter", "supportMaterialKey", "lineMaterialKey", "lineLocal", "line", "supports", "items", "clearanceRect"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "face": { "$ref": "#/$defs/faceRef" },
+          "diameter": { "type": "number", "exclusiveMinimum": 0 },
+          "supportMaterialKey": { "$ref": "#/$defs/materialKey" },
+          "lineMaterialKey": { "$ref": "#/$defs/materialKey" },
+          "lineLocal": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/point3" } },
+          "line": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/point3" } },
+          "supports": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["wallLocal", "tipLocal", "wall", "tip"],
+              "additionalProperties": false,
+              "properties": {
+                "wallLocal": { "$ref": "#/$defs/point3" },
+                "tipLocal": { "$ref": "#/$defs/point3" },
+                "wall": { "$ref": "#/$defs/point3" },
+                "tip": { "$ref": "#/$defs/point3" }
+              }
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "variant", "local", "positions", "materialKey"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string" },
+                "variant": { "enum": ["sheet", "shirt", "trousers"] },
+                "local": { "$ref": "#/$defs/quad" },
+                "positions": { "$ref": "#/$defs/quad" },
+                "materialKey": { "$ref": "#/$defs/materialKey" }
+              }
+            }
+          },
+          "clearanceRect": { "$ref": "#/$defs/rect" }
+        }
+      }
+    },
+    "damagedWindows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["openingId", "face", "pane", "variant", "collision", "materialKey"],
+        "additionalProperties": false,
+        "properties": {
+          "openingId": { "type": "string" },
+          "face": { "$ref": "#/$defs/faceRef" },
+          "pane": {
+            "type": "object",
+            "required": ["col", "row"],
+            "additionalProperties": false,
+            "properties": { "col": { "type": "integer", "minimum": 0 }, "row": { "type": "integer", "minimum": 0 } }
+          },
+          "variant": { "enum": ["fractured-pane", "missing-pane"] },
+          "collision": { "enum": ["solid", "open"] },
+          "materialKey": { "$ref": "#/$defs/materialKey" }
+        }
+      }
+    },
+    "stats": { "$ref": "#/$defs/stats" },
+    "limits": { "$ref": "input.schema.json#/$defs/limits" }
+  },
+  "$defs": {
+    "materialKey": { "type": "string", "pattern": "^[a-z0-9_-]+/[a-z0-9_-]+/[a-z0-9_-]+$" },
+    "point3": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "rect": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "quad": {
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/point3" }, { "$ref": "#/$defs/point3" },
+        { "$ref": "#/$defs/point3" }, { "$ref": "#/$defs/point3" }
+      ],
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "faceRef": {
+      "type": "object",
+      "required": ["floor", "edge"],
+      "additionalProperties": false,
+      "properties": {
+        "floor": { "type": "integer", "minimum": 0 },
+        "edge": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "stats": {
+      "type": "object",
+      "required": ["networks", "segments", "supports", "units", "clotheslines", "clothItems", "damagedWindows", "triangles", "materialKeys", "drawCalls"],
+      "additionalProperties": false,
+      "properties": {
+        "networks": { "type": "integer", "minimum": 0 },
+        "segments": { "type": "integer", "minimum": 0 },
+        "supports": { "type": "integer", "minimum": 0 },
+        "units": { "type": "integer", "minimum": 0 },
+        "clotheslines": { "type": "integer", "minimum": 0 },
+        "clothItems": { "type": "integer", "minimum": 0 },
+        "damagedWindows": { "type": "integer", "minimum": 0 },
+        "triangles": { "type": "integer", "minimum": 0 },
+        "materialKeys": { "type": "integer", "minimum": 0 },
+        "drawCalls": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

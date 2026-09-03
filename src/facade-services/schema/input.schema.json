@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urbe/exterior/facade-services/input",
+  "title": "FacadeServicesInput",
+  "type": "object",
+  "required": ["seed", "profile", "density", "modes", "parcel", "materials", "faces", "reservations", "artifacts", "windows", "limits"],
+  "additionalProperties": false,
+  "properties": {
+    "seed": { "type": "string", "minLength": 1 },
+    "profile": { "enum": ["residential", "industrial", "generic"] },
+    "density": { "type": "number", "minimum": 0, "maximum": 1 },
+    "modes": {
+      "type": "object",
+      "required": ["services", "clothes", "windowDamage"],
+      "additionalProperties": false,
+      "properties": {
+        "services": { "enum": ["off", "on"] },
+        "clothes": { "enum": ["off", "on"] },
+        "windowDamage": { "enum": ["off", "sparse"] }
+      }
+    },
+    "parcel": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/point2" },
+      "description": "CCW parcel boundary used to reject outward projections"
+    },
+    "materials": {
+      "type": "object",
+      "required": ["metal", "fabric", "glass"],
+      "additionalProperties": false,
+      "properties": {
+        "metal": { "$ref": "#/$defs/materialKey" },
+        "fabric": { "$ref": "#/$defs/materialKey" },
+        "glass": { "$ref": "#/$defs/materialKey" }
+      }
+    },
+    "faces": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          { "$ref": "#/$defs/faceRef" },
+          {
+            "type": "object",
+            "required": ["origin", "tangent", "normal", "length", "height", "panelU", "panelV"],
+            "properties": {
+              "origin": { "$ref": "#/$defs/point3" },
+              "tangent": { "$ref": "#/$defs/point3" },
+              "normal": { "$ref": "#/$defs/point3" },
+              "length": { "type": "number", "exclusiveMinimum": 0 },
+              "height": { "type": "number", "exclusiveMinimum": 0 },
+              "panelU": { "type": "array", "minItems": 2, "items": { "type": "number" } },
+              "panelV": { "type": "array", "minItems": 2, "items": { "type": "number" } }
+            }
+          }
+        ]
+      }
+    },
+    "reservations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "face", "kind", "rect", "depth"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "face": { "$ref": "#/$defs/faceRef" },
+          "kind": { "enum": ["opening", "access", "fixture", "relief", "artifact", "route"] },
+          "rect": { "$ref": "#/$defs/rect" },
+          "depth": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "face", "kind", "rect", "depth", "standoff"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "face": { "$ref": "#/$defs/faceRef" },
+          "kind": { "enum": ["ac-unit", "utility-box"] },
+          "rect": { "$ref": "#/$defs/rect" },
+          "depth": { "type": "number", "exclusiveMinimum": 0 },
+          "standoff": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "windows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["openingId", "face", "rect", "panes"],
+        "additionalProperties": false,
+        "properties": {
+          "openingId": { "type": "string", "minLength": 1 },
+          "face": { "$ref": "#/$defs/faceRef" },
+          "rect": { "$ref": "#/$defs/rect" },
+          "panes": {
+            "type": "object",
+            "required": ["cols", "rows"],
+            "additionalProperties": false,
+            "properties": {
+              "cols": { "type": "integer", "minimum": 1 },
+              "rows": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "limits": { "$ref": "#/$defs/limits" }
+  },
+  "$defs": {
+    "materialKey": { "type": "string", "pattern": "^[a-z0-9_-]+/[a-z0-9_-]+/[a-z0-9_-]+$" },
+    "point2": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "point3": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "rect": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }, { "type": "number" }],
+      "minItems": 4,
+      "maxItems": 4,
+      "description": "face-local [u0, v0, u1, v1] in meters"
+    },
+    "faceRef": {
+      "type": "object",
+      "required": ["floor", "edge"],
+      "properties": {
+        "floor": { "type": "integer", "minimum": 0 },
+        "edge": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "required": ["maxNetworks", "maxSegments", "maxSupports", "maxUnits", "maxClotheslines", "maxClothItems", "maxDamagedWindows", "maxTriangles", "maxMaterialKeys", "maxDrawCalls"],
+      "additionalProperties": false,
+      "properties": {
+        "maxNetworks": { "type": "integer", "minimum": 0 },
+        "maxSegments": { "type": "integer", "minimum": 0 },
+        "maxSupports": { "type": "integer", "minimum": 0 },
+        "maxUnits": { "type": "integer", "minimum": 0 },
+        "maxClotheslines": { "type": "integer", "minimum": 0 },
+        "maxClothItems": { "type": "integer", "minimum": 0 },
+        "maxDamagedWindows": { "type": "integer", "minimum": 0 },
+        "maxTriangles": { "type": "integer", "minimum": 0 },
+        "maxMaterialKeys": { "type": "integer", "minimum": 0 },
+        "maxDrawCalls": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
