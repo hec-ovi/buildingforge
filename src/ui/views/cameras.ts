@@ -30,7 +30,8 @@ export function orbitCamera(center: P3, radius: number, fovDeg: number): CameraP
  */
 export function streetEyeCamera(bp: Blueprint, standoff = 10): CameraPose {
   const ground = bp.floors.find((f) => f.index === 0) ?? bp.floors[0]!;
-  const door = ground.openings.find((o) => o.id === 'entrance')
+  const door = ground.openings.find((o) => o.accessRole === 'main')
+    ?? ground.openings.find((o) => o.id === 'entrance')
     ?? ground.openings.find((o) => o.kind === 'door');
   const outline = ground.outline;
   const edge = door ? door.edge : longestEdge(outline);

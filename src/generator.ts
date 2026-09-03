@@ -121,6 +121,21 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
         throw new ExteriorError('E_INVARIANT',
           `opening ${o.id} publishes a door role but is ${o.kind}; exterior bug, report with the request`);
       }
+      const isPortal = o.kind === 'openFront';
+      if (isPortal !== (o.portal !== undefined) || isPortal !== (o.accessRole === 'main')) {
+        throw new ExteriorError('E_INVARIANT',
+          `opening ${o.id} has an inconsistent open-front access contract on floor ${floor.index}; exterior bug, report with the request`);
+      }
+      if (o.portal) {
+        const valid = o.portal.frameWidth > 0 && o.portal.frameDepth > 0 && o.portal.recessDepth > 0
+          && o.portal.clearWidth > 0 && o.portal.clearWidth < o.width
+          && o.portal.clearHeight > 0 && o.portal.clearHeight < o.height
+          && o.portal.clearDepth === o.portal.recessDepth;
+        if (!valid) {
+          throw new ExteriorError('E_INVARIANT',
+            `open frontage ${o.id} has a surround or clearance inconsistent with its opening; exterior bug, report with the request`);
+        }
+      }
       if (o.door) {
         const expectedClear = o.door.motion.kind === 'swing' ? o.width / Math.max(1, o.leaves ?? 1) : 0;
         const valid = o.door.frameWidth > 0 && o.door.frameDepth > 0 && o.door.recessDepth >= 0

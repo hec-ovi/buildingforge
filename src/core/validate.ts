@@ -146,6 +146,7 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   out.glb = oneOf(o.glb, ['named', 'merged'], 'options.glb') as never;
   out.balconies = oneOf(o.balconies, ['auto', 'on', 'off'], 'options.balconies') as never;
   out.balconyStyle = oneOf(o.balconyStyle, ['auto', 'bay', 'full'], 'options.balconyStyle') as never;
+  out.openFront = oneOf(o.openFront, ['auto', 'on', 'off'], 'options.openFront') as never;
   out.windows = oneOf(o.windows, ['auto', 'none'], 'options.windows') as never;
   out.adScreens = oneOf(o.adScreens, ['auto', 'on', 'off'], 'options.adScreens') as never;
   out.roofArtifacts = oneOf(o.roofArtifacts, ['auto', 'off'], 'options.roofArtifacts') as never;

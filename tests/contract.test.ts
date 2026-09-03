@@ -526,6 +526,43 @@ describe('blueprint invariants', () => {
     }
   });
 
+  it('cuts a broad, leafless and traversable frontage into a compact public business', async () => {
+    const request = {
+      seed: 'open-front-test', buildingId: 'open-front',
+      parcel: { footprint: [[0, 0], [18, 0], [18, 12], [0, 12]], accessPoint: [9, -2], maxHeight: 8 },
+      building: { type: 'coffee_shop', tier: 'mid', floors: 1 },
+      theme: 'cyberpunk',
+      options: { shape: 'box', openFront: 'on', signage: { mode: 'marquee', text: 'CAFE' } },
+    };
+    const { glb, blueprint } = await generate(request, KEYS);
+    const ground = blueprint.floors.find((floor) => floor.index === 0)!;
+    const opening = ground.openings.find((candidate) => candidate.kind === 'openFront')!;
+    expect(opening).toBeDefined();
+    expect(opening.accessRole).toBe('main');
+    expect(opening.width).toBeGreaterThanOrEqual(4);
+    expect(opening.height).toBeGreaterThanOrEqual(2.5);
+    expect(opening.sill).toBe(0);
+    expect(opening.portal!.clearWidth).toBeCloseTo(opening.width - 2 * opening.portal!.frameWidth, 6);
+    expect(opening.portal!.clearHeight).toBeCloseTo(opening.height - opening.portal!.frameWidth, 6);
+    expect(opening.portal!.clearDepth).toBe(opening.portal!.recessDepth);
+    expect(blueprint.facade.wallDepth).toBeGreaterThanOrEqual(opening.portal!.recessDepth);
+    expect(ground.openings.some((candidate) => candidate.doorRole === 'main')).toBe(false);
+
+    const doc = await new NodeIO().readBinary(glb);
+    const node = doc.getRoot().listNodes().find((candidate) => candidate.getName() === 'open-front:open-front')!;
+    expect(node).toBeDefined();
+    const kinds = new Set(node.getMesh()!.listPrimitives()
+      .map((primitive) => primitive.getMaterial()!.getName().split('/')[1]));
+    expect(kinds).toEqual(new Set(['window-frame']));
+    expect(doc.getRoot().listNodes().some((candidate) => candidate.getName().startsWith('door:open-front'))).toBe(false);
+
+    const closed = (await generate({
+      ...request, options: { ...request.options, openFront: 'off' },
+    }, KEYS)).blueprint.floors[0]!;
+    expect(closed.openings.some((candidate) => candidate.id === 'entrance'
+      && candidate.kind === 'door' && candidate.doorRole === 'main')).toBe(true);
+  });
+
   it('sizes punched windows by the published share of the floor clear height', async () => {
     const cases: [string, keyof typeof PROPORTIONS.families][] = [
       ['residential', 'residential'], ['clinic', 'hospital'], ['commerce', 'commerce'],
@@ -1906,7 +1943,9 @@ function outwardNormal(outline: [number, number][], edge: number): [number, numb
 
 /** Signed distance of every vertex of a node subtree from the wall plane of an opening's edge: outward positive. */
 function unitReach(doc: Awaited<ReturnType<NodeIO['readBinary']>>, floor: Floor, o: Opening): { min: number; max: number } {
-  const prefix = { window: 'window:', door: 'door:', balconyDoor: 'balcony:', aperture: 'aperture:' }[o.kind];
+  const prefix = {
+    window: 'window:', door: 'door:', balconyDoor: 'balcony:', openFront: 'open-front:', aperture: 'aperture:',
+  }[o.kind];
   const [vx, vz] = floor.outline[o.edge]!;
   const [nx, nz] = outwardNormal(floor.outline, o.edge);
   let min = Infinity, max = -Infinity;

@@ -175,6 +175,16 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
     }
     return;
   }
+  if (o.kind === 'openFront') {
+    const sink = mb.part(`open-front:${o.id}`);
+    const portal = o.portal!;
+    const frameMaterial = mat('window-frame');
+    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]],
+      portal.recessDepth, false, frameMaterial);
+    doorCasing(sink, fr, u0, u1, yb, yt, frameMaterial,
+      portal.frameWidth, portal.frameDepth);
+    return;
+  }
   // Aperture: reveal ring around the exact cut, mouth left open.
   const sink = mb.part(`aperture:${o.id}`);
   const carved = layout.carved.find((c) => c.aperture.id === o.id);

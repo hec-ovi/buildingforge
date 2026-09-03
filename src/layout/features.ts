@@ -160,9 +160,10 @@ function signOnFace(
   const rects = obstacles.get(e);
   const groundHeight = groundFloor.height;
   // Over the entrance when there is one on this face: that is where a marquee belongs.
-  const door = groundFloor.openings.find((o) => o.kind === 'door' && o.edge === e);
-  const doorU = door ? door.offset + door.width / 2 : L / 2;
-  const doorHead = door ? door.sill + door.height : 0;
+  const access = groundFloor.openings.find((o) =>
+    o.edge === e && (o.kind === 'door' || o.kind === 'openFront'));
+  const doorU = access ? access.offset + access.width / 2 : L / 2;
+  const doorHead = access ? access.sill + access.height : 0;
 
   if (spec.mode === 'marquee') {
     const cells = spec.text.length;
@@ -322,7 +323,7 @@ function placeLights(
   // Entrance fixtures flank every ground door, and each one takes its place on
   // the face's obstacle map before any sign or screen is scanned in.
   for (const o of groundFloor.openings) {
-    if (o.kind !== 'door') continue;
+    if (o.kind !== 'door' && o.kind !== 'openFront') continue;
     const y = cellCentre(Math.min(o.height + 0.4, groundFloor.height - 0.2), MODULE);
     // one lantern in the centre of the panel either side of the door, on the panel row over its head
     for (const u of [o.offset - MODULE_U / 2, o.offset + o.width + MODULE_U / 2]) {

@@ -2,7 +2,7 @@
 // street face, aperture cuts reserved first, openings never overlapping.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, DOORS, FACADE, OPENING, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U, SLAB_BAND } from '../rules/tables.ts';
+import { RULES, DOORS, FACADE, OPENING, OPEN_FRONT, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U, SLAB_BAND } from '../rules/tables.ts';
 import { moduleWithin, onGrid, onModule } from './module.ts';
 import {
   clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
@@ -126,8 +126,11 @@ export function buildFacades(
     // 2. Entrance and service doors on the ground floor (doors exist even window-less),
     // reserved before any window fill so the facade always keeps its entrance zone.
     if (isGround) {
-      const entrance = placeEntrance(req, family, tier, style, outline, streetEdges, level.height, openings, takenByEdge);
-      if (entrance) placeRepeatedEntrances(family, outline, entrance, openings, takenByEdge);
+      const portal = placeOpenFront(req, tier, outline, streetEdges, level.height, openings, takenByEdge);
+      if (!portal) {
+        const entrance = placeEntrance(req, family, tier, style, outline, streetEdges, level.height, openings, takenByEdge);
+        if (entrance) placeRepeatedEntrances(family, outline, entrance, openings, takenByEdge);
+      }
       if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
     }
 
@@ -229,6 +232,64 @@ export function buildFacades(
   }
 
   return { floors, carved, anchors };
+}
+
+/** A broad, leafless street portal for a compact public business. */
+function placeOpenFront(
+  req: BuildingRequest, tier: Tier, outline: P2[], candidates: number[], groundHeight: number,
+  openings: Opening[], taken: Map<number, Taken[]>,
+): Opening | undefined {
+  if (!OPEN_FRONT.types.includes(req.building.type)) return undefined;
+  const mode = req.options?.openFront ?? 'auto';
+  if (mode === 'off') return undefined;
+  if (mode === 'auto' && (req.building.floors > OPEN_FRONT.maxFloorsAuto
+    || !new Rng(req.seed, 'open-front').chance(OPEN_FRONT.autoChance))) return undefined;
+
+  const clear = clearHeight(groundHeight);
+  if (clear < OPEN_FRONT.height[0]) return undefined;
+  const rng = new Rng(req.seed, 'open-front-size');
+  const height = onModule(Math.min(clear, rng.range(...OPEN_FRONT.height)), 'down', MODULE);
+  for (const edge of candidates) {
+    if (edge >= outline.length) continue;
+    const length = edgeLength(outline, edge);
+    const available = length - 2 * OPENING.cornerMargin;
+    if (available < OPEN_FRONT.width[0]) continue;
+    const wanted = Math.min(OPEN_FRONT.width[1], Math.max(OPEN_FRONT.width[0],
+      length * rng.range(...OPEN_FRONT.widthFraction)));
+    const width = onModule(Math.min(wanted, available), 'down', MODULE_U);
+    if (width < OPEN_FRONT.width[0]) continue;
+
+    const at = outline[edge]!;
+    const along = edgeDir(outline, edge);
+    const access = req.parcel.accessPoint;
+    const center = Math.min(length - OPENING.cornerMargin - width / 2,
+      Math.max(OPENING.cornerMargin + width / 2,
+        (access[0] - at[0]) * along[0] + (access[1] - at[1]) * along[1]));
+    for (let step = 0; step * MODULE_U <= length; step++) {
+      const shift = step === 0 ? 0 : Math.ceil(step / 2) * (step % 2 === 1 ? MODULE_U : -MODULE_U);
+      const start = onModule(center - width / 2 + shift, 'near', MODULE_U);
+      if (start < OPENING.cornerMargin - 1e-9
+        || start + width > length - OPENING.cornerMargin + 1e-9) continue;
+      if (!fits(taken, edge, start, start + width)) continue;
+      take(taken, edge, start, start + width);
+      const portal: NonNullable<Opening['portal']> = {
+        frameWidth: OPEN_FRONT.frameWidth,
+        frameDepth: OPEN_FRONT.frameDepth,
+        recessDepth: OPEN_FRONT.recessDepth,
+        clearWidth: quantOff(width - 2 * OPEN_FRONT.frameWidth),
+        clearHeight: quantOff(height - OPEN_FRONT.frameWidth),
+        clearDepth: OPEN_FRONT.recessDepth,
+      };
+      const opening: Opening = {
+        id: 'open-front', kind: 'openFront', accessRole: 'main', edge, offset: start,
+        width, height, sill: 0, portal,
+        material: `${req.theme}/window-frame/${tier}`,
+      };
+      openings.push(opening);
+      return opening;
+    }
+  }
+  return undefined;
 }
 
 function quantOff(v: number): number {

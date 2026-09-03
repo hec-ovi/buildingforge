@@ -1,5 +1,5 @@
 // How far the opening units reach behind the outline skin: the deepest vertex
-// of every window, door, balcony door and aperture part, measured against the
+// of every window, door, balcony door, open frontage and aperture part, measured against the
 // outward normal of the edge it sits on. Published as facade.wallDepth, so a
 // consumer fitting the shell keeps clear of everything built into the openings.
 
@@ -8,7 +8,9 @@ import type { Layout } from '../layout/model.ts';
 import type { MeshBuilder, Part } from './primitives.ts';
 import type { OpeningKind } from '../types.ts';
 
-const NODE: Record<OpeningKind, string> = { window: 'window:', door: 'door:', balconyDoor: 'balcony:', aperture: 'aperture:' };
+const NODE: Record<OpeningKind, string> = {
+  window: 'window:', door: 'door:', balconyDoor: 'balcony:', openFront: 'open-front:', aperture: 'aperture:',
+};
 
 export function measureWallDepth(layout: Layout, mb: MeshBuilder): number {
   const byName = new Map(mb.parts.map((p) => [p.name, p]));

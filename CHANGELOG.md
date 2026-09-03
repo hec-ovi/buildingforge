@@ -1,5 +1,7 @@
 # Changelog
 
+0.40.0: compact commerce, restaurant and coffee-shop buildings can expose a real 4 to 12 m open frontage instead of painting one into glass. The wall cut, recessed three-member surround, threshold and traversal dimensions come from one portal; `accessRole: "main"` gives interior and navigation the leafless connection, and `openFront` controls the deterministic variant.
+
 0.39.0: rich office curtain walls can carry balcony bands. One stable alternating-floor phase receives fitted 2 m glazed access doors, with vision panels retained on both sides and the door head aligned under the slab band; the full-frontage band remains one shared mesh and `balconies: "off"` removes the whole feature.
 
 0.38.0: balcony slabs and rails are shared band geometry with published floor, face run, depth, slab, rail and access-door dimensions. Rich residential and hotel buildings gain a selective full-face variant, forceable with `balconyStyle: "full"`, that serves all fitted doors with one continuous slab and rail instead of overlapping per-door copies. The walking surface lands exactly on the floor elevation.

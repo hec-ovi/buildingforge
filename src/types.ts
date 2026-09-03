@@ -46,6 +46,7 @@ export interface BuildingRequest {
     glb?: 'named' | 'merged';
     balconies?: 'auto' | 'on' | 'off';
     balconyStyle?: 'auto' | 'bay' | 'full';
+    openFront?: 'auto' | 'on' | 'off';
     fireEscape?: boolean | 'auto' | 'on' | 'off';
     windows?: 'auto' | 'none';
     signage?: Signage;
@@ -55,7 +56,7 @@ export interface BuildingRequest {
   };
 }
 
-export type OpeningKind = 'door' | 'window' | 'balconyDoor' | 'aperture';
+export type OpeningKind = 'door' | 'window' | 'balconyDoor' | 'openFront' | 'aperture';
 export type CurtainState = 'open' | 'half' | 'closed80';
 export type DoorSet = 'plain' | 'layered' | 'glazed-grid' | 'industrial-ribbed' | 'illuminated';
 
@@ -94,6 +95,17 @@ export interface Opening {
   door?: DoorAssembly;
   /** door only: how the interior and navigation layers connect the opening */
   doorRole?: 'main' | 'secondary' | 'service';
+  /** permanently open business frontage: fixed surround and traversable clearance */
+  portal?: {
+    frameWidth: number;
+    frameDepth: number;
+    recessDepth: number;
+    clearWidth: number;
+    clearHeight: number;
+    clearDepth: number;
+  };
+  /** permanently open frontage: navigation connection supplied instead of a door */
+  accessRole?: 'main';
   /** door: glazed transom light carried above the head, part of this opening */
   transom?: number;
   balcony?: { depth: number; width: number; bandId?: string };

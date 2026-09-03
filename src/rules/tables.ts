@@ -262,6 +262,19 @@ export const GLAZING = {
 
 export const OPENING = { minPier: MODULE_U, cornerMargin: MODULE_U };
 
+/** Permanently open compact-business frontage, kept at usable human scale. */
+export const OPEN_FRONT = {
+  types: ['commerce', 'restaurant', 'coffee_shop'] as string[],
+  maxFloorsAuto: 2,
+  autoChance: 0.3,
+  widthFraction: [0.55, 0.75] as [number, number],
+  width: [4, 12] as [number, number],
+  height: [2.5, 4] as [number, number],
+  frameWidth: 0.16,
+  frameDepth: 0.1,
+  recessDepth: 0.35,
+};
+
 /**
  * Core plate fallback dimensions used by setback depth heuristics. Exact core
  * feasibility, including rotated frames and stair arithmetic, is owned by
