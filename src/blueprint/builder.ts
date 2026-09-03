@@ -48,8 +48,8 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
       materialPlan: facadeMaterialPlan(layout.theme, layout.tier),
       wallDepth: measureWallDepth(layout, mb),
       slabBand: {
-        below: SLAB_BAND.below,
-        above: spandrelBand(layout),
+        below: slabBandBelow(layout),
+        above: 0,
       },
       grids: buildFacadeGrids(layout.floors, layout.style.facade.panelWidth, layout.style.facade.panelHeight),
     },
@@ -63,13 +63,17 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
 }
 
 /**
- * The opaque band a bay keeps over the floor line. Punched facades keep none:
- * their sills already stand clear of it.
+ * The guaranteed opaque depth below a floor line. Curtain walls publish the
+ * smallest head spandrel across their bays; punched windows keep the fixed
+ * half-metre head clearance.
  */
-function spandrelBand(layout: Layout): number {
+function slabBandBelow(layout: Layout): number {
+  if (layout.style.facade.kind !== 'curtain-wall') return SLAB_BAND.below;
   let band = Infinity;
   for (const floor of layout.floors) {
-    for (const o of floor.openings) if (o.spandrel !== undefined) band = Math.min(band, o.spandrel);
+    for (const opening of floor.openings) {
+      if (opening.kind === 'window' && opening.head !== undefined) band = Math.min(band, opening.head);
+    }
   }
-  return Number.isFinite(band) ? band : 0;
+  return Number.isFinite(band) ? band : SLAB_BAND.below;
 }

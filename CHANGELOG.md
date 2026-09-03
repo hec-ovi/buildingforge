@@ -1,5 +1,7 @@
 # Changelog
 
+0.42.1: curtain-wall spandrels now occupy the head of each storey, covering the interior ceiling plenum and slab edge. The blueprint publishes the full band below the next walking surface, with zero lower spandrel, and the built vision glass stops below that head on irregular as well as module-height floors.
+
 0.42.0: facades publish bounded service detail from a contract-isolated arithmetic layer. Condenser clusters connect to fitted boxes through supported pipe graphs, industrial faces may add rectangular duct routes, and poor or mid residential faces may carry clotheslines fixed to wall supports. All routes clear openings and published access or fixture reservations and stay inside concave parcels. Window damage is an explicit sparse option targeting one named pane with solid fractured or open missing collision.
 
 0.41.1: centered facade borders retain half-millimeter coordinates when a millimeter-measured face or storey leaves an odd millimeter remainder. The panel field now stays an exact whole count of fixed 2 x 1 m panels on the live p15 aperture-pinned tower instead of losing one millimeter by rounding both borders independently.

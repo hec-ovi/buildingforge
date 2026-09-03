@@ -116,12 +116,13 @@
                 "head": {
                   "type": "number",
                   "minimum": 0,
-                  "description": "curtain-wall bay only: opaque band at the top of the opening, covering the slab of the floor above from under it"
+                  "description": "curtain-wall bay only: opaque head spandrel covering the floor's ceiling plenum and the slab above it; vision glass stops below this band"
                 },
                 "spandrel": {
                   "type": "number",
                   "minimum": 0,
-                  "description": "curtain-wall bay only: opaque band at the bottom of the opening, over the floor line; vision glass runs from sill + spandrel up to the head band"
+                  "deprecated": true,
+                  "description": "legacy lower opaque band, retained as zero on current curtain-wall bays; use head for the top spandrel"
                 },
                 "panes": {
                   "type": "object",
@@ -331,7 +332,7 @@
           "type": "object",
           "required": ["below", "above"],
           "additionalProperties": false,
-          "description": "the opaque band the facade keeps at every floor line, so an interior slab never reads through the glass: `below` metres under the walking surface and `above` metres over it",
+          "description": "the opaque band the facade keeps at every floor line, so an interior ceiling plenum and slab never read through the glass: `below` metres under the walking surface and `above` metres over it; curtain walls put the full band below the line at the bay head",
           "properties": {
             "below": { "type": "number", "minimum": 0 },
             "above": { "type": "number", "minimum": 0 }

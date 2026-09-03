@@ -1588,7 +1588,7 @@ describe('facade styles', () => {
     }
   });
 
-  it('glazes a curtain-wall face slab to slab, spandrel at every floor line, mullions across', async () => {
+  it('glazes a curtain-wall face slab to slab, with its spandrel at the bay head', async () => {
     const { glb, blueprint } = await generate(corpo, KEYS);
     expect(blueprint.facade.style).toBe('curtain-wall');
     const doc = await new NodeIO().readBinary(glb);
@@ -1598,24 +1598,54 @@ describe('facade styles', () => {
       expect(bays.length).toBeGreaterThan(0);
       const glazed = new Map<number, number>();
       for (const b of bays) {
-        // Every bay hangs slab to slab, its spandrel covering the floor line.
+        // Every bay hangs slab to slab. The full spandrel is at its head, over
+        // the interior ceiling plenum, rather than a lower band at its sill.
         expect(b.sill + b.height).toBeCloseTo(floor.height, 6);
-        expect(b.spandrel).toBeGreaterThan(0);
+        expect(b.spandrel).toBe(0);
+        expect(b.head).toBeGreaterThanOrEqual(1);
         expect(b.panes!.cols).toBeGreaterThan(1);
         glazed.set(b.edge, (glazed.get(b.edge) ?? 0) + b.width);
 
-        // The vision glass really starts above the spandrel band.
+        // The built vision glass stops below the published head spandrel.
         const node = doc.getRoot().listNodes().find((n) => n.getName() === `window:${b.id}`)!;
         const glass = node.getMesh()!.listPrimitives()
           .find((p) => p.getMaterial()!.getName().includes('window-glass'))!;
         const pos = glass.getAttribute('POSITION')!.getArray() as Float32Array;
-        let lowest = Infinity;
-        for (let i = 1; i < pos.length; i += 3) lowest = Math.min(lowest, pos[i]!);
-        expect(lowest).toBeGreaterThanOrEqual(floor.elevation + b.sill + b.spandrel! - 1e-6);
+        let highest = -Infinity;
+        for (let i = 1; i < pos.length; i += 3) highest = Math.max(highest, pos[i]!);
+        expect(highest).toBeLessThanOrEqual(floor.elevation + b.sill + b.height - b.head! + 1e-6);
       }
       // The skin runs corner to corner, not as scattered punched holes.
       for (const [edge, width] of glazed) {
         expect(width / edgeLen(floor.outline, edge)).toBeGreaterThan(0.84) // whole-metre bays: up to a metre of pier past the corner inset;
+      }
+    }
+  });
+
+  it('keeps irregular curtain-wall vision glass below the one metre ceiling plenum', async () => {
+    const { glb, blueprint } = await generate(bridged, KEYS);
+    expect(blueprint.facade.style).toBe('curtain-wall');
+    const irregular = blueprint.floors.filter((floor) => floor.index >= 0
+      && Math.abs(floor.height - Math.round(floor.height)) > 1e-6);
+    expect(new Set(irregular.map((floor) => Number(floor.height.toFixed(2)))))
+      .toEqual(new Set([4.1, 3.95, 3.9]));
+    const doc = await new NodeIO().readBinary(glb);
+    for (const floor of irregular) {
+      const ceiling = floor.elevation + floor.height - 1;
+      for (const opening of floor.openings.filter((item) => item.kind === 'window')) {
+        expect(opening.head).toBeGreaterThanOrEqual(1);
+        const node = doc.getRoot().listNodes().find((item) => item.getName() === `window:${opening.id}`)!;
+        let glassHead = -Infinity;
+        for (const primitive of node.getMesh()!.listPrimitives()) {
+          if (!primitive.getMaterial()!.getName().includes('window-glass')) continue;
+          const positions = primitive.getAttribute('POSITION')!;
+          const point = [0, 0, 0];
+          for (let index = 0; index < positions.getCount(); index++) {
+            positions.getElement(index, point);
+            glassHead = Math.max(glassHead, point[1]!);
+          }
+        }
+        expect(glassHead, `${opening.id} rises above the interior ceiling`).toBeLessThanOrEqual(ceiling + 1e-6);
       }
     }
   });

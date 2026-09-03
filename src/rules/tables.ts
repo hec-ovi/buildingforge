@@ -115,10 +115,8 @@ export const BALCONY = {
 export const STRUCTURE = { concreteMaxFloors: 40 };
 
 /**
- * The opaque band a facade keeps at every floor line so the interior slab does
- * not read through the glass: `below` under the walking surface, covering the
- * slab and the ceiling under it, `above` over it. A punched facade needs none
- * above, since its sills already stand clear of the line.
+ * Minimum opaque clearance below a floor line for punched facades. Curtain
+ * walls use their full head spandrel, which also covers the ceiling plenum.
  */
 export const SLAB_BAND = { below: MODULE };
 
@@ -181,18 +179,17 @@ export const FACADE = {
   },
   /**
    * Curtain wall: one continuous glazed skin per face, hung outside the slabs,
-   * so a floor band is a spandrel panel and everything above it is vision glass
-   * on a thin mullion grid.
+   * with a head spandrel over each ceiling plenum and vision glass below it.
    */
   curtainWall: {
-    /** opaque band at each slab edge: structural slab plus the raised floor zone, split across the floor line */
+    /** opaque head band covering the ceiling plenum and structural slab above */
     spandrelHeight: [1.0, 1.5] as [number, number],
     /** the glazing stops short of the corner so two faces never intersect */
     cornerInset: MODULE_U, // a one-panel corner pier: the first mullion stands on a metre line, the rest follow
     /** a strip narrower than this is a pier, not a bay */
     minBay: 1.2,
-    /** glass over a door head shorter than this is not worth a transom */
-    minTransom: 0.8,
+    /** minimum useful transom light left between a tall door and the head spandrel */
+    minTransom: 0.2,
     /** wall left between a door head and its transom light */
     transomGap: 0.15,
   },

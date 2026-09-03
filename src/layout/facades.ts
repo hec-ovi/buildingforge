@@ -2,7 +2,7 @@
 // street face, aperture cuts reserved first, openings never overlapping.
 
 import { Rng } from '../core/rng.ts';
-import { RULES, DOORS, FACADE, OPENING, OPEN_FRONT, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U, SLAB_BAND } from '../rules/tables.ts';
+import { RULES, DOORS, FACADE, OPENING, OPEN_FRONT, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U } from '../rules/tables.ts';
 import { moduleWithin, onGrid, onModule } from './module.ts';
 import {
   clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
@@ -432,10 +432,9 @@ function balconyFits(
 /**
  * Curtain wall: the face is glazed corner to corner in whatever strips the
  * entrance and the apertures leave free, each strip one bay running the full
- * floor height. An opaque band straddles every slab line, the spandrel over it
- * and the head band of the bay below under it; between them the bay is vision
- * glass on a mullion grid, so the glazing reads continuous from floor to floor
- * and the interior shows through without its slab showing with it.
+ * floor height. The opaque spandrel occupies the head of the bay below each
+ * slab line, covering that floor's ceiling plenum and the slab edge. Below it
+ * the bay is vision glass on a mullion grid.
  */
 function placeCurtainWallBays(
   seed: string, theme: string, tier: Tier, style: Style, outline: P2[], e: number,
@@ -445,11 +444,11 @@ function placeCurtainWallBays(
 ): void {
   const cw = FACADE.curtainWall;
   const L = edgeLength(outline, e);
-  // The opaque band straddles the slab line: `head` covers the slab of the floor
-  // above from under it, `spandrel` the raised floor zone over the slab below.
+  // Keep the whole opaque band at the bay head. Interior ceilings occupy the
+  // top of their storey; a bottom spandrel would expose that plenum through glass.
   const band = Math.max(2 * MODULE, onModule(Math.min(style.facade.spandrelHeight, level.height * 0.35), 'near'));
-  const head = SLAB_BAND.below;
-  const spandrel = quant(band - head);
+  const head = band;
+  const spandrel = 0;
   // The bay spans its floor exactly: quantizing here would leave a wall sliver
   // under every slab and break the continuity a curtain wall reads by.
   const height = level.height;
@@ -474,7 +473,7 @@ function placeCurtainWallBays(
       const sill = b.door.sill + b.door.height + cw.transomGap;
       // Rounded down onto the grid, and stopping under the band that hides the
       // slab above, the way every bay on the face does.
-      const room = height - SLAB_BAND.below - sill;
+      const room = height - head - sill;
       if (room >= cw.minTransom) b.door.transom = Math.floor(room * 20 + 1e-9) / 20;
     }
     u = Math.max(u, b.end + OPENING.minPier);

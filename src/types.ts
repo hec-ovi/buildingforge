@@ -89,9 +89,9 @@ export interface Opening {
   state?: CurtainState;
   /** mullion grid of a glazed opening: cols x rows panes, each within the tier's pane limit */
   panes?: { cols: number; rows: number };
-  /** curtain-wall bay: opaque spandrel band at the bottom of the opening; vision glass starts above it */
+  /** curtain-wall bay: legacy lower opaque band; current curtain walls publish zero */
   spandrel?: number;
-  /** curtain-wall bay: opaque band at the top of the opening, covering the slab of the floor above */
+  /** curtain-wall bay: opaque head spandrel covering its ceiling plenum and the slab above */
   head?: number;
   /** door and balconyDoor: swinging leaves, one node subtree each in the GLB */
   leaves?: number;

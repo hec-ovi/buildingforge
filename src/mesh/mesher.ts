@@ -357,8 +357,8 @@ function doorLeafDetails(
  * A window unit: a frame profile standing proud of the wall with real reveal
  * depth, a mullion grid splitting the opening into panes no larger than the
  * tier's structural limit, and the glass recessed behind the profile. A
- * curtain-wall bay carries the spandrel panel that hides its slab edge at the
- * bottom, and its vision glass starts above that band.
+ * curtain-wall bay carries the head spandrel that hides its ceiling plenum and
+ * the slab edge above; its vision glass stops below that band.
  */
 function windowUnit(
   sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
@@ -400,8 +400,8 @@ function windowUnit(
   const depth = curtainWall ? g.frameProud + g.glassInset : g.frameProud + FRAME_BITE;
   const { g0, g1, gb, gt } = { g0: field.u0, g1: field.u1, gb: field.y0, gt: field.y1 };
 
-  // The bands are opaque matte panels, not metal: together they hide the slab
-  // line, the raised floor over it and the ceiling under it, and never flare.
+  // The head spandrel is an opaque matte panel over the ceiling plenum and slab,
+  // not metal, so it does not flare.
   if (spandrel > 0) strip(sink, fr, u0, u1, yb, sill, proud, mat('column'));
   if (headBand > 0) strip(sink, fr, u0, u1, headY, yt, proud, mat('column'));
   // Every outer member is a closed profile: both side faces, so nothing looks into it from the street.

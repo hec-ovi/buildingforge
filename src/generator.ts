@@ -315,20 +315,20 @@ function checkOverlays(layout: Layout, obstacles: Map<number, Rect[]>): void {
  * facade instead of floating between two window rows.
  */
 function checkSlabBands(layout: Layout): void {
-  const above = layout.style.facade.kind === 'curtain-wall' ? SLAB_BAND.below : 0;
   for (const floor of layout.floors) {
     if (floor.index < 0) continue;
     for (const o of floor.openings) {
       if (o.kind !== 'window') continue;
       const glassLow = o.sill + (o.spandrel ?? 0);
       const glassHigh = o.sill + o.height - (o.head ?? 0);
-      if (glassLow < above - 1e-6) {
+      if (glassLow < -1e-6) {
         throw new ExteriorError('E_INVARIANT',
-          `window ${o.id} on floor ${floor.index} starts ${glassLow.toFixed(2)} m over its floor line, inside the ${above} m band the facade keeps there; exterior bug, report with the request`);
+          `window ${o.id} on floor ${floor.index} starts ${glassLow.toFixed(2)} m below its floor line; exterior bug, report with the request`);
       }
-      if (glassHigh > floor.height - SLAB_BAND.below + 1e-6) {
+      const below = layout.style.facade.kind === 'curtain-wall' ? (o.head ?? 0) : SLAB_BAND.below;
+      if (glassHigh > floor.height - below + 1e-6) {
         throw new ExteriorError('E_INVARIANT',
-          `window ${o.id} on floor ${floor.index} reaches ${glassHigh.toFixed(2)} m of a ${floor.height.toFixed(2)} m floor, into the ${SLAB_BAND.below} m band under the slab above; exterior bug, report with the request`);
+          `window ${o.id} on floor ${floor.index} reaches ${glassHigh.toFixed(2)} m of a ${floor.height.toFixed(2)} m floor, into the ${below} m head spandrel under the slab above; exterior bug, report with the request`);
       }
     }
   }
@@ -410,8 +410,11 @@ function checkProportions(layout: Layout): void {
       }
       if (o.kind !== 'window') continue;
       if (curtainWall) {
-        // A curtain-wall bay hangs slab to slab: an opaque spandrel at the bottom
-        // when it starts on the slab, vision glass the rest of the way up.
+        // A curtain-wall bay hangs slab to slab with its opaque spandrel at the
+        // head, covering the ceiling plenum and slab above.
+        if ((o.spandrel ?? 0) !== 0 || (o.head ?? 0) < FACADE.curtainWall.spandrelHeight[0] - 1e-6) {
+          fail(`curtain-wall bay ${o.id} does not keep its full spandrel at the storey head`);
+        }
         if (Math.abs(o.sill + o.height - floor.height) > 1e-6) {
           fail(`curtain-wall bay ${o.id} spans ${(o.sill + o.height).toFixed(2)} m of a ${floor.height.toFixed(2)} m floor instead of reaching the slab above`);
         }

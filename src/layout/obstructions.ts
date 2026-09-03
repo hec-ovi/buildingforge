@@ -64,6 +64,7 @@ export function faceObstacles(
     for (const o of floor.openings) {
       const glass = o.kind === 'window';
       const spandrel = o.spandrel ?? 0;
+      const head = o.head ?? 0;
       // A curtain-wall bay is opaque panel up to its spandrel top: that part is
       // wall, not glass, and an overlay may sit on it.
       if (spandrel > 0) {
@@ -75,10 +76,19 @@ export function faceObstacles(
       }
       push(o.edge, {
         u0: o.offset, u1: o.offset + o.width,
-        y0: floor.elevation + o.sill + spandrel, y1: floor.elevation + o.sill + o.height,
+        y0: floor.elevation + o.sill + spandrel,
+        y1: floor.elevation + o.sill + o.height - head,
         what: `${glass ? 'glazing' : 'opening'} ${o.id}`,
         kind: glass ? 'glazing' : 'opening', depth: glass ? GLASS_PROUD : 0,
       });
+      if (head > 0) {
+        push(o.edge, {
+          u0: o.offset, u1: o.offset + o.width,
+          y0: floor.elevation + o.sill + o.height - head,
+          y1: floor.elevation + o.sill + o.height,
+          what: `head spandrel ${o.id}`, kind: 'relief', depth: GLASS_PROUD,
+        });
+      }
     }
   }
 
