@@ -2,7 +2,7 @@
 
 Purpose: renders one generated exterior in a browser and exposes fixture, seed, camera, clipping and inspection controls.
 
-Status: v0.46.1, implemented.
+Status: v0.46.2, implemented.
 
 ## Entry
 

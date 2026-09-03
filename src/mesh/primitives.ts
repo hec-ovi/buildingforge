@@ -3,6 +3,8 @@
 // already ordered CCW as seen from the side the face must show, or verifies
 // against an explicit outward direction.
 
+import { splitMaterialSlot } from '../materials/slot.ts';
+
 export type V3 = [number, number, number];
 
 export const add = (a: V3, b: V3): V3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
@@ -72,8 +74,14 @@ export class MeshBuilder {
 
   materialKeys(): string[] {
     const keys = new Set<string>();
-    for (const p of this.parts) for (const k of p.prims.keys()) keys.add(k);
+    for (const slot of this.materialSlots()) keys.add(splitMaterialSlot(slot)[0]);
     return [...keys].sort();
+  }
+
+  materialSlots(): string[] {
+    const slots = new Set<string>();
+    for (const p of this.parts) for (const slot of p.prims.keys()) slots.add(slot);
+    return [...slots].sort();
   }
 }
 

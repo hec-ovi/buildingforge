@@ -90,6 +90,19 @@ describe('preview textures', () => {
       textures: { mode: 'external', baseUrl: '/materials/', source },
     });
     expect(textures.mode).toBe('external');
+
+    const litRequest = JSON.parse(readFileSync(resolve('fixtures/corpo-tower.request.json'), 'utf8'));
+    const lit = await generate(litRequest, {
+      textures: { mode: 'external', baseUrl: '/materials/', source },
+    });
+    const view = new DataView(lit.glb.buffer, lit.glb.byteOffset, lit.glb.byteLength);
+    const jsonLength = view.getUint32(12, true);
+    const json = JSON.parse(new TextDecoder().decode(lit.glb.slice(20, 20 + jsonLength))) as any;
+    const strip = json.materials.find((material: any) => material.name === 'cyberpunk/light-fixture/high_rich'
+      && material.extras?.materialVariant === 'strip');
+    expect(strip).toBeTruthy();
+    const texture = json.textures[strip.pbrMetallicRoughness.baseColorTexture.index];
+    expect(json.images[texture.source].uri).toContain('/light-fixture/high_rich/strip/');
     vi.unstubAllGlobals();
   });
 

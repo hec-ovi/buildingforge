@@ -16,6 +16,7 @@ import { paneGrid } from '../layout/glazing.ts';
 import { fixedPanelAxis } from '../layout/module.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
 import type { BalconyBand, Blueprint, DoorAssembly, Opening } from '../types.ts';
+import { materialSlot } from '../materials/slot.ts';
 
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
@@ -290,7 +291,7 @@ function doorFrameDetails(
   boxOn(u0 - inner, u1 + inner, yt + inner, yt + inner + outer);
 
   if (assembly.set !== 'illuminated') return;
-  const light = mat('light-fixture');
+  const light = materialSlot(mat('light-fixture'), 'strip');
   const strip = Math.min(0.035, inner * 0.35);
   const proud = assembly.frameDepth + 0.012;
   const line = (a: number, b: number, y0: number, y1: number) => {

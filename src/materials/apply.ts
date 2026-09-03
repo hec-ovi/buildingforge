@@ -9,6 +9,7 @@ import {
 import { Rng } from '../core/rng.ts';
 import { ExteriorError } from '../core/errors.ts';
 import { buildResolver, type MaterialEntry, type MaterialSource } from './theme.ts';
+import { splitMaterialSlot } from './slot.ts';
 
 export type TextureMode = 'external' | 'embed' | 'keys';
 
@@ -27,7 +28,7 @@ export interface MaterialPlan {
   mode: TextureMode;
   /** why the requested mode was not honoured, when it was not */
   reason?: string;
-  byKey: Map<string, Material>;
+  bySlot: Map<string, Material>;
   /** external mode: the URI each image keeps instead of embedded bytes */
   imageUris: Map<Texture, string>;
 }
@@ -59,24 +60,27 @@ export function preferredVariantForKey(key: string): string | undefined {
 }
 
 /** Untextured materials named by the canonical key: what a keys-only consumer resolves itself. */
-function keysOnly(doc: Document, keys: string[], reason?: string): MaterialPlan {
-  const byKey = new Map<string, Material>();
-  for (const key of keys) {
-    byKey.set(key, doc.createMaterial(key).setDoubleSided(false).setMetallicFactor(0).setRoughnessFactor(1));
+function keysOnly(doc: Document, slots: string[], reason?: string): MaterialPlan {
+  const bySlot = new Map<string, Material>();
+  for (const slot of slots) {
+    const [key, variant] = splitMaterialSlot(slot);
+    const material = doc.createMaterial(key).setDoubleSided(false).setMetallicFactor(0).setRoughnessFactor(1);
+    if (variant) material.setExtras({ materialVariant: variant });
+    bySlot.set(slot, material);
   }
-  return { mode: 'keys', reason, byKey, imageUris: new Map() };
+  return { mode: 'keys', reason, bySlot, imageUris: new Map() };
 }
 
 export function createMaterials(
-  doc: Document, keys: string[], theme: string, seed: string, opts: TextureOptions, source: MaterialSource | null,
+  doc: Document, slots: string[], theme: string, seed: string, opts: TextureOptions, source: MaterialSource | null,
 ): MaterialPlan {
   const mode = opts.mode ?? 'external';
-  if (mode === 'keys') return keysOnly(doc, keys);
+  if (mode === 'keys') return keysOnly(doc, slots);
   if (!source) {
     if (mode === 'embed') {
       throw new ExteriorError('E_MATERIAL_UNRESOLVED', `embedded textures need the materials database; theme "${theme}" was not found`);
     }
-    return keysOnly(doc, keys, `no materials database for theme "${theme}"`);
+    return keysOnly(doc, slots, `no materials database for theme "${theme}"`);
   }
 
   const resolve = buildResolver(source.index);
@@ -86,14 +90,15 @@ export function createMaterials(
   const emissive = doc.createExtension(KHRMaterialsEmissiveStrength);
   const textures = new Map<string, Texture>();
   const imageUris = new Map<Texture, string>();
-  const byKey = new Map<string, Material>();
+  const bySlot = new Map<string, Material>();
 
-  for (const key of keys) {
+  for (const slot of slots) {
+    const [key, authoredVariant] = splitMaterialSlot(slot);
     const entry = resolve(key);
     if (!entry) {
       throw new ExteriorError('E_MATERIAL_UNRESOLVED', `theme "${theme}" has no entry for material key ${key}`, { key });
     }
-    const preferred = preferredVariantForKey(key);
+    const preferred = authoredVariant ?? preferredVariantForKey(key);
     const variant = preferred
       ? entry.variants.find((candidate) => candidate.id === preferred)
       : entry.variants[new Rng(seed, `material:${key}`).int(0, entry.variants.length - 1)];
@@ -107,6 +112,7 @@ export function createMaterials(
       .setMetallicFactor(p.metallicFactor ?? 1)
       .setRoughnessFactor(p.roughnessFactor ?? 1)
       .setAlphaMode(p.alphaMode ?? 'OPAQUE');
+    if (authoredVariant) material.setExtras({ materialVariant: authoredVariant });
 
     const infos: TextureInfo[] = [];
     for (const slot of MAP_SLOTS) {
@@ -138,10 +144,10 @@ export function createMaterials(
         transmission.createTransmission().setTransmissionFactor(p.transmission));
       material.setExtension('KHR_materials_ior', ior.createIOR().setIOR(p.ior ?? 1.5));
     }
-    byKey.set(key, material);
+    bySlot.set(slot, material);
   }
 
-  return { mode, byKey, imageUris };
+  return { mode, bySlot, imageUris };
 }
 
 function textureFor(

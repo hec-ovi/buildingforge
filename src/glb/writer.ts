@@ -27,8 +27,8 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
   scene.addChild(root);
 
   const source = options.source !== undefined ? options.source : await autoSource(layout.theme, options.dir);
-  const plan = createMaterials(doc, mb.materialKeys(), layout.theme, layout.request.seed, options, source);
-  const materialOf = (key: string): Material => plan.byKey.get(key)!;
+  const plan = createMaterials(doc, mb.materialSlots(), layout.theme, layout.request.seed, options, source);
+  const materialOf = (slot: string): Material => plan.bySlot.get(slot)!;
 
   const addPrim = (mesh: ReturnType<Document['createMesh']>, key: string, prim: Prim) => {
     const position = doc.createAccessor()
@@ -75,7 +75,7 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
   };
 
   if (layout.request.options?.glb === 'merged') {
-    // Runtime mode: everything concatenated into one mesh per material key,
+    // Runtime mode: everything concatenated into one mesh per material slot,
     // except the parts a consumer addresses by node (swinging leaves, wire
     // anchors, the floor slabs the interior replaces), which keep their own.
     const kept = new Set<string>();

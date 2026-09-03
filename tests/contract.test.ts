@@ -749,6 +749,8 @@ describe('exterior light orientation', () => {
         const housing = mesh.listPrimitives()
           .find((primitive) => primitive.getMaterial()!.getName().split('/')[1] === 'window-frame')!;
         expect(lens.getAttribute('POSITION')!.getCount()).toBe(4);
+        expect(lens.getMaterial()!.getExtras().materialVariant).toBeUndefined();
+        expect(blueprint.materialVariants[lens.getMaterial()!.getName()]).toBe('lamp');
         expect(housing).toBeDefined();
         expect(light.size).toEqual([0.16, 0.28, 0.08]);
 
@@ -943,7 +945,7 @@ describe('GLB shell', () => {
     }
   });
 
-  it('glb:merged gives one mesh per material key, anchors kept, blueprint unchanged', async () => {
+  it('glb:merged gives one mesh per material slot, anchors kept, blueprint unchanged', async () => {
     const named = await generate(bridged, KEYS);
     const merged = await generate({ ...bridged, options: { glb: 'merged' } }, KEYS);
     expect(JSON.stringify(merged.blueprint)).toBe(JSON.stringify(named.blueprint));
@@ -956,7 +958,7 @@ describe('GLB shell', () => {
     expect(leaves.length).toBeGreaterThan(0);
     const bulk = meshNodes.filter((n) => n.getName().startsWith('merged:'));
     for (const n of bulk) expect(n.getMesh()!.listPrimitives().length).toBe(1);
-    // One bulk mesh per material, and across every node every published key is there.
+    // One bulk mesh per material slot, and across every node every published key is there.
     const used = new Set<string>();
     for (const n of meshNodes) for (const p of n.getMesh()!.listPrimitives()) used.add(p.getMaterial()!.getName());
     expect([...used].sort()).toEqual(named.blueprint.materials);
@@ -1210,12 +1212,33 @@ describe('GLB shell', () => {
     const litKinds = new Set(litFrame.listPrimitives().map((p) => p.getMaterial()!.getName().split('/')[1]));
     expect(litKinds).toContain('window-frame');
     expect(litKinds).toContain('light-fixture');
+    const strips = litFrame.listPrimitives().map((p) => p.getMaterial()!)
+      .filter((material) => material.getName().split('/')[1] === 'light-fixture');
+    expect(strips.length).toBeGreaterThan(0);
+    expect(strips.every((material) => material.getExtras().materialVariant === 'strip')).toBe(true);
 
     const ribbed = await generate(factory, KEYS);
     const ribbedDoc = await new NodeIO().readBinary(ribbed.glb);
     const leaf = ribbedDoc.getRoot().listNodes().find((n) => n.getName() === 'door:entrance/leaf:0')!.getMesh()!;
     const ribbedKinds = new Set(leaf.listPrimitives().map((p) => p.getMaterial()!.getName().split('/')[1]));
     expect(ribbedKinds).toContain('window-frame');
+  });
+
+  it('keeps illuminated strips distinct from lamps and their housing in merged GLBs', async () => {
+    const { glb } = await generate({ ...corpo, options: { ...(corpo as any).options, glb: 'merged' } }, KEYS);
+    const doc = await new NodeIO().readBinary(glb);
+    const nodes = new Map(doc.getRoot().listNodes().map((node) => [node.getName(), node]));
+    const key = 'cyberpunk/light-fixture/high_rich';
+    const lamp = nodes.get(`merged:${key}`)!.getMesh()!.listPrimitives()[0]!.getMaterial()!;
+    const strip = nodes.get(`merged:${key}#strip`)!.getMesh()!.listPrimitives()[0]!.getMaterial()!;
+    const housing = nodes.get('merged:cyberpunk/window-frame/high_rich')!.getMesh()!;
+
+    expect(lamp.getName()).toBe(key);
+    expect(lamp.getExtras().materialVariant).toBeUndefined();
+    expect(strip.getName()).toBe(key);
+    expect(strip.getExtras().materialVariant).toBe('strip');
+    expect(housing.listPrimitives().every((primitive) =>
+      primitive.getMaterial()!.getName() === 'cyberpunk/window-frame/high_rich')).toBe(true);
   });
 });
 
