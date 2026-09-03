@@ -1,5 +1,7 @@
 # Changelog
 
+0.39.0: rich office curtain walls can carry balcony bands. One stable alternating-floor phase receives fitted 2 m glazed access doors, with vision panels retained on both sides and the door head aligned under the slab band; the full-frontage band remains one shared mesh and `balconies: "off"` removes the whole feature.
+
 0.38.0: balcony slabs and rails are shared band geometry with published floor, face run, depth, slab, rail and access-door dimensions. Rich residential and hotel buildings gain a selective full-face variant, forceable with `balconyStyle: "full"`, that serves all fitted doors with one continuous slab and rail instead of overlapping per-door copies. The walking surface lands exactly on the floor elevation.
 
 0.37.0: exterior fixtures now mount in the carrying facade's basis instead of the world axes. Their rear face sits flush on wall or relief, world Y stays upright, and only one exact front quad uses the emissive light material; the other five housing faces use painted frame metal. The blueprint publishes edge, anchor, size, standoff and outward normal, with cardinal-orientation geometry tests.

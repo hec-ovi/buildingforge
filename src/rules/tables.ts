@@ -44,7 +44,7 @@ const STYLE_RULES: Record<Family, StyleRules> = {
   office: {
     floorHeight: [3.66, 4.0], groundFloorFactor: [1.3, 1.6],
     windowToWall: [0.3, 0.8], bayModule: [1.8, 2.6], columnGrid: [6.0, 9.0],
-    columnWidth: [0.3, 0.6], balconies: false, entranceGlass: true,
+    columnWidth: [0.3, 0.6], balconies: true, entranceGlass: true,
   },
   corpo: {
     floorHeight: [3.9, 4.27], groundFloorFactor: [1.5, 2.0],
@@ -106,7 +106,7 @@ export const BALCONY = {
   railing: 1.07,
   slabThickness: 0.15,
   railThickness: 0.05,
-  fullFamilies: ['residential', 'hotel'] as string[],
+  fullFamilies: ['residential', 'hotel', 'office'] as string[],
   fullTiers: ['rich', 'high_rich'] as Tier[],
   fullChance: { rich: 0.35, high_rich: 0.55 } as Record<string, number>,
   maxCantilever: 2.0,

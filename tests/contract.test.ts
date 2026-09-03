@@ -146,6 +146,37 @@ describe('blueprint invariants', () => {
     }
   });
 
+  it('integrates balcony access into alternating office curtain-wall floors', async () => {
+    const request = {
+      seed: 'office-balcony-test', buildingId: 'office-balcony',
+      parcel: { footprint: [[0, 0], [42, 0], [42, 30], [0, 30]], accessPoint: [21, -2], maxHeight: 45 },
+      building: { type: 'offices', tier: 'rich', floors: 10 },
+      theme: 'cyberpunk',
+      options: { shape: 'box', balconies: 'on', balconyStyle: 'full', signage: null },
+    };
+    const { blueprint } = await generate(request, KEYS);
+    expect(blueprint.facade.style).toBe('curtain-wall');
+    const access = blueprint.floors.flatMap((floor) => floor.openings
+      .filter((opening) => opening.kind === 'balconyDoor').map((opening) => ({ floor, opening })));
+    expect(access.length).toBeGreaterThan(0);
+    const phase = access[0]!.floor.index % 2;
+    expect(access.every(({ floor }) => floor.index > 0 && floor.index % 2 === phase)).toBe(true);
+    for (const { floor, opening } of access) {
+      const neighbor = floor.openings.find((candidate) => candidate.kind === 'window'
+        && candidate.edge === opening.edge)!;
+      expect(neighbor).toBeDefined();
+      expect(opening.height).toBeCloseTo(floor.height - neighbor.head!, 6);
+      expect(blueprint.balconyBands.find((band) => band.id === opening.balcony!.bandId)!.style)
+        .toBe('full');
+    }
+
+    const off = (await generate({
+      ...request, options: { ...request.options, balconies: 'off' },
+    }, KEYS)).blueprint;
+    expect(off.floors.flatMap((floor) => floor.openings)
+      .some((opening) => opening.kind === 'balconyDoor')).toBe(false);
+  });
+
   it('falls back to windows when an aperture-pinned outline leaves no room for balconies', async () => {
     const { blueprint } = await generate({
       seed: 'aperture-balcony', buildingId: 'ab',
