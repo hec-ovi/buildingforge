@@ -1136,6 +1136,39 @@ describe('material resolution', () => {
 });
 
 describe('facade panels', () => {
+  it('publishes exact seams and opening-free partition seats for every floor face', async () => {
+    for (const req of [residential, corpo, bridged, shallow]) {
+      const { blueprint } = await generate(req, KEYS);
+      const faceCount = blueprint.floors.reduce((sum, floor) => sum + floor.outline.length, 0);
+      expect(blueprint.facade.grids).toHaveLength(faceCount);
+
+      for (const grid of blueprint.facade.grids) {
+        const floor = blueprint.floors.find((candidate) => candidate.index === grid.floor)!;
+        expect(grid.horizontal[0]).toBe(0);
+        expect(grid.horizontal.at(-1)).toBeCloseTo(grid.length, 3);
+        expect(grid.vertical[0]).toBe(0);
+        expect(grid.vertical.at(-1)).toBeCloseTo(floor.height, 3);
+        for (let i = 1; i < grid.horizontal.length; i++) {
+          expect(grid.horizontal[i]! - grid.horizontal[i - 1]!).toBeCloseTo(grid.panelWidth, 2);
+        }
+        for (let i = 1; i < grid.vertical.length; i++) {
+          expect(grid.vertical[i]! - grid.vertical[i - 1]!).toBeCloseTo(grid.panelHeight, 2);
+        }
+
+        const openings = floor.openings.filter((opening) => opening.edge === grid.edge);
+        for (const [start, end] of grid.solid) {
+          expect(openings.some((opening) => start < opening.offset + opening.width - 0.0011
+            && end > opening.offset + 0.0011)).toBe(false);
+        }
+        for (const anchor of grid.partitionAnchors) {
+          expect(anchor.width).toBeGreaterThanOrEqual(0.15);
+          expect(grid.solid.some(([start, end]) => anchor.offset >= start
+            && anchor.offset <= end && anchor.width <= end - start + 0.001)).toBe(true);
+        }
+      }
+    }
+  });
+
   it('spans every face and every storey with whole wall panels', async () => {
     for (const req of [residential, corpo, factory, bridged, shallow]) {
       const { glb, blueprint } = await generate(req, KEYS);

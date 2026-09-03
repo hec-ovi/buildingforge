@@ -4,6 +4,7 @@ import type { Blueprint } from '../types.ts';
 import type { Layout } from '../layout/model.ts';
 import { measureWallDepth } from '../mesh/wallDepth.ts';
 import { SLAB_BAND } from '../rules/tables.ts';
+import { buildFacadeGrids } from '../layout/facadeGrid.ts';
 import type { MeshBuilder } from '../mesh/primitives.ts';
 
 export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
@@ -35,6 +36,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
         below: SLAB_BAND.below,
         above: spandrelBand(layout),
       },
+      grids: buildFacadeGrids(layout.floors, layout.style.facade.panelModule),
     },
     facadeArtifacts: layout.facadeArtifacts,
     fireEscape: layout.fireEscape,

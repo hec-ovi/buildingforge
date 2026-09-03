@@ -207,7 +207,7 @@
     },
     "facade": {
       "type": "object",
-      "required": ["style", "panelModule", "wallDepth", "slabBand"],
+      "required": ["style", "panelModule", "wallDepth", "slabBand", "grids"],
       "additionalProperties": false,
       "properties": {
         "style": {
@@ -217,7 +217,7 @@
         "panelModule": {
           "type": "number",
           "exclusiveMinimum": 0,
-          "description": "concrete panel width in meters; equals the wall material's tile size, so map joints land on the geometry grid"
+          "description": "preferred concrete panel pitch in meters; grids publishes the exact fitted pitch used on each face"
         },
         "wallDepth": {
           "type": "number",
@@ -232,6 +232,45 @@
           "properties": {
             "below": { "type": "number", "minimum": 0 },
             "above": { "type": "number", "minimum": 0 }
+          }
+        },
+        "grids": {
+          "type": "array",
+          "description": "one entry per floor face: exact map-panel seams, opening-free wall runs and the seats where an interior partition may meet the facade without crossing glazing",
+          "items": {
+            "type": "object",
+            "required": ["floor", "edge", "length", "panelWidth", "panelHeight", "horizontal", "vertical", "solid", "partitionAnchors"],
+            "additionalProperties": false,
+            "properties": {
+              "floor": { "type": "integer" },
+              "edge": { "type": "integer", "minimum": 0 },
+              "length": { "type": "number", "exclusiveMinimum": 0 },
+              "panelWidth": { "type": "number", "exclusiveMinimum": 0 },
+              "panelHeight": { "type": "number", "exclusiveMinimum": 0 },
+              "horizontal": {
+                "type": "array", "minItems": 2, "items": { "type": "number", "minimum": 0 },
+                "description": "panel seam offsets along the face, including 0 and length"
+              },
+              "vertical": {
+                "type": "array", "minItems": 2, "items": { "type": "number", "minimum": 0 },
+                "description": "panel seam offsets above this floor, including 0 and floor height"
+              },
+              "solid": {
+                "type": "array", "items": { "$ref": "#/$defs/span" },
+                "description": "maximal opening-free wall runs [start, end] along this face"
+              },
+              "partitionAnchors": {
+                "type": "array",
+                "description": "centres and available widths of solid runs at least 0.15 m wide",
+                "items": {
+                  "type": "object", "required": ["offset", "width"], "additionalProperties": false,
+                  "properties": {
+                    "offset": { "type": "number", "minimum": 0 },
+                    "width": { "type": "number", "minimum": 0.15 }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -337,6 +376,12 @@
       "prefixItems": [{ "type": "number" }, { "type": "number" }, { "type": "number" }],
       "minItems": 3,
       "maxItems": 3
+    },
+    "span": {
+      "type": "array",
+      "prefixItems": [{ "type": "number", "minimum": 0 }, { "type": "number", "minimum": 0 }],
+      "minItems": 2,
+      "maxItems": 2
     }
   }
 }

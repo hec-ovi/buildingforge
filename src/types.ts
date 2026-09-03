@@ -172,6 +172,18 @@ export interface Blueprint {
     wallDepth: number;
     /** the opaque band kept at every floor line, so an interior slab never reads through the glass */
     slabBand: { below: number; above: number };
+    /** exact per-floor face grids and opening-free seats for facade-aligned interior partitions */
+    grids: {
+      floor: number;
+      edge: number;
+      length: number;
+      panelWidth: number;
+      panelHeight: number;
+      horizontal: number[];
+      vertical: number[];
+      solid: P2[];
+      partitionAnchors: { offset: number; width: number }[];
+    }[];
   };
   facadeArtifacts: FacadeArtifact[];
   fireEscape: { edge: number; fromFloor: number; toFloor: number; offset: number; width: number } | null;
