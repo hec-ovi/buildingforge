@@ -1,7 +1,7 @@
 # Box map
 
 - root: the exterior generator, see [CONTRACT.md](../CONTRACT.md). Depends on atlas (parcel), connections (apertures), interior (core fit), materials (material keys).
-- src/facade-services: isolated arithmetic for attached service units, connected pipe and duct graphs, wall supports, clotheslines, hanging garments and sparse pane damage. See [CONTRACT.md](../src/facade-services/CONTRACT.md). Depends on root core geometry and rules.
+- src/facade-services: isolated arithmetic for attached service units, connected pipe and duct graphs, wall supports, clotheslines, hanging garments and sparse pane damage. See [CONTRACT.md](../src/facade-services/CONTRACT.md). Depends on nothing; the caller supplies its geometry, reservations and material keys.
 - src/ui: preview app with orbit and street-eye cameras. See [CONTRACT.md](../src/ui/CONTRACT.md). Depends on the root generator entry, Three.js, browser DOM and WebGL, and the read-only materials route.
 
 ## Root modules
