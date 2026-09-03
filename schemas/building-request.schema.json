@@ -116,6 +116,21 @@
         },
         "adScreens": { "enum": ["auto", "on", "off"], "default": "auto" },
         "roofArtifacts": { "enum": ["auto", "off"], "default": "auto" },
+        "facadeServices": {
+          "enum": ["auto", "on", "off"],
+          "default": "auto",
+          "description": "dimensioned facade-local pipe and duct networks with attached junction units; auto is limited to compatible solid service facades"
+        },
+        "hangingClothes": {
+          "enum": ["auto", "on", "off"],
+          "default": "auto",
+          "description": "supported clotheslines clear of openings and access routes; auto is limited to poor and mid residential facades"
+        },
+        "windowDamage": {
+          "enum": ["off", "sparse"],
+          "default": "off",
+          "description": "explicit opt-in pane damage; sparse selects at most one window per forty candidates and preserves its fitted frame"
+        },
         "curtains": {
           "type": "object",
           "additionalProperties": false,

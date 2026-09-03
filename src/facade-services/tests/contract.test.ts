@@ -144,6 +144,17 @@ describe('facade-services contract', () => {
     }
   });
 
+  it('rejects route spans that leave a concave parcel between their endpoints', () => {
+    const input = load();
+    const output = generateFacadeServices({
+      ...input,
+      parcel: [[-2, -2], [0.8, -2], [0.8, -0.2], [3, -0.2], [3, -2],
+        [14, -2], [14, 14], [-2, 14]],
+    });
+    expect(output.networks.some((network) => network.face.edge === 0)).toBe(false);
+    expect(output.networks.some((network) => network.face.edge !== 0)).toBe(true);
+  });
+
   it('keeps window damage opt-in, sparse, pane-bounded, and collision-explicit', () => {
     const input = load();
     const output = generateFacadeServices(input);

@@ -40,6 +40,7 @@ export function placeAcUnits(
       if (!cluster) continue;
       for (let i = 0; i < cluster.count; i++) {
         out.push({
+          id: `ac:${floor.index}:${e}:${i}`,
           kind: 'ac-unit',
           floor: floor.index,
           edge: e,

@@ -54,6 +54,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
       grids: buildFacadeGrids(layout.floors, layout.style.facade.panelWidth, layout.style.facade.panelHeight),
     },
     facadeArtifacts: layout.facadeArtifacts,
+    facadeServices: layout.facadeServices,
     fireEscape: layout.fireEscape,
     roof: layout.roof,
     materials,

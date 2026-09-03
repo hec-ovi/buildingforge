@@ -4,6 +4,7 @@
 - src/core: seeded rng, random seeds for standalone runs, polygon math, request validation, error set.
 - src/rules: template families, the researched numeric tables (docs/RESEARCH.md), the published proportion table and its fit arithmetic, and the signage glyph cells.
 - src/layout: style freeze, massing and the shared core placement every plate keeps (src/layout/core.ts, read from the interior's published constants and stair recipe), floor stack, facade bays, shared balcony bands, exact panel seams and partition anchors, glazing pane grids, facade relief, the per-face obstacle map and its clear-rectangle scan, condenser unit clusters, features. Depends on core and rules.
+- src/facade-services: isolated arithmetic for attached service units, connected pipe and duct graphs, wall supports, clotheslines, hanging garments and sparse pane damage. See [../src/facade-services/CONTRACT.md](../src/facade-services/CONTRACT.md) and its exact [input](../src/facade-services/schema/input.schema.json) and [output](../src/facade-services/schema/output.schema.json) schemas.
 - src/mesh: winding-safe primitives, trapezoid wall cutting, caps, mesher, the wall depth measure. Depends on layout.
 - src/materials: the materials box seen from here: theme index types, key resolution, glTF material building, and the sources that read the database from disk or over HTTP.
 - src/glb + src/blueprint: output writers. Depend on mesh, layout and materials.

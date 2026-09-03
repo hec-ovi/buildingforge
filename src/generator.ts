@@ -20,6 +20,7 @@ import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.
 import { bestCoreFit, coreRects, facadeDepth } from './layout/core.ts';
 import { acClusterName } from './layout/acUnits.ts';
 import { buildFeatures } from './layout/features.ts';
+import { buildFacadeServiceDetails } from './layout/facadeServiceAdapter.ts';
 import { buildMesh } from './mesh/mesher.ts';
 import { writeGlb } from './glb/writer.ts';
 import { buildBlueprint } from './blueprint/builder.ts';
@@ -47,10 +48,16 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   const anchors = mountAnchors(facades.anchors, massing.groundOutline, obstacles);
   const features = buildFeatures(
     req, family, tier, style, massing, stack.top, facades.floors, streetEdges, obstacles, corePlate.axis);
+  const facadeServices = buildFacadeServiceDetails({
+    request: req, family, tier, style, floors: facades.floors, relief, anchors, balconyBands,
+    facadeArtifacts: features.facadeArtifacts, signage: features.signage, screens: features.screens,
+    lights: features.lights, fireEscape: features.fireEscape,
+  });
 
   const layout: Layout = {
     request: req, family, tier, theme: req.theme, style, relief,
     floors: facades.floors, balconyBands, carved: facades.carved, anchors,
+    facadeServices,
     ...features,
   };
   checkInvariants(layout, obstacles);

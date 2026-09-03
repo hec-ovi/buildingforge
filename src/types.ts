@@ -2,6 +2,7 @@
 
 import type { AtlasType, Tier } from './rules/families.ts';
 import type { TextureMode, TextureOptions } from './materials/apply.ts';
+import type { FacadeServicesOutput, WindowDamage } from './facade-services/index.ts';
 
 export type P2 = [number, number];
 export type P3 = [number, number, number];
@@ -52,6 +53,9 @@ export interface BuildingRequest {
     signage?: Signage;
     adScreens?: 'auto' | 'on' | 'off';
     roofArtifacts?: 'auto' | 'off';
+    facadeServices?: 'auto' | 'on' | 'off';
+    hangingClothes?: 'auto' | 'on' | 'off';
+    windowDamage?: 'off' | 'sparse';
     curtains?: { profile?: 'day' | 'night'; sunAzimuthDeg?: number };
   };
 }
@@ -110,6 +114,8 @@ export interface Opening {
   transom?: number;
   balcony?: { depth: number; width: number; bandId?: string };
   material?: string;
+  /** Explicit pane damage. Absent means the complete pane grid remains intact. */
+  damage?: Omit<WindowDamage, 'openingId' | 'face' | 'materialKey'>;
 }
 
 export interface Floor {
@@ -154,8 +160,9 @@ export interface Bulkhead {
 
 /** Surface-mounted equipment on a facade: positioned like an opening, sized [w, h, depth]. */
 export interface FacadeArtifact {
-  /** `utility-box` or `ac-unit` */
-  kind: string;
+  /** stable equipment endpoint id */
+  id: string;
+  kind: 'utility-box' | 'ac-unit';
   floor: number;
   edge: number;
   offset: number;
@@ -243,6 +250,7 @@ export interface Blueprint {
     }[];
   };
   facadeArtifacts: FacadeArtifact[];
+  facadeServices: FacadeServicesOutput;
   fireEscape: { edge: number; fromFloor: number; toFloor: number; offset: number; width: number } | null;
   roof: {
     elevation: number;

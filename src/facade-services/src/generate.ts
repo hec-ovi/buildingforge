@@ -403,7 +403,7 @@ function supportsFor(
     // Normal connectors already end on equipment. Wall brackets support the facade-parallel runs.
     if (Math.abs(a.local[2] - b.local[2]) > Math.abs(a.local[0] - b.local[0])
       + Math.abs(a.local[1] - b.local[1])) continue;
-    const count = Math.max(0, Math.floor(item.length / spacing));
+    const count = item.length < 0.25 ? 0 : Math.max(1, Math.floor(item.length / spacing));
     for (let i = 1; i <= count; i++) {
       const t = i / (count + 1);
       const local = lerp3(a.local, b.local, t);
@@ -551,6 +551,10 @@ function checkOutput(
       throw new Error(`facade-services invariant: invalid unit ${unit.id}`);
     }
   }
+  const endpointTargets = new Set([
+    ...input.artifacts.map((artifact) => artifact.id),
+    ...output.units.map((unit) => unit.id),
+  ]);
   for (const network of output.networks) {
     const face = faces.get(faceKey(network.face));
     if (!face) throw new Error(`facade-services invariant: missing face for ${network.id}`);
@@ -574,6 +578,7 @@ function checkOutput(
     }
     const endpoints = network.nodes.filter((node) => node.kind === 'endpoint');
     if (endpoints.length < 2 || !connected(graph, endpoints.map((node) => node.id))
+      || endpoints.some((node) => !node.targetId || !endpointTargets.has(node.targetId))
       || Math.abs(length - network.length) > 0.002) {
       throw new Error(`facade-services invariant: network ${network.id} does not join its endpoints`);
     }
@@ -823,9 +828,35 @@ function inOrOn(poly: P2[], point: P2): boolean {
 }
 
 function segmentInsidePolygon(poly: P2[], a: P2, b: P2): boolean {
-  if (!inOrOn(poly, a) || !inOrOn(poly, b)) return false;
-  // The midpoint check is sufficient for facade-parallel spans inside the simple
-  // parcel offsets supplied here. Quarter points catch concave notches.
-  return [0.25, 0.5, 0.75].every((t) => inOrOn(poly,
-    [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]));
+  const rx = b[0] - a[0], rz = b[1] - a[1];
+  const lengthSquared = rx * rx + rz * rz;
+  if (lengthSquared < 1e-18) return inOrOn(poly, a);
+  const cuts = [0, 1];
+  const cross = (x0: number, z0: number, x1: number, z1: number) => x0 * z1 - z0 * x1;
+  for (let index = 0; index < poly.length; index++) {
+    const c = poly[index]!, d = poly[(index + 1) % poly.length]!;
+    const sx = d[0] - c[0], sz = d[1] - c[1];
+    const qx = c[0] - a[0], qz = c[1] - a[1];
+    const denominator = cross(rx, rz, sx, sz);
+    if (Math.abs(denominator) > 1e-12) {
+      const t = cross(qx, qz, sx, sz) / denominator;
+      const u = cross(qx, qz, rx, rz) / denominator;
+      if (t >= -1e-9 && t <= 1 + 1e-9 && u >= -1e-9 && u <= 1 + 1e-9) {
+        cuts.push(Math.max(0, Math.min(1, t)));
+      }
+    } else if (Math.abs(cross(qx, qz, rx, rz)) <= 1e-9) {
+      const tc = (qx * rx + qz * rz) / lengthSquared;
+      const td = ((d[0] - a[0]) * rx + (d[1] - a[1]) * rz) / lengthSquared;
+      if (tc >= -1e-9 && tc <= 1 + 1e-9) cuts.push(Math.max(0, Math.min(1, tc)));
+      if (td >= -1e-9 && td <= 1 + 1e-9) cuts.push(Math.max(0, Math.min(1, td)));
+    }
+  }
+  cuts.sort((x, y) => x - y);
+  const uniqueCuts = cuts.filter((value, index) => index === 0
+    || Math.abs(value - cuts[index - 1]!) > 1e-9);
+  for (let index = 0; index + 1 < uniqueCuts.length; index++) {
+    const midpoint = (uniqueCuts[index]! + uniqueCuts[index + 1]!) / 2;
+    if (!inOrOn(poly, [a[0] + rx * midpoint, a[1] + rz * midpoint])) return false;
+  }
+  return true;
 }

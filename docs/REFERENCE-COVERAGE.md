@@ -9,6 +9,8 @@ This map records which layer owns each requirement from the September 2026 visua
 | Floor and panel alignment | `floors`, `slabBands`, `facade.grids`, and `facadeWindows` share the same metre-based floor and bay arithmetic. Panels stay 2 x 1 m; equal solid borders absorb remainders. |
 | Door proportions | `door` assemblies publish the set, frame, reveal, threshold, motion clearance, and access role. Long frontages repeat fitted assemblies without cutting structural piers. |
 | Curtain walls and service faces | Window panes follow the facade grid. Opening-free solid spans and safe partition anchors are published per face. |
+| Facade service routes and clothes | `facadeServices` publishes connected pipe and rectangular duct graphs with fitted endpoint units and wall supports. Clothes hang from connected supports on opening-free residential spans. |
+| Damaged windows | Damage is an explicit sparse request variant on a named pane. Fractured panes remain solid; missing panes publish open collision while the remaining unit stays intact. |
 | Balconies | `balconyBands` own one shared slab and rail run. Doors reference the band rather than adding overlapping slabs. |
 | Exterior lights | Every fixture publishes its facade edge, rear mount, outward normal, size, and standoff. The emissive lens exists on the outward face only. |
 | Letter signs | Atlas glyphs are inset inside individual metal cases with deterministic cells, spacing, and depth. |

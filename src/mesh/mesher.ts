@@ -1,7 +1,7 @@
 // Turns a Layout into mesh parts. Every visible face goes through quadFacing or
 // the cap winding check, so nothing can face inward.
 
-import { MeshBuilder, type PartSink, type V3, add, scale } from './primitives.ts';
+import { MeshBuilder, type PartSink, type V3, add, scale, sub, cross, dot, norm } from './primitives.ts';
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import { capUp, capDown, capFrame, type CapFrame } from './caps.ts';
 import { meshAnchorMount } from './anchorMount.ts';
@@ -128,6 +128,7 @@ export function buildMesh(layout: Layout): MeshBuilder {
   meshRoofArtifacts(mb, layout, top, mat);
   meshFacadeArtifacts(mb, layout, mat);
   meshAcUnits(mb, layout, mat);
+  meshFacadeServices(mb, layout);
   for (const a of layout.anchors) meshAnchorMount(mb, a, mat('window-frame'));
   meshFeatures(mb, layout, mat);
   meshFireEscape(mb, layout, above, mat);
@@ -423,11 +424,17 @@ function windowUnit(
     member(sink, fr, g0, g1, y - mw / 2, y + mw / 2, mProud, mDepth, frameMat, { bottom: true, top: true });
   }
 
-  // Glass recessed behind the wall face, exact 0..1 UVs over the pane field.
+  // Glass recessed behind the wall face. An explicit damage state subdivides
+  // this one window only; intact windows keep the existing single fitted pane field.
   const glassZ = z - g.glassInset;
-  sink.quadFacing(o.material ?? mat('window-glass'),
-    at(fr, [g0, gb], glassZ), at(fr, [g1, gb], glassZ), at(fr, [g1, gt], glassZ), at(fr, [g0, gt], glassZ),
-    n3(fr), [[0, 1], [1, 1], [1, 0], [0, 0]]);
+  if (o.damage) {
+    damagedPaneField(sink, fr, g0, g1, gb, gt, glassZ, cols, rows,
+      o.damage, o.material ?? mat('window-glass'));
+  } else {
+    sink.quadFacing(o.material ?? mat('window-glass'),
+      at(fr, [g0, gb], glassZ), at(fr, [g1, gb], glassZ), at(fr, [g1, gt], glassZ), at(fr, [g0, gt], glassZ),
+      n3(fr), [[0, 1], [1, 1], [1, 0], [0, 0]]);
+  }
 
   // Curtain panel behind the glass, dropping from the top by state.
   const fraction = o.state === 'half' ? 0.5 : o.state === 'closed80' ? 0.8 : 0;
@@ -436,6 +443,51 @@ function windowUnit(
     const z = glassZ - 0.02;
     sink.quadFacing(mat('curtain'), at(fr, [g0, cb], z), at(fr, [g1, cb], z), at(fr, [g1, gt], z), at(fr, [g0, gt], z),
       n3(fr), [[0, fraction], [1, fraction], [1, 0], [0, 0]]);
+  }
+}
+
+/** One selected pane carries fitted shards or a shallow fractured center. */
+function damagedPaneField(
+  sink: PartSink, fr: Frame, u0: number, u1: number, y0: number, y1: number, proud: number,
+  cols: number, rows: number, damage: NonNullable<Opening['damage']>, material: string,
+): void {
+  const du = (u1 - u0) / cols;
+  const dy = (y1 - y0) / rows;
+  const uv = (u: number, y: number): [number, number] => [u, -y];
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const a = u0 + du * col, b = a + du;
+      const bottom = y0 + dy * row, top = bottom + dy;
+      if (col !== damage.pane.col || row !== damage.pane.row) {
+        sink.quadFacing(material, at(fr, [a, bottom], proud), at(fr, [b, bottom], proud),
+          at(fr, [b, top], proud), at(fr, [a, top], proud), n3(fr),
+          [uv(a, bottom), uv(b, bottom), uv(b, top), uv(a, top)]);
+        continue;
+      }
+      const centerU = (a + b) / 2, centerY = (bottom + top) / 2;
+      if (damage.variant === 'fractured-pane') {
+        const center = at(fr, [centerU, centerY], proud - 0.012);
+        for (const [p, q] of [
+          [[a, bottom], [b, bottom]], [[b, bottom], [b, top]],
+          [[b, top], [a, top]], [[a, top], [a, bottom]],
+        ] as [[number, number], [number, number]][]) {
+          sink.triFacing(material, at(fr, p, proud), at(fr, q, proud), center, n3(fr),
+            [uv(...p), uv(...q), uv(centerU, centerY)]);
+        }
+      } else {
+        // Four retained corner shards make the missing state visibly intentional.
+        const sx = du * 0.18, sy = dy * 0.18;
+        for (const tri of [
+          [[a, bottom], [a + sx, bottom], [a, bottom + sy]],
+          [[b, bottom], [b, bottom + sy], [b - sx, bottom]],
+          [[b, top], [b - sx, top], [b, top - sy]],
+          [[a, top], [a, top - sy], [a + sx, top]],
+        ] as [[number, number], [number, number], [number, number]][]) {
+          sink.triFacing(material, at(fr, tri[0], proud), at(fr, tri[1], proud), at(fr, tri[2], proud), n3(fr),
+            [uv(...tri[0]), uv(...tri[1]), uv(...tri[2])]);
+        }
+      }
+    }
   }
 }
 
@@ -644,6 +696,134 @@ function meshAcUnits(mb: MeshBuilder, layout: Layout, mat: (k: string) => string
         across(1), bracket.strut, bracket.strut);
     }
   }
+}
+
+/** Facade-local service networks and clothes are consolidated by material. */
+function meshFacadeServices(mb: MeshBuilder, layout: Layout): void {
+  const details = layout.facadeServices;
+  if (details.units.length === 0 && details.networks.length === 0 && details.clotheslines.length === 0) return;
+  const sink = mb.part('facade-services');
+  const byFloor = new Map(layout.floors.map((floor) => [floor.index, floor]));
+
+  for (const unit of details.units) {
+    const floor = byFloor.get(unit.face.floor);
+    if (!floor || unit.face.edge >= floor.outline.length) continue;
+    const fr = frame(floor.outline, unit.face.edge);
+    const [w, h, d] = unit.size;
+    sink.box(unit.materialKey, unit.center,
+      [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2], [0, h / 2, 0],
+      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2]);
+  }
+
+  for (const network of details.networks) {
+    const floor = byFloor.get(network.face.floor);
+    if (!floor || network.face.edge >= floor.outline.length) continue;
+    const fr = frame(floor.outline, network.face.edge);
+    const nodes = new Map(network.nodes.map((node) => [node.id, node]));
+    const radius = network.profile.shape === 'round'
+      ? network.profile.diameter / 2 : Math.max(network.profile.width, network.profile.depth) / 2;
+    for (const segment of network.segments) {
+      const a = nodes.get(segment.from)!, b = nodes.get(segment.to)!;
+      if (network.profile.shape === 'round') {
+        tubeSegment(sink, network.materialKey, a.position, b.position, network.profile.diameter / 2);
+      } else {
+        const axis = sub(b.position, a.position);
+        const vertical = Math.abs(axis[1]) >= Math.hypot(axis[0], axis[2]);
+        const normalRun = Math.abs(dot(norm(axis), [fr.n[0], 0, fr.n[1]])) > 0.7;
+        const widthDir: V3 = vertical || normalRun
+          ? [fr.dir[0], 0, fr.dir[1]] : [0, 1, 0];
+        sink.slantedBox(network.materialKey, a.position, b.position, widthDir,
+          network.profile.width, network.profile.depth);
+      }
+    }
+    for (const node of network.nodes.filter((item) => item.kind !== 'endpoint')) {
+      sink.box(network.materialKey, node.position,
+        [fr.dir[0] * radius, 0, fr.dir[1] * radius], [0, radius, 0],
+        [fr.n[0] * radius, 0, fr.n[1] * radius]);
+    }
+    for (const support of network.supports) {
+      sink.slantedBox(network.materialKey, support.wallPosition, support.position,
+        [fr.dir[0], 0, fr.dir[1]], 0.04, 0.04);
+    }
+  }
+
+  for (const line of details.clotheslines) {
+    const floor = byFloor.get(line.face.floor);
+    if (!floor || line.face.edge >= floor.outline.length) continue;
+    const fr = frame(floor.outline, line.face.edge);
+    for (const support of line.supports) {
+      tubeSegment(sink, line.supportMaterialKey, support.wall, support.tip, 0.025);
+      sink.box(line.supportMaterialKey, support.wall,
+        [fr.dir[0] * 0.06, 0, fr.dir[1] * 0.06], [0, 0.06, 0],
+        [fr.n[0] * 0.02, 0, fr.n[1] * 0.02]);
+    }
+    for (let i = 1; i < line.line.length; i++) {
+      tubeSegment(sink, line.lineMaterialKey, line.line[i - 1]!, line.line[i]!, line.diameter / 2);
+    }
+    for (const item of line.items) meshClothItem(sink, item, [fr.n[0], 0, fr.n[1]]);
+  }
+}
+
+const OCTAGON: [number, number][] = [
+  [1, 0], [Math.SQRT1_2, Math.SQRT1_2], [0, 1], [-Math.SQRT1_2, Math.SQRT1_2],
+  [-1, 0], [-Math.SQRT1_2, -Math.SQRT1_2], [0, -1], [Math.SQRT1_2, -Math.SQRT1_2],
+];
+
+/** Eight-sided tube with U around its real circumference and V along its real length. */
+function tubeSegment(sink: PartSink, material: string, start: V3, end: V3, radius: number): void {
+  const axisVector = sub(end, start);
+  const length = Math.sqrt(dot(axisVector, axisVector));
+  if (length < 1e-6) return;
+  const axis = norm(axisVector);
+  const reference: V3 = Math.abs(axis[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
+  const side = norm(cross(axis, reference));
+  const up = norm(cross(side, axis));
+  const ring = (center: V3, point: [number, number]): V3 => add(center,
+    add(scale(side, radius * point[0]), scale(up, radius * point[1])));
+  const circumference = 2 * Math.PI * radius;
+  for (let i = 0; i < OCTAGON.length; i++) {
+    const j = (i + 1) % OCTAGON.length;
+    const a = ring(start, OCTAGON[i]!);
+    const b = ring(start, OCTAGON[j]!);
+    const c = ring(end, OCTAGON[j]!);
+    const d = ring(end, OCTAGON[i]!);
+    const outward = norm(add(sub(a, start), sub(b, start)));
+    sink.quadFacing(material, a, b, c, d, outward, [
+      [circumference * i / 8, length], [circumference * (i + 1) / 8, length],
+      [circumference * (i + 1) / 8, 0], [circumference * i / 8, 0],
+    ]);
+  }
+}
+
+function meshClothItem(
+  sink: PartSink, item: Layout['facadeServices']['clotheslines'][number]['items'][number], outward: V3,
+): void {
+  const [tl, tr, br, bl] = item.positions;
+  const mix = (a: V3, b: V3, t: number): V3 => [
+    a[0] + (b[0] - a[0]) * t,
+    a[1] + (b[1] - a[1]) * t,
+    a[2] + (b[2] - a[2]) * t,
+  ];
+  const quad = (a: V3, b: V3, c: V3, d: V3) => {
+    const width = Math.max(0.001, Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]));
+    const height = Math.max(0.001, (distance3(a, d) + distance3(b, c)) / 2);
+    sink.quadFacing(item.materialKey, d, c, b, a, outward,
+      [[0, height], [width, height], [width, 0], [0, 0]]);
+  };
+  if (item.variant === 'sheet') {
+    quad(tl, tr, br, bl);
+  } else if (item.variant === 'shirt') {
+    quad(tl, tr, mix(tr, br, 0.88), mix(tl, bl, 0.88));
+  } else {
+    const leftMid = mix(tl, bl, 0.45), rightMid = mix(tr, br, 0.45);
+    quad(tl, tr, rightMid, leftMid);
+    quad(leftMid, mix(leftMid, rightMid, 0.43), mix(bl, br, 0.43), bl);
+    quad(mix(leftMid, rightMid, 0.57), rightMid, br, mix(bl, br, 0.57));
+  }
+}
+
+function distance3(a: V3, b: V3): number {
+  return Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
 }
 
 function meshColumns(mb: MeshBuilder, layout: Layout, above: FloorLayout[], top: number, mat: (k: string) => string): void {

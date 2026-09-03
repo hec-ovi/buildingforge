@@ -1,5 +1,7 @@
 # Changelog
 
+0.42.0: facades publish bounded service detail from a contract-isolated arithmetic layer. Condenser clusters connect to fitted boxes through supported pipe graphs, industrial faces may add rectangular duct routes, and poor or mid residential faces may carry clotheslines fixed to wall supports. All routes clear openings and published access or fixture reservations and stay inside concave parcels. Window damage is an explicit sparse option targeting one named pane with solid fractured or open missing collision.
+
 0.41.1: centered facade borders retain half-millimeter coordinates when a millimeter-measured face or storey leaves an odd millimeter remainder. The panel field now stays an exact whole count of fixed 2 x 1 m panels on the live p15 aperture-pinned tower instead of losing one millimeter by rounding both borders independently.
 
 0.41.0: exterior walls now request the neutral concrete `panel` variant, solid fitted borders request column `plain`, and relief requests wall-trim `paint`. The blueprint publishes these named variants and the neutral palette explicitly. Facade panels keep a fixed 2 x 1 m world scale with 20 mm joints; non-divisible faces and storeys receive equal solid borders instead of stretching or shrinking the pattern. Contract tests cover rotated, stepped, tall residential, office, low storage, factory and poor-tier buildings.

@@ -104,6 +104,16 @@ export class PartSink {
     g.indices.push(base, base + 1, base + 2);
   }
 
+  /** Triangle whose front must face `outward`. */
+  triFacing(
+    material: string, a: V3, b: V3, c: V3, outward: V3,
+    uv: [[number, number], [number, number], [number, number]],
+  ): void {
+    const n = cross(sub(b, a), sub(c, a));
+    if (dot(n, outward) >= 0) this.tri(material, a, b, c, uv);
+    else this.tri(material, b, a, c, [uv[1], uv[0], uv[2]]);
+  }
+
   /** Quad bl, br, tr, tl ordered CCW from the visible side. */
   quad(material: string, bl: V3, br: V3, tr: V3, tl: V3, uv: [number, number][]): void {
     const g = this.prim(material);

@@ -4,5 +4,6 @@ export { PROPORTIONS } from './rules/proportions.ts';
 export type { TextureMode, TextureOptions } from './materials/apply.ts';
 export type { MaterialSource, ThemeIndex } from './materials/theme.ts';
 export type {
-  BuildingRequest, Blueprint, GenerateOptions, GenerateResult, Aperture, Floor, Opening,
+  BuildingRequest, Blueprint, GenerateOptions, GenerateResult, Aperture, Floor, Opening, FacadeArtifact,
 } from './types.ts';
+export type { FacadeServicesOutput } from './facade-services/index.ts';

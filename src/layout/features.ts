@@ -98,7 +98,7 @@ function placeFacadeArtifacts(
         if (crossed(rects, seat, 0.15).length > 0) continue;
         const onSign = overlays.some((r) => offset + w > r.u0 - 0.15 && offset < r.u1 + 0.15 && y + h > r.y0 - 0.15 && y < r.y1 + 0.15);
         if (onSign) continue;
-        out.push({ kind: 'utility-box', floor: floor.index, edge: e, offset, sill, size: [w, h, d] });
+        out.push({ id: `utility:${floor.index}:${e}:${c}`, kind: 'utility-box', floor: floor.index, edge: e, offset, sill, size: [w, h, d] });
       }
     }
   }

@@ -4,6 +4,7 @@ import type { P2, P3, Opening, Blueprint, BuildingRequest, Aperture, BalconyBand
 import type { Relief } from './relief.ts';
 import type { AnchorMount } from './anchors.ts';
 import type { Family, Tier } from '../rules/families.ts';
+import type { FacadeServicesOutput } from '../facade-services/index.ts';
 
 export interface Style {
   floorHeight: number;
@@ -85,6 +86,7 @@ export interface Layout {
   screens: Blueprint['screens'];
   lights: Blueprint['lights'];
   facadeArtifacts: Blueprint['facadeArtifacts'];
+  facadeServices: FacadeServicesOutput;
   fireEscape: Blueprint['fireEscape'];
   roof: Blueprint['roof'];
 }

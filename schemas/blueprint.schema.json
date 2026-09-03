@@ -4,7 +4,7 @@
   "title": "Blueprint",
   "description": "Exterior shell blueprint, the canonical schema (interior consumes the floors core). Units: meters. Same coordinate frame as the request footprint, right-handed, +Y up, floor outlines on the XZ plane, CCW winding, first point not repeated.",
   "type": "object",
-  "required": ["buildingId", "seed", "bounds", "floors", "balconyBands", "roof", "materials", "materialVariants"],
+  "required": ["buildingId", "seed", "bounds", "floors", "balconyBands", "facadeServices", "roof", "materials", "materialVariants"],
   "additionalProperties": false,
   "properties": {
     "buildingId": { "type": "string" },
@@ -144,7 +144,26 @@
                   },
                   "description": "present exactly when kind = balconyDoor; points to the shared band carrying this access"
                 },
-                "material": { "type": "string", "description": "theme/kind/tier key of the fill (glass, door leaf)" }
+                "material": { "type": "string", "description": "theme/kind/tier key of the fill (glass, door leaf)" },
+                "damage": {
+                  "type": "object",
+                  "required": ["pane", "variant", "collision"],
+                  "additionalProperties": false,
+                  "description": "window only: explicit sparse pane state; absent means every pane is intact",
+                  "properties": {
+                    "pane": {
+                      "type": "object",
+                      "required": ["col", "row"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "col": { "type": "integer", "minimum": 0 },
+                        "row": { "type": "integer", "minimum": 0 }
+                      }
+                    },
+                    "variant": { "enum": ["fractured-pane", "missing-pane"] },
+                    "collision": { "enum": ["solid", "open"] }
+                  }
+                }
               }
             }
           }
@@ -367,9 +386,10 @@
       "description": "surface-mounted equipment, positioned like an opening: utility boxes, and condenser units in clusters of two to four on one floor and edge",
       "items": {
         "type": "object",
-        "required": ["kind", "floor", "edge", "offset", "sill", "size"],
+        "required": ["id", "kind", "floor", "edge", "offset", "sill", "size"],
         "additionalProperties": false,
         "properties": {
+          "id": { "type": "string", "minLength": 1, "description": "stable equipment endpoint id" },
           "kind": { "enum": ["utility-box", "ac-unit"] },
           "floor": { "type": "integer" },
           "edge": { "type": "integer", "minimum": 0 },
@@ -379,6 +399,10 @@
           "standoff": { "type": "number", "minimum": 0, "default": 0, "description": "where the back of the housing sits, when it has to clear relief under it" }
         }
       }
+    },
+    "facadeServices": {
+      "$ref": "../src/facade-services/schema/output.schema.json",
+      "description": "fitted facade-local service networks, junction units, clotheslines, sparse pane variants, and their budgets"
     },
     "fireEscape": {
       "type": ["object", "null"],

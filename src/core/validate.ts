@@ -150,6 +150,9 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   out.windows = oneOf(o.windows, ['auto', 'none'], 'options.windows') as never;
   out.adScreens = oneOf(o.adScreens, ['auto', 'on', 'off'], 'options.adScreens') as never;
   out.roofArtifacts = oneOf(o.roofArtifacts, ['auto', 'off'], 'options.roofArtifacts') as never;
+  out.facadeServices = oneOf(o.facadeServices, ['auto', 'on', 'off'], 'options.facadeServices') as never;
+  out.hangingClothes = oneOf(o.hangingClothes, ['auto', 'on', 'off'], 'options.hangingClothes') as never;
+  out.windowDamage = oneOf(o.windowDamage, ['off', 'sparse'], 'options.windowDamage') as never;
   if (o.fireEscape !== undefined) {
     const v = o.fireEscape;
     const ok = typeof v === 'boolean' || v === 'auto' || v === 'on' || v === 'off';
