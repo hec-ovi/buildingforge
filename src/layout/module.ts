@@ -48,14 +48,16 @@ export interface FixedPanelAxis {
  */
 export function fixedPanelAxis(span: number, module: number): FixedPanelAxis {
   const mm = (value: number) => Math.round(value * 1000) / 1000;
-  if (span <= 0 || module <= 0) return { boundaries: [0, mm(span)], borders: [0, 0] };
-  const count = Math.floor(span / module + 1e-9);
-  if (count === 0) return { boundaries: [0, mm(span)], borders: [mm(span / 2), mm(span / 2)] };
-  const border = mm((span - count * module) / 2);
+  const halfMillimetre = (value: number) => Math.round(value * 2000) / 2000;
+  const closedSpan = mm(span);
+  if (span <= 0 || module <= 0) return { boundaries: [0, closedSpan], borders: [0, 0] };
+  const count = Math.floor(closedSpan / module + 1e-9);
+  const border = halfMillimetre((closedSpan - count * module) / 2);
+  if (count === 0) return { boundaries: [0, closedSpan], borders: [border, border] };
   const boundaries = [0];
   if (border > 1e-6) boundaries.push(border);
-  for (let i = 1; i <= count; i++) boundaries.push(mm(border + i * module));
-  if (Math.abs(boundaries.at(-1)! - span) > 1e-6) boundaries.push(mm(span));
-  else boundaries[boundaries.length - 1] = mm(span);
+  for (let i = 1; i <= count; i++) boundaries.push(halfMillimetre(border + i * module));
+  if (Math.abs(boundaries.at(-1)! - closedSpan) > 1e-6) boundaries.push(closedSpan);
+  else boundaries[boundaries.length - 1] = closedSpan;
   return { boundaries, borders: [border, border] };
 }

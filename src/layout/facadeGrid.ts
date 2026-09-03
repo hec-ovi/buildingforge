@@ -95,7 +95,11 @@ function checkFacadeGrids(
     const fieldHeight = floor.height - bottom - top;
     if (Math.abs(fieldWidth / grid.panelWidth - Math.round(fieldWidth / grid.panelWidth)) > 0.001
       || Math.abs(fieldHeight / grid.panelHeight - Math.round(fieldHeight / grid.panelHeight)) > 0.001) {
-      fail('changes the fixed panel scale instead of fitting complete panels');
+      fail(`changes the fixed panel scale instead of fitting complete panels (${JSON.stringify({
+        length: grid.length, height: floor.height, panelWidth: grid.panelWidth,
+        panelHeight: grid.panelHeight, horizontalBorders: grid.horizontalBorders,
+        verticalBorders: grid.verticalBorders, fieldWidth, fieldHeight,
+      })})`);
     }
     const openings = floor.openings.filter((opening) => opening.edge === grid.edge);
     for (const [start, end] of grid.solid) {

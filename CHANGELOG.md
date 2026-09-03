@@ -1,5 +1,7 @@
 # Changelog
 
+0.41.1: centered facade borders retain half-millimeter coordinates when a millimeter-measured face or storey leaves an odd millimeter remainder. The panel field now stays an exact whole count of fixed 2 x 1 m panels on the live p15 aperture-pinned tower instead of losing one millimeter by rounding both borders independently.
+
 0.41.0: exterior walls now request the neutral concrete `panel` variant, solid fitted borders request column `plain`, and relief requests wall-trim `paint`. The blueprint publishes these named variants and the neutral palette explicitly. Facade panels keep a fixed 2 x 1 m world scale with 20 mm joints; non-divisible faces and storeys receive equal solid borders instead of stretching or shrinking the pattern. Contract tests cover rotated, stepped, tall residential, office, low storage, factory and poor-tier buildings.
 
 0.40.0: compact commerce, restaurant and coffee-shop buildings can expose a real 4 to 12 m open frontage instead of painting one into glass. The wall cut, recessed three-member surround, threshold and traversal dimensions come from one portal; `accessRole: "main"` gives interior and navigation the leafless connection, and `openFront` controls the deterministic variant.

@@ -29,6 +29,7 @@ const sliver = fixture('sliver-parcel');
 const shallow = fixture('shallow-tower');
 const pinned = fixture('pinned-tower');
 const rotatedCore = fixture('rotated-core');
+const urbeP15 = fixture('urbe-p15');
 
 async function code(req: unknown): Promise<string> {
   try {
@@ -1348,6 +1349,26 @@ describe('material resolution', () => {
 });
 
 describe('facade panels', () => {
+  it('fits the live p15 parcel with complete panels and exact half-millimetre borders', async () => {
+    const { glb, blueprint } = await generate(urbeP15, KEYS);
+    expect(glb.byteLength).toBeGreaterThan(0);
+
+    const floor = blueprint.floors.find((candidate) => candidate.index === 1)!;
+    const grid = blueprint.facade.grids.find((candidate) => candidate.floor === 1 && candidate.edge === 0)!;
+    expect(floor.height).toBe(3.875);
+    expect(grid.length).toBe(7.197);
+    expect(grid.horizontalBorders).toEqual([0.5985, 0.5985]);
+    expect(grid.verticalBorders).toEqual([0.4375, 0.4375]);
+
+    for (const candidate of blueprint.facade.grids) {
+      const candidateFloor = blueprint.floors.find((item) => item.index === candidate.floor)!;
+      const fieldWidth = candidate.length - candidate.horizontalBorders[0] - candidate.horizontalBorders[1];
+      const fieldHeight = candidateFloor.height - candidate.verticalBorders[0] - candidate.verticalBorders[1];
+      expect(fieldWidth / candidate.panelWidth).toBeCloseTo(Math.round(fieldWidth / candidate.panelWidth), 9);
+      expect(fieldHeight / candidate.panelHeight).toBeCloseTo(Math.round(fieldHeight / candidate.panelHeight), 9);
+    }
+  });
+
   it('publishes exact seams and opening-free partition seats for every floor face', async () => {
     for (const req of [residential, corpo, bridged, shallow]) {
       const { blueprint } = await generate(req, KEYS);
