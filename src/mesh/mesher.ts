@@ -210,6 +210,13 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
     doorCasing(frame, fr, u0, u1, yb, yt, frameMaterial, assembly.frameWidth, assembly.frameDepth);
     doorFrameDetails(frame, fr, u0, u1, yb, yt, assembly, mat);
     doorLeaves(mb, base, fr, u0, u1, yb, yt, o, assembly, mat);
+    if (o.curtain) {
+      const stile = Math.min(DOOR.stile, (u1 - u0) / Math.max(3, o.leaves ?? 1));
+      const rail = Math.min(DOOR.rail, (yt - yb) / 4);
+      rollerShade(frame, fr, u0 + stile, u1 - stile, yb + rail, yt - rail,
+        -assembly.recessDepth - DOOR.leafThickness - 0.035,
+        o.curtain.closurePercent, frameMaterial, mat('curtain'));
+    }
     if (o.transom) {
       // The glazing carries on over the door head as this door's transom light.
       const tb = yt + FACADE.curtainWall.transomGap;
@@ -219,6 +226,8 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
         material: mat('window-glass'),
       };
       delete light.spandrel;
+      delete light.curtain;
+      delete light.state;
       windowUnit(frame, fr, u0, u1, tb, tb + o.transom, light, layout.style, mat);
     }
     return;
@@ -438,14 +447,44 @@ function windowUnit(
       n3(fr), [[0, 1], [1, 1], [1, 0], [0, 0]]);
   }
 
-  // Curtain panel behind the glass, dropping from the top by state.
-  const fraction = o.state === 'half' ? 0.5 : o.state === 'closed80' ? 0.8 : 0;
-  if (fraction > 0) {
-    const cb = gt - (gt - gb) * fraction;
-    const z = glassZ - 0.02;
-    sink.quadFacing(mat('curtain'), at(fr, [g0, cb], z), at(fr, [g1, cb], z), at(fr, [g1, gt], z), at(fr, [g0, gt], z),
-      n3(fr), [[0, fraction], [1, fraction], [1, 0], [0, 0]]);
+  if (o.curtain) {
+    rollerShade(sink, fr, g0, g1, gb, gt, glassZ - 0.035,
+      o.curtain.closurePercent, frameMat, mat('curtain'));
   }
+}
+
+/** A fitted roller shade: fixed head cassette, exact fabric coverage and bottom rail. */
+function rollerShade(
+  sink: PartSink, fr: Frame, u0: number, u1: number, y0: number, y1: number,
+  front: number, closurePercent: number, frameMaterial: string, curtainMaterial: string,
+): void {
+  if (u1 - u0 < 0.08 || y1 - y0 < 0.08) return;
+  const cassette = Math.min(0.06, (y1 - y0) * 0.08);
+  member(sink, fr, u0, u1, y1 - cassette, y1, front, 0.025, frameMaterial,
+    { left: true, right: true, bottom: true, top: true });
+  if (closurePercent <= 0) return;
+
+  const fraction = closurePercent / 100;
+  const bottom = y1 - (y1 - y0) * fraction;
+  sink.quadFacing(curtainMaterial,
+    at(fr, [u0, bottom], front + 0.001), at(fr, [u1, bottom], front + 0.001),
+    at(fr, [u1, y1], front + 0.001), at(fr, [u0, y1], front + 0.001),
+    n3(fr), [[0, fraction], [1, fraction], [1, 0], [0, 0]]);
+
+  // Raised seams catch light as fabric folds without intersecting the pane.
+  const seams = Math.max(1, Math.floor((u1 - u0) / 0.35));
+  const seamWidth = Math.min(0.012, (u1 - u0) / (seams * 8));
+  for (let index = 1; index < seams; index++) {
+    const u = u0 + ((u1 - u0) * index) / seams;
+    strip(sink, fr, u - seamWidth / 2, u + seamWidth / 2, bottom, y1,
+      front + 0.006, curtainMaterial, true);
+  }
+
+  const railHeight = Math.min(0.025, (y1 - y0) * 0.04);
+  const railBottom = Math.max(y0, bottom);
+  member(sink, fr, u0, u1, railBottom, Math.min(y1, railBottom + railHeight),
+    front + 0.009, 0.018, frameMaterial,
+    { left: true, right: true, bottom: true, top: true });
 }
 
 /** One selected pane carries fitted shards or a shallow fractured center. */

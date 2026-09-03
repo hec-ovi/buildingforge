@@ -46,6 +46,9 @@ export function buildFacades(
     && (balconiesOpt === 'on' || family === 'residential' || family === 'hotel' || officeAuto);
   const profile = req.options?.curtains?.profile ?? 'day';
   const sun = COMPASS[Math.round(((req.options?.curtains?.sunAzimuthDeg ?? 180) % 360) / 45) % 8] as P2;
+  const curtainOverrides = new Map(
+    (req.options?.curtains?.overrides ?? []).map((item) => [item.openingId, item.openPercent]),
+  );
 
   const apertures = req.apertures ?? [];
   const carved: CarvedAperture[] = [];
@@ -150,7 +153,7 @@ export function buildFacades(
         const sunFacing = normal[0] * sun[0] + normal[1] * sun[1] > 0;
         placeCurtainWallBays(seed, req.theme, tier, style, outline, e, level, openings, takenByEdge,
           CURTAINS_VISION[sunFacing ? 'sunFacing' : 'shaded'], req.parcel.footprint,
-          balconiesOn && family === 'office');
+          balconiesOn && family === 'office', curtainOverrides);
       }
     } else if (!noWindows && style.facade.kind === 'megablock') {
       for (let e = 0; e < outline.length; e++) {
@@ -159,7 +162,7 @@ export function buildFacades(
         const dist = (CURTAINS[profile] as { sunFacing: CurtainDist; shaded: CurtainDist })[sunFacing ? 'sunFacing' : 'shaded'];
         const stacked = balconiesOn && !isGround && outline === massing.groundOutline;
         placeMegablockCells(seed, req.theme, tier, style, req.parcel.footprint, outline, e, level, openings, takenByEdge, dist, stacked,
-          storefront ? fit : null);
+          storefront ? fit : null, curtainOverrides);
       }
     } else if (!noWindows) {
       for (let e = 0; e < outline.length; e++) {
@@ -190,10 +193,11 @@ export function buildFacades(
             if (fits(takenByEdge, e, doorStart, doorStart + doorW)
               && balconyFits(req.parcel.footprint, outline, e, doorStart, doorW, balconyW, style.balconyDepth)) {
               take(takenByEdge, e, doorStart, doorStart + doorW);
+              const id = `bd:${level.index}:${e}:${b}`;
               openings.push({
-                id: `bd:${level.index}:${e}:${b}`, kind: 'balconyDoor', edge: e,
+                id, kind: 'balconyDoor', edge: e,
                 offset: quantOff(doorStart), width: doorW, height: doorH, sill: 0,
-                leaves: leafCount(doorW), state: curtainState(seed, level.index, e, b, dist),
+                leaves: leafCount(doorW), ...curtainSelection(seed, id, level.index, e, b, dist, curtainOverrides),
                 door: doorAssembly('glazed-grid', doorW, doorH),
                 balcony: { depth: style.balconyDepth, width: balconyW },
                 material: `${req.theme}/door-glass/${tier}`,
@@ -217,10 +221,11 @@ export function buildFacades(
           if (!fits(takenByEdge, e, start, start + w)) continue;
           take(takenByEdge, e, start, start + w);
           const width = w;
+          const id = `w:${level.index}:${e}:${b}`;
           openings.push({
-            id: `w:${level.index}:${e}:${b}`, kind: 'window', edge: e,
+            id, kind: 'window', edge: e,
             offset: quantOff(start), width, height: fit.height, sill: fit.sill,
-            state: curtainState(seed, level.index, e, b, dist),
+            ...curtainSelection(seed, id, level.index, e, b, dist, curtainOverrides),
             panes: modulePanes(width, fit.height, style.glazing),
             material: `${req.theme}/window-glass/${tier}`,
           });
@@ -336,7 +341,7 @@ function placeMegablockCells(
   seed: string, theme: string, tier: Tier, style: Style, parcel: P2[], outline: P2[], e: number,
   level: { index: number; elevation: number; height: number },
   openings: Opening[], taken: Map<number, Taken[]>, dist: CurtainDist, balconies: boolean,
-  storefront: WindowFit | null,
+  storefront: WindowFit | null, curtainOverrides: ReadonlyMap<string, number>,
 ): void {
   const L = edgeLength(outline, e);
   // cells are whole metres, ribs stand on their seams, and every window edge inside a cell is on the
@@ -356,10 +361,11 @@ function placeMegablockCells(
       const width = quant(end - start);
       if (!fits(taken, e, start, start + width)) continue;
       take(taken, e, start, start + width);
+      const id = `w:${level.index}:${e}:${c}`;
       openings.push({
-        id: `w:${level.index}:${e}:${c}`, kind: 'window', edge: e,
+        id, kind: 'window', edge: e,
         offset: quantOff(start), width, height: storefront.height, sill: storefront.sill,
-        state: curtainState(seed, level.index, e, c, dist),
+        ...curtainSelection(seed, id, level.index, e, c, dist, curtainOverrides),
         panes: modulePanes(width, storefront.height, style.glazing),
         material: `${theme}/window-glass/${tier}`,
       });
@@ -375,10 +381,11 @@ function placeMegablockCells(
       if (doorH >= 1.5 && fits(taken, e, doorStart, doorStart + doorW)
         && balconyFits(parcel, outline, e, doorStart, doorW, balconyW, style.balconyDepth)) {
         take(taken, e, doorStart, doorStart + doorW);
+        const id = `bd:${level.index}:${e}:${c}`;
         openings.push({
-          id: `bd:${level.index}:${e}:${c}`, kind: 'balconyDoor', edge: e,
+          id, kind: 'balconyDoor', edge: e,
           offset: quantOff(doorStart), width: doorW, height: doorH, sill: 0,
-          leaves: leafCount(doorW), state: curtainState(seed, level.index, e, c, dist),
+          leaves: leafCount(doorW), ...curtainSelection(seed, id, level.index, e, c, dist, curtainOverrides),
           door: doorAssembly('glazed-grid', doorW, doorH),
           balcony: { depth: style.balconyDepth, width: balconyW },
           material: `${theme}/door-glass/${tier}`,
@@ -400,10 +407,11 @@ function placeMegablockCells(
     const sill = quant(minSill + Math.floor(rng.next() * (Math.floor(room / MODULE + 1e-9) + 1)) * MODULE);
     if (!fits(taken, e, u, u + width)) continue;
     take(taken, e, u, u + width);
+    const id = `w:${level.index}:${e}:${c}`;
     openings.push({
-      id: `w:${level.index}:${e}:${c}`, kind: 'window', edge: e,
+      id, kind: 'window', edge: e,
       offset: u, width, height, sill,
-      state: curtainState(seed, level.index, e, c, dist),
+      ...curtainSelection(seed, id, level.index, e, c, dist, curtainOverrides),
       panes: modulePanes(width, height, style.glazing),
       material: `${theme}/window-glass/${tier}`,
     });
@@ -440,7 +448,7 @@ function placeCurtainWallBays(
   seed: string, theme: string, tier: Tier, style: Style, outline: P2[], e: number,
   level: { index: number; elevation: number; height: number },
   openings: Opening[], taken: Map<number, Taken[]>, dist: CurtainDist,
-  parcel: P2[], officeBalconies: boolean,
+  parcel: P2[], officeBalconies: boolean, curtainOverrides: ReadonlyMap<string, number>,
 ): void {
   const cw = FACADE.curtainWall;
   const L = edgeLength(outline, e);
@@ -486,7 +494,6 @@ function placeCurtainWallBays(
     // never past the edge: the last bay's width rounds down
     const width = Math.floor((end - start) * 20 + 1e-9) / 20;
     if (width < cw.minBay) return;
-    const state = curtainState(seed, level.index, e, i, dist);
     const doorWidth = 2 * MODULE_U;
     const doorStart = onModule(start + (width - doorWidth) / 2, 'near', MODULE_U);
     const balconyFloor = level.index > 0 && (level.index + balconyPhase) % 2 === 1;
@@ -501,7 +508,8 @@ function placeCurtainWallBays(
       take(taken, e, offset, offset + span);
       openings.push({
         id, kind: 'window', edge: e, offset: quantOff(offset), width: quantOff(span),
-        height, sill: 0, spandrel, head, state,
+        height, sill: 0, spandrel, head,
+        ...curtainSelection(seed, id, level.index, e, i, dist, curtainOverrides),
         panes: modulePanes(span, height - spandrel - head, style.glazing),
         material: `${theme}/window-glass/${tier}`,
       });
@@ -515,10 +523,12 @@ function placeCurtainWallBays(
     window(`w:${level.index}:${e}:${i}:left`, start, doorStart - start);
     take(taken, e, doorStart, doorStart + doorWidth);
     const doorHeight = quantOff(height - head);
+    const doorId = `bd:${level.index}:${e}:cw:${i}`;
     openings.push({
-      id: `bd:${level.index}:${e}:cw:${i}`, kind: 'balconyDoor', edge: e,
+      id: doorId, kind: 'balconyDoor', edge: e,
       offset: quantOff(doorStart), width: doorWidth, height: doorHeight, sill: 0,
-      leaves: leafCount(doorWidth), state,
+      leaves: leafCount(doorWidth),
+      ...curtainSelection(seed, doorId, level.index, e, i, dist, curtainOverrides),
       door: doorAssembly('glazed-grid', doorWidth, doorHeight),
       balcony: { depth: style.balconyDepth, width: style.balconyWidth },
       material: `${theme}/door-glass/${tier}`,
@@ -711,8 +721,20 @@ function doorAssembly(
   };
 }
 
-function curtainState(seed: string, floor: number, edge: number, bay: number, dist: CurtainDist): CurtainState {
+function curtainSelection(
+  seed: string, openingId: string, floor: number, edge: number, bay: number,
+  dist: CurtainDist, overrides: ReadonlyMap<string, number>,
+): Pick<Opening, 'state' | 'curtain'> {
   // 2x2 clustering: neighbours share a draw, states arrive in soft patches.
   const rng = new Rng(seed, `curtain:${floor >> 1}:${edge}:${bay >> 1}`);
-  return rng.pick(['open', 'half', 'closed80'] as CurtainState[], [dist.open, dist.half, dist.closed80]);
+  const sampled = rng.pick([0, 30, 50, 80, 100], [
+    dist.open * 0.6, dist.open * 0.4, dist.half, dist.closed80 * 0.65, dist.closed80 * 0.35,
+  ]);
+  const explicitOpen = overrides.get(openingId);
+  const closurePercent = explicitOpen === undefined ? sampled : quantOff(100 - explicitOpen);
+  const state: CurtainState = closurePercent === 0 ? 'open'
+    : closurePercent < 45 ? 'partial'
+      : closurePercent < 65 ? 'half'
+        : closurePercent < 100 ? 'closed80' : 'closed';
+  return { state, curtain: { style: 'roller-shade', closurePercent } };
 }

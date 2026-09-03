@@ -8,7 +8,7 @@ const KIND_COLORS: Record<string, { color: number; opacity?: number }> = {
   'wall': { color: 0x8a8a92 },
   'wall-trim': { color: 0x6a6a74 },
   'column': { color: 0x74747e },
-  'window-glass': { color: 0x6fc3df, opacity: 0.45 },
+  'window-glass': { color: 0x8f999b, opacity: 0.32 },
   'window-frame': { color: 0x3a3a44 },
   'curtain': { color: 0xd8cfa8 },
   'door': { color: 0x5a4a3a },

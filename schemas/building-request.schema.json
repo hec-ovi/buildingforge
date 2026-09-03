@@ -136,7 +136,20 @@
           "additionalProperties": false,
           "properties": {
             "profile": { "enum": ["day", "night"], "default": "day" },
-            "sunAzimuthDeg": { "type": "number", "minimum": 0, "exclusiveMaximum": 360, "default": 180, "description": "facades facing this azimuth bias closed" }
+            "sunAzimuthDeg": { "type": "number", "minimum": 0, "exclusiveMaximum": 360, "default": 180, "description": "facades facing this azimuth bias closed" },
+            "overrides": {
+              "type": "array",
+              "description": "exact per-opening controls; openPercent 30 produces closurePercent 70",
+              "items": {
+                "type": "object",
+                "required": ["openingId", "openPercent"],
+                "additionalProperties": false,
+                "properties": {
+                  "openingId": { "type": "string", "minLength": 1 },
+                  "openPercent": { "type": "number", "minimum": 0, "maximum": 100 }
+                }
+              }
+            }
           }
         }
       }

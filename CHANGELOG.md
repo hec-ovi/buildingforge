@@ -1,5 +1,7 @@
 # Changelog
 
+0.44.0: windows and glazed balcony doors publish exact roller-shade closure from 0 to 100 percent and build fitted cassettes, fabric seams and bottom rails behind neutral glass. Per-opening open percentages produce complementary closure, including 30 percent open as 70 percent closed. Contract tests prove the seeded range, overrides, geometry and closed frame corners.
+
 0.43.2: facade partition anchors are the only full-thickness partition endpoints and reserve 0.02 m casing clearance around a 0.12 m partition. Roof access now states and tests the shared core axis, complete stair-head reservation, exact roof threshold and stair-a door side.
 
 0.43.1: fitted mast assemblies use the published roof elevation, including buildings whose connection apertures produce non-module floor heights.

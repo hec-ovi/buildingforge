@@ -2,7 +2,7 @@
 
 Purpose: renders one generated exterior in a browser and exposes fixture, seed, camera, clipping and inspection controls.
 
-Status: v0.43.1, implemented.
+Status: v0.44.0, implemented.
 
 ## Entry
 
@@ -41,7 +41,7 @@ A failed theme fetch supplies `null`, so the generator reports its normal keys f
 - The seed field always shows the seed sent to generation.
 - A theme fetch is cached once per theme. Generated GLB and blueprint values always come from the same call.
 - Orbit frames the measured GLB bounds. Street eye stands 1.7 m above the pavement in front of the main entrance.
-- Clip height uses the measured GLB top. Flat, wireframe and highlight controls change only the rendered view.
+- Clip height uses the measured GLB top. Flat, wireframe and highlight controls change only the rendered view. Flat glass is neutral smoke and translucent.
 - Controls and notifications use square corners.
 
 ## Dependencies

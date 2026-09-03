@@ -29,6 +29,13 @@ export type Signage =
   | { mode: 'logo'; ratio: '1:1' | '3:2' | '16:9' }
   | null;
 
+export interface CurtainOverride {
+  /** stable opening id from the generated facade */
+  openingId: string;
+  /** visible opening requested by the caller; coverage is its exact complement */
+  openPercent: number;
+}
+
 export interface BuildingRequest {
   seed: string;
   buildingId: string;
@@ -56,12 +63,16 @@ export interface BuildingRequest {
     facadeServices?: 'auto' | 'on' | 'off';
     hangingClothes?: 'auto' | 'on' | 'off';
     windowDamage?: 'off' | 'sparse';
-    curtains?: { profile?: 'day' | 'night'; sunAzimuthDeg?: number };
+    curtains?: {
+      profile?: 'day' | 'night';
+      sunAzimuthDeg?: number;
+      overrides?: CurtainOverride[];
+    };
   };
 }
 
 export type OpeningKind = 'door' | 'window' | 'balconyDoor' | 'openFront' | 'aperture';
-export type CurtainState = 'open' | 'half' | 'closed80';
+export type CurtainState = 'open' | 'partial' | 'half' | 'closed80' | 'closed';
 export type DoorSet = 'plain' | 'layered' | 'glazed-grid' | 'industrial-ribbed' | 'illuminated';
 
 export interface DoorAssembly {
@@ -86,6 +97,8 @@ export interface Opening {
   height: number;
   sill: number;
   apertureKind?: Exclude<ApertureKind, 'wire-anchor'>;
+  /** exact roller-shade coverage; authoritative over the legacy categorical state */
+  curtain?: { style: 'roller-shade'; closurePercent: number };
   state?: CurtainState;
   /** mullion grid of a glazed opening: cols x rows panes, each within the tier's pane limit */
   panes?: { cols: number; rows: number };

@@ -175,6 +175,9 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
     out.signage = null;
   }
   if (o.curtains !== undefined) {
+    if (typeof o.curtains !== 'object' || o.curtains === null || Array.isArray(o.curtains)) {
+      fail('options.curtains', 'expected object');
+    }
     const c = o.curtains as Record<string, unknown>;
     const profile = oneOf(c.profile, ['day', 'night'], 'options.curtains.profile') as 'day' | 'night' | undefined;
     let sunAzimuthDeg: number | undefined;
@@ -182,7 +185,23 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
       sunAzimuthDeg = num(c.sunAzimuthDeg, 'options.curtains.sunAzimuthDeg');
       if (sunAzimuthDeg < 0 || sunAzimuthDeg >= 360) fail('options.curtains.sunAzimuthDeg', 'expected [0, 360)');
     }
-    out.curtains = { profile, sunAzimuthDeg };
+    let overrides: NonNullable<NonNullable<BuildingRequest['options']>['curtains']>['overrides'];
+    if (c.overrides !== undefined) {
+      if (!Array.isArray(c.overrides)) fail('options.curtains.overrides', 'expected array');
+      const ids = new Set<string>();
+      overrides = c.overrides.map((value, index) => {
+        const path = `options.curtains.overrides[${index}]`;
+        if (typeof value !== 'object' || value === null || Array.isArray(value)) fail(path, 'expected object');
+        const item = value as Record<string, unknown>;
+        const openingId = str(item.openingId, `${path}.openingId`);
+        if (ids.has(openingId)) fail(`${path}.openingId`, 'duplicate opening id');
+        ids.add(openingId);
+        const openPercent = num(item.openPercent, `${path}.openPercent`);
+        if (openPercent < 0 || openPercent > 100) fail(`${path}.openPercent`, 'expected [0, 100]');
+        return { openingId, openPercent };
+      });
+    }
+    out.curtains = { profile, sunAzimuthDeg, overrides };
   }
   return out;
 }

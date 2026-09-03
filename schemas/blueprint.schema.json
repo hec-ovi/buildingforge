@@ -56,7 +56,17 @@
                 "height": { "type": "number", "exclusiveMinimum": 0 },
                 "sill": { "type": "number", "minimum": 0, "description": "bottom of opening above floor surface" },
                 "apertureKind": { "enum": ["bridge", "ac-tube", "tunnel"], "description": "present when kind = aperture; id echoes the request aperture id" },
-                "state": { "enum": ["open", "half", "closed80"], "description": "vertical curtain state, windows and balcony doors only" },
+                "curtain": {
+                  "type": "object",
+                  "required": ["style", "closurePercent"],
+                  "additionalProperties": false,
+                  "description": "exact window-covering geometry on windows and glazed balcony doors",
+                  "properties": {
+                    "style": { "const": "roller-shade" },
+                    "closurePercent": { "type": "number", "minimum": 0, "maximum": 100, "description": "percentage of the clear glazed height covered from the head downward" }
+                  }
+                },
+                "state": { "enum": ["open", "partial", "half", "closed80", "closed"], "description": "legacy categorical curtain state; curtain.closurePercent is authoritative" },
                 "leaves": {
                   "type": "integer",
                   "minimum": 1,

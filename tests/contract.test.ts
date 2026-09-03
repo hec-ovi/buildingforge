@@ -196,14 +196,67 @@ describe('blueprint invariants', () => {
     expect(openings.some((opening) => opening.kind === 'window')).toBe(true);
   });
 
-  it('windows carry curtain states with variety on a big tower', async () => {
+  it('publishes stable full-open, partial, half and full-closed curtain coverage', async () => {
+    const { blueprint } = await generate(corpo);
+    const curtains = blueprint.floors.flatMap((f: Floor) => f.openings
+      .filter((o) => o.kind === 'window').map((o) => o.curtain!));
+    const coverage = new Set(curtains.map((curtain) => curtain.closurePercent));
+    expect(coverage.has(0)).toBe(true);
+    expect(coverage.has(50)).toBe(true);
+    expect(coverage.has(100)).toBe(true);
+    expect([...coverage].some((value) => value > 0 && value < 50)).toBe(true);
+    expect(curtains.every((curtain) => curtain.style === 'roller-shade')).toBe(true);
+  });
+
+  it('turns a 30 percent open override into exact 70 percent fitted coverage', async () => {
+    const first = await generate(residential, KEYS);
+    const target = first.blueprint.floors.flatMap((floor) => floor.openings)
+      .find((opening) => opening.kind === 'window')!;
+    const request = {
+      ...residential,
+      options: {
+        ...(residential.options as Record<string, unknown>),
+        curtains: { profile: 'day', overrides: [{ openingId: target.id, openPercent: 30 }] },
+      },
+    };
+    const { blueprint, glb } = await generate(request, KEYS);
+    const opening = blueprint.floors.flatMap((floor) => floor.openings)
+      .find((candidate) => candidate.id === target.id)!;
+    expect(opening.curtain).toEqual({ style: 'roller-shade', closurePercent: 70 });
+    expect(opening.state).toBe('closed80');
+
+    const doc = await new NodeIO().readBinary(glb);
+    const node = doc.getRoot().listNodes().find((candidate) => candidate.getName() === `window:${target.id}`)!;
+    let minY = Infinity, maxY = -Infinity;
+    for (const primitive of node.getMesh()!.listPrimitives()) {
+      if (!primitive.getMaterial()!.getName().includes('/curtain/')) continue;
+      const position = primitive.getAttribute('POSITION')!;
+      const point: number[] = [];
+      for (let index = 0; index < position.getCount(); index++) {
+        position.getElement(index, point);
+        minY = Math.min(minY, point[1]!);
+        maxY = Math.max(maxY, point[1]!);
+      }
+    }
+    expect(maxY - minY).toBeCloseTo(opening.height * 0.7, 3);
+  });
+
+  it('rejects an invalid curtain override through the public request entry', async () => {
+    const invalid = {
+      ...residential,
+      options: { curtains: { overrides: [{ openingId: 'w:0:0:0', openPercent: 101 }] } },
+    };
+    await expect(generate(invalid)).rejects.toMatchObject({ code: 'E_SCHEMA' });
+  });
+
+  it('keeps the categorical curtain state compatible with exact coverage', async () => {
     const { blueprint } = await generate(corpo);
     const states = new Set(
       blueprint.floors.flatMap((f: Floor) => f.openings.filter((o) => o.kind === 'window').map((o) => o.state)),
     );
     states.delete(undefined);
-    expect(states.size).toBeGreaterThanOrEqual(2);
-    for (const s of states) expect(['open', 'half', 'closed80']).toContain(s);
+    expect(states.size).toBeGreaterThanOrEqual(4);
+    for (const s of states) expect(['open', 'partial', 'half', 'closed80', 'closed']).toContain(s);
   });
 
   it('splits every window into panes within the tier pane limit, and builds them with depth', async () => {
@@ -1537,6 +1590,45 @@ describe('window units', () => {
           expect(frame.uMin, `${o.id} frame sits inside its hole instead of over the wall`).toBeLessThan(hole.u0 - 1e-6);
           expect(frame.uMax, `${o.id} frame sits inside its hole instead of over the wall`).toBeGreaterThan(hole.u1 + 1e-6);
           expect(frame.out, `${o.id} frame is sunk behind the wall skin`).toBeGreaterThan(0);
+          const coversFront = (u: number, y: number): boolean => {
+            const point: number[] = [];
+            for (const primitive of node.getMesh()!.listPrimitives()) {
+              if (!primitive.getMaterial()!.getName().includes('window-frame')) continue;
+              const position = primitive.getAttribute('POSITION')!;
+              const indices = primitive.getIndices()!;
+              const projected: [number, number, number][] = [];
+              for (let index = 0; index < position.getCount(); index++) {
+                position.getElement(index, point);
+                projected.push([
+                  (point[0]! - a[0]) * dir[0]! + (point[2]! - a[1]) * dir[1]!,
+                  point[1]!,
+                  (point[0]! - a[0]) * normal[0]! + (point[2]! - a[1]) * normal[1]!,
+                ]);
+              }
+              const array = indices.getArray() as Uint32Array;
+              for (let index = 0; index + 2 < array.length; index += 3) {
+                const triangle = [projected[array[index]!]!, projected[array[index + 1]!]!, projected[array[index + 2]!]!] as const;
+                if (triangle.some((vertex) => vertex[2] < -1e-4)) continue;
+                const area = (p: readonly number[], q: readonly number[], r: readonly number[]) =>
+                  (q[0]! - p[0]!) * (r[1]! - p[1]!) - (q[1]! - p[1]!) * (r[0]! - p[0]!);
+                const target = [u, y];
+                const total = area(triangle[0], triangle[1], triangle[2]);
+                const signs = [
+                  area(triangle[0], triangle[1], target),
+                  area(triangle[1], triangle[2], target),
+                  area(triangle[2], triangle[0], target),
+                ];
+                if (Math.abs(total) > 1e-9
+                  && (signs.every((value) => value >= -1e-6) || signs.every((value) => value <= 1e-6))) return true;
+              }
+            }
+            return false;
+          };
+          for (const [u, y] of [
+            [hole.u0, hole.y0], [hole.u1, hole.y0], [hole.u1, hole.y1], [hole.u0, hole.y1],
+          ] as [number, number][]) {
+            expect(coversFront(u, y), `${o.id} frame leaves its ${u},${y} corner open`).toBe(true);
+          }
           checked++;
         }
       }
