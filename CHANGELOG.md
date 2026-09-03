@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.5: window surrounds are closed extruded rings with complete front, back, outer and inner boundary faces. Facade bands share fitted miter endpoints, with bounded bevels at acute corners, so each band is one closed two-manifold without duplicate run-end faces.
+
 0.46.4: the flat inspection view preserves room-side curtain visibility.
 
 0.46.3: fitted curtain fabric renders from both the street and the room side of the glazing.

@@ -9,6 +9,7 @@ import { meshRoofArtifacts } from './mastAssembly.ts';
 import { meshFacadeRelief } from './facadeRelief.ts';
 import { meshAcUnits } from './acUnit.ts';
 import { meshFacadeServices } from './facadeServices.ts';
+import { meshFrameRing } from './frameRing.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
@@ -418,11 +419,7 @@ function windowUnit(
   // not metal, so it does not flare.
   if (spandrel > 0) strip(sink, fr, u0, u1, yb, sill, proud, mat('column'));
   if (headBand > 0) strip(sink, fr, u0, u1, headY, yt, proud, mat('column'));
-  // Every outer member is a closed profile: both side faces, so nothing looks into it from the street.
-  member(sink, fr, outer.u0, outer.u1, inner.y1, outer.y1, proud, depth, frameMat, { bottom: true, top: true });
-  member(sink, fr, outer.u0, outer.u1, outer.y0, inner.y0, proud, depth, frameMat, { top: true, bottom: true });
-  member(sink, fr, outer.u0, inner.u0, inner.y0, inner.y1, proud, depth, frameMat, { left: true, right: true });
-  member(sink, fr, inner.u1, outer.u1, inner.y0, inner.y1, proud, depth, frameMat, { left: true, right: true });
+  meshFrameRing(sink, fr, outer, inner, proud, depth, frameMat);
 
   const { cols, rows } = o.panes ?? paneGrid(u1 - u0, gt - gb, g);
   const mw = Math.min(g.mullionWidth, (g1 - g0) / (cols * 2), (gt - gb) / (rows * 2));

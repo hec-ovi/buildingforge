@@ -3,6 +3,7 @@
 import { edgeDir, edgeLength, edgeNormal, type P2 } from '../core/polygon.ts';
 import type { FloorLayout, Layout } from '../layout/model.ts';
 import { capDown, capFrame, capUp } from './caps.ts';
+import { meshBandRun } from './bandRun.ts';
 import type { MeshBuilder, PartSink, V3 } from './primitives.ts';
 
 interface Frame { v: P2; dir: P2; n: P2; len: number }
@@ -30,14 +31,14 @@ export function meshFacadeRelief(
     if (floor.index === 0) continue;
     const y0 = floor.elevation - facade.bandHeight / 2;
     const y1 = floor.elevation + facade.bandHeight / 2;
+    const corners = floor.outline.map((_, index) => cornerJoin(floor.outline, index, facade.bandProud));
     for (let edge = 0; edge < floor.outline.length; edge++) {
       const fr = frame(floor.outline, edge);
-      sink.box(material, at(fr, fr.len / 2, floor.elevation, facade.bandProud / 2),
-        [fr.dir[0] * fr.len / 2, 0, fr.dir[1] * fr.len / 2],
-        [0, facade.bandHeight / 2, 0],
-        [fr.n[0] * facade.bandProud / 2, 0, fr.n[1] * facade.bandProud / 2]);
+      const start = corners[edge]!;
+      const end = corners[(edge + 1) % corners.length]!;
+      meshBandRun(sink, fr, y0, y1, start.next, end.previous, material);
     }
-    meshCornerJoins(sink, floor.outline, y0, y1, facade.bandProud, material);
+    meshCornerJoins(sink, corners, y0, y1, material, capFrame(floor.outline));
   }
 }
 
@@ -58,30 +59,20 @@ function at(fr: Frame, u: number, y: number, proud: number): V3 {
   ];
 }
 
-/** Fill the wedge between adjacent band boxes, so the trim wraps as one piece. */
+/** Add only the exposed face of a bounded bevel when a miter would grow too long. */
+interface CornerJoin { previous: P2; next: P2; bevel?: P2[] }
+
 function meshCornerJoins(
-  sink: PartSink, outline: P2[], y0: number, y1: number, depth: number, material: string,
+  sink: PartSink, corners: CornerJoin[], y0: number, y1: number,
+  material: string, caps: ReturnType<typeof capFrame>,
 ): void {
-  const caps = capFrame(outline);
-  for (let index = 0; index < outline.length; index++) {
-    const previous = (index + outline.length - 1) % outline.length;
-    const previousDirection = edgeDir(outline, previous);
-    const nextDirection = edgeDir(outline, index);
-    if (cross2(previousDirection, nextDirection) <= 1e-8) continue;
-
-    const vertex = outline[index] as P2;
-    const previousNormal = edgeNormal(outline, previous);
-    const nextNormal = edgeNormal(outline, index);
-    const previousOuter = add2(vertex, scale2(previousNormal, depth));
-    const nextOuter = add2(vertex, scale2(nextNormal, depth));
-    const intersection = lineIntersection(previousOuter, previousDirection, nextOuter, nextDirection);
-    const ring = intersection && distance2(vertex, intersection) <= depth * 4
-      ? [vertex, previousOuter, intersection, nextOuter]
-      : [vertex, previousOuter, nextOuter];
-
+  for (const { bevel: ring } of corners) {
+    if (!ring) continue;
     capUp(sink, material, caps, ring, y1);
     capDown(sink, material, caps, ring, y0);
-    for (let edge = 0; edge < ring.length; edge++) {
+    // The two faces back to the wall are shared with the open run ends. Only
+    // the exposed outside boundary belongs to the corner join.
+    for (let edge = 1; edge < ring.length - 1; edge++) {
       const a = ring[edge] as P2;
       const b = ring[(edge + 1) % ring.length] as P2;
       const length = distance2(a, b);
@@ -92,6 +83,26 @@ function meshCornerJoins(
         [outward[0], 0, outward[1]], [[0, y1 - y0], [length, y1 - y0], [length, 0], [0, 0]]);
     }
   }
+}
+
+function cornerJoin(outline: P2[], index: number, depth: number): CornerJoin {
+  const previous = (index + outline.length - 1) % outline.length;
+  const previousDirection = edgeDir(outline, previous);
+  const nextDirection = edgeDir(outline, index);
+  const vertex = outline[index] as P2;
+  const previousOuter = add2(vertex, scale2(edgeNormal(outline, previous), depth));
+  const nextOuter = add2(vertex, scale2(edgeNormal(outline, index), depth));
+  const turn = cross2(previousDirection, nextDirection);
+  const intersection = lineIntersection(previousOuter, previousDirection, nextOuter, nextDirection);
+
+  if (intersection && (turn < 0 || distance2(vertex, intersection) <= depth * 4)) {
+    return { previous: intersection, next: intersection };
+  }
+  if (Math.abs(turn) <= 1e-8) {
+    const shared: P2 = [(previousOuter[0] + nextOuter[0]) / 2, (previousOuter[1] + nextOuter[1]) / 2];
+    return { previous: shared, next: shared };
+  }
+  return { previous: previousOuter, next: nextOuter, bevel: [vertex, previousOuter, nextOuter] };
 }
 
 function lineIntersection(a: P2, da: P2, b: P2, db: P2): P2 | null {
