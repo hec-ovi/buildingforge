@@ -6,7 +6,9 @@ import { edgeLength } from '../core/polygon.ts';
 import { fixedPanelAxis } from './module.ts';
 import type { Blueprint, Floor } from '../types.ts';
 
-const MIN_PARTITION_SEAT = 0.15;
+const PARTITION_THICKNESS = 0.12;
+const PARTITION_EDGE_CLEARANCE = 0.02;
+const MIN_PARTITION_SEAT = PARTITION_THICKNESS + 2 * PARTITION_EDGE_CLEARANCE;
 
 export function buildFacadeGrids(
   floors: readonly Floor[], panelWidth: number, panelHeight: number,

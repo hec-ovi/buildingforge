@@ -277,6 +277,7 @@ export interface Blueprint {
       horizontalBorders: P2;
       verticalBorders: P2;
       solid: P2[];
+      /** The only permitted full-thickness partition endpoints on this face. */
       partitionAnchors: { offset: number; width: number }[];
     }[];
   };

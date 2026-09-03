@@ -1397,9 +1397,15 @@ describe('facade panels', () => {
             && end > opening.offset + 0.0011)).toBe(false);
         }
         for (const anchor of grid.partitionAnchors) {
-          expect(anchor.width).toBeGreaterThanOrEqual(0.15);
-          expect(grid.solid.some(([start, end]) => anchor.offset >= start
-            && anchor.offset <= end && anchor.width <= end - start + 0.001)).toBe(true);
+          expect(anchor.width).toBeGreaterThanOrEqual(0.16);
+          const run = grid.solid.find(([start, end]) => anchor.offset >= start
+            && anchor.offset <= end && anchor.width <= end - start + 0.001);
+          expect(run).toBeDefined();
+          expect(anchor.offset).toBeCloseTo((run![0] + run![1]) / 2, 3);
+          expect(anchor.offset - 0.06 - run![0]).toBeGreaterThanOrEqual(0.02 - 1e-6);
+          expect(run![1] - anchor.offset - 0.06).toBeGreaterThanOrEqual(0.02 - 1e-6);
+          expect(openings.some((opening) => anchor.offset + 0.08 > opening.offset
+            && anchor.offset - 0.08 < opening.offset + opening.width)).toBe(false);
         }
       }
     }
@@ -1828,6 +1834,9 @@ describe('roof access', () => {
       const b = blueprint.roof.bulkhead!;
       expect(b, 'every fixture roof is big enough for access').toBeTruthy();
       expect(Math.hypot(b.axis[0], b.axis[1])).toBeCloseTo(1, 6);
+      expect(b.doorNormal).toEqual([-b.axis[1], b.axis[0]]);
+      expect(b.width).toBeCloseTo(b.depth, 6);
+      expect(Math.min(b.width, b.depth)).toBeGreaterThanOrEqual(3.5);
       expect(pointInPoly(blueprint.roof.outline, b.center)).toBe(true);
 
       // The roof plane really is open there: no roof triangle covers the cutout centre.
@@ -1879,6 +1888,17 @@ describe('roof access', () => {
       expect(names).toContain('door:roof-bulkhead');
       expect(names).toContain('door:roof-bulkhead/frame');
       expect(names).toContain('door:roof-bulkhead/leaf:0');
+      const frame = doc.getRoot().listNodes().find((n) => n.getName() === 'door:roof-bulkhead/frame')!;
+      let frameBottom = Infinity;
+      for (const primitive of frame.getMesh()!.listPrimitives()) {
+        const position = primitive.getAttribute('POSITION')!;
+        const point: number[] = [];
+        for (let index = 0; index < position.getCount(); index++) {
+          position.getElement(index, point);
+          frameBottom = Math.min(frameBottom, point[1]!);
+        }
+      }
+      expect(frameBottom).toBeCloseTo(blueprint.roof.elevation, 3);
     }
   });
 

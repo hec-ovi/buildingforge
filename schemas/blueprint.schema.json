@@ -367,12 +367,12 @@
               },
               "partitionAnchors": {
                 "type": "array",
-                "description": "centres and available widths of solid runs at least 0.15 m wide",
+                "description": "the only permitted full-thickness partition endpoints on this face; each is centred in an opening-free solid run wide enough for a 0.12 m partition plus 0.02 m reveal clearance on both sides",
                 "items": {
                   "type": "object", "required": ["offset", "width"], "additionalProperties": false,
                   "properties": {
                     "offset": { "type": "number", "minimum": 0 },
-                    "width": { "type": "number", "minimum": 0.15 }
+                    "width": { "type": "number", "minimum": 0.16 }
                   }
                 }
               }
@@ -435,7 +435,7 @@
           "default": null,
           "required": ["center", "axis", "width", "depth", "housingHeight", "doorNormal", "doorWidth", "doorHeight"],
           "additionalProperties": false,
-          "description": "stair-head cutout in the roof plane and the housing over it; null when the plate is too small for access plus its walk space",
+          "description": "stair-head cutout in the roof plane and the housing over it; its threshold is roof.elevation, its axis is the shared core frame, its complete rectangle is reserved for the stair shaft and arrival landing, and its door faces the stair-a arrival side; null when the plate is too small for access plus its walk space",
           "properties": {
             "center": { "$ref": "#/$defs/point2" },
             "axis": { "$ref": "#/$defs/point2", "description": "unit vector along `width`; the cutout rectangle follows the plate's own axis" },
