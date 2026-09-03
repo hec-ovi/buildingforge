@@ -103,6 +103,8 @@ describe('preview textures', () => {
     expect(strip).toBeTruthy();
     const texture = json.textures[strip.pbrMetallicRoughness.baseColorTexture.index];
     expect(json.images[texture.source].uri).toContain('/light-fixture/high_rich/strip/');
+    const curtain = json.materials.find((material: any) => material.name === 'cyberpunk/curtain/high_rich');
+    expect(curtain.doubleSided).toBe(true);
     vi.unstubAllGlobals();
   });
 

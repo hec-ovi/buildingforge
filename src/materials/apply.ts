@@ -59,12 +59,18 @@ export function preferredVariantForKey(key: string): string | undefined {
   return NAMED_VARIANTS[key.split('/')[1] ?? ''];
 }
 
+/** Fabric shades are one fitted plane that must read from both sides of the glazing. */
+function doubleSidedForKey(key: string): boolean {
+  return key.split('/')[1] === 'curtain';
+}
+
 /** Untextured materials named by the canonical key: what a keys-only consumer resolves itself. */
 function keysOnly(doc: Document, slots: string[], reason?: string): MaterialPlan {
   const bySlot = new Map<string, Material>();
   for (const slot of slots) {
     const [key, variant] = splitMaterialSlot(slot);
-    const material = doc.createMaterial(key).setDoubleSided(false).setMetallicFactor(0).setRoughnessFactor(1);
+    const material = doc.createMaterial(key)
+      .setDoubleSided(doubleSidedForKey(key)).setMetallicFactor(0).setRoughnessFactor(1);
     if (variant) material.setExtras({ materialVariant: variant });
     bySlot.set(slot, material);
   }
@@ -108,7 +114,7 @@ export function createMaterials(
     }
     const p = entry.physical;
     const material = doc.createMaterial(key)
-      .setDoubleSided(false)
+      .setDoubleSided(doubleSidedForKey(key))
       .setMetallicFactor(p.metallicFactor ?? 1)
       .setRoughnessFactor(p.roughnessFactor ?? 1)
       .setAlphaMode(p.alphaMode ?? 'OPAQUE');

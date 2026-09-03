@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.3: fitted curtain fabric renders from both the street and the room side of the glazing.
+
 0.46.2: illuminated doorway strips keep the canonical light-fixture key and carry `extras.materialVariant: "strip"` on their GLB material. Ordinary exterior fixtures retain the canonical lamp variant, and strip housing remains painted frame metal.
 
 0.46.1: the browser preview reads Interior's published core-fit constants as static data, so its initial module graph has no Node filesystem adapter.

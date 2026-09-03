@@ -228,6 +228,9 @@ describe('blueprint invariants', () => {
 
     const doc = await new NodeIO().readBinary(glb);
     const node = doc.getRoot().listNodes().find((candidate) => candidate.getName() === `window:${target.id}`)!;
+    const curtainMaterial = doc.getRoot().listMaterials()
+      .find((material) => material.getName().includes('/curtain/'))!;
+    expect(curtainMaterial.getDoubleSided()).toBe(true);
     let minY = Infinity, maxY = -Infinity;
     for (const primitive of node.getMesh()!.listPrimitives()) {
       if (!primitive.getMaterial()!.getName().includes('/curtain/')) continue;
