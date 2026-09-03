@@ -97,6 +97,14 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
         throw new ExteriorError('E_INVARIANT',
           `opening ${o.id} has an inconsistent door assembly on floor ${floor.index}; exterior bug, report with the request`);
       }
+      if (o.kind === 'door' && o.doorRole === undefined) {
+        throw new ExteriorError('E_INVARIANT',
+          `door ${o.id} has no navigation role on floor ${floor.index}; exterior bug, report with the request`);
+      }
+      if (o.kind !== 'door' && o.doorRole !== undefined) {
+        throw new ExteriorError('E_INVARIANT',
+          `opening ${o.id} publishes a door role but is ${o.kind}; exterior bug, report with the request`);
+      }
       if (o.door) {
         const expectedClear = o.door.motion.kind === 'swing' ? o.width / Math.max(1, o.leaves ?? 1) : 0;
         const valid = o.door.frameWidth > 0 && o.door.frameDepth > 0 && o.door.recessDepth >= 0

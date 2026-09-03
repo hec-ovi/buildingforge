@@ -86,6 +86,10 @@
                     }
                   }
                 },
+                "doorRole": {
+                  "enum": ["main", "secondary", "service"],
+                  "description": "door only: main street entrance, repeated public entrance, or service/loading access; interior and navigation consumers connect every published role"
+                },
                 "transom": {
                   "type": "number",
                   "minimum": 0,

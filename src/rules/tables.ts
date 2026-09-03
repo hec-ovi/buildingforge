@@ -88,6 +88,8 @@ export const DOORS = {
   width: PROPORTIONS.entranceWidth,
   /** one swinging leaf: wider than this and the entrance takes two */
   maxLeafWidth: 1.2,
+  /** long public frontages repeat complete door sets at no less than this bay pitch */
+  repeatedFrontage: { minPitch: 8, maxDoors: 5 },
   rollerDrive: { width: [3.6, 5.4] as [number, number], height: [3.6, 5.0] as [number, number] },
   sets: {
     plain: { frameWidth: 0.09, frameDepth: 0.05, recessDepth: 0.12 },

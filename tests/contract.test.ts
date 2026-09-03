@@ -1,7 +1,7 @@
 // Contract tests: every declared input, output, and error of generate(),
 // exercised through the public entry point against the shipped fixtures.
 
-import { MODULE } from '../src/rules/tables.ts';
+import { MODULE, MODULE_U, OPENING } from '../src/rules/tables.ts';
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { NodeIO } from '@gltf-transform/core';
@@ -171,6 +171,34 @@ describe('blueprint invariants', () => {
       const ground = blueprint.floors.find((f) => f.index === 0)!;
       expect(ground.openings.some((o) => o.id === 'entrance' && o.kind === 'door')).toBe(true);
     }
+  });
+
+  it('repeats one fitted entrance set across a long public frontage', async () => {
+    const { blueprint } = await generate(corpo, KEYS);
+    const ground = blueprint.floors.find((floor) => floor.index === 0)!;
+    const doors = ground.openings.filter((opening) => opening.kind === 'door');
+    const main = doors.find((door) => door.doorRole === 'main')!;
+    const publicDoors = doors.filter((door) => door.doorRole !== 'service');
+    expect(publicDoors.length).toBeGreaterThanOrEqual(3);
+    expect(publicDoors.filter((door) => door.doorRole === 'secondary')).toHaveLength(publicDoors.length - 1);
+    for (const door of publicDoors) {
+      expect(door.edge).toBe(main.edge);
+      expect(door.width).toBe(main.width);
+      expect(door.height).toBe(main.height);
+      expect(door.door!.set).toBe(main.door!.set);
+      expect(door.offset % MODULE_U).toBeCloseTo(0, 6);
+    }
+    const sorted = [...publicDoors].sort((a, b) => a.offset - b.offset);
+    for (let i = 1; i < sorted.length; i++) {
+      expect(sorted[i]!.offset - (sorted[i - 1]!.offset + sorted[i - 1]!.width))
+        .toBeGreaterThanOrEqual(OPENING.minPier);
+    }
+
+    const industrial = (await generate(factory, KEYS)).blueprint.floors
+      .find((floor) => floor.index === 0)!.openings.filter((opening) => opening.kind === 'door');
+    expect(industrial.find((door) => door.id === 'entrance')!.doorRole).toBe('main');
+    expect(industrial.filter((door) => door.id.startsWith('loading:'))
+      .every((door) => door.doorRole === 'service')).toBe(true);
   });
 
   it('publishes one fitted frame set and movement envelope on every door', async () => {

@@ -91,6 +91,8 @@ export interface Opening {
   leaves?: number;
   /** door and balconyDoor: exact fixed-frame and movement envelope selected for this building */
   door?: DoorAssembly;
+  /** door only: how the interior and navigation layers connect the opening */
+  doorRole?: 'main' | 'secondary' | 'service';
   /** door: glazed transom light carried above the head, part of this opening */
   transom?: number;
   balcony?: { depth: number; width: number };

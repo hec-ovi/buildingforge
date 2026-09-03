@@ -123,7 +123,8 @@ export function buildFacades(
     // 2. Entrance and service doors on the ground floor (doors exist even window-less),
     // reserved before any window fill so the facade always keeps its entrance zone.
     if (isGround) {
-      placeEntrance(req, family, tier, style, outline, streetEdges, level.height, openings, takenByEdge);
+      const entrance = placeEntrance(req, family, tier, style, outline, streetEdges, level.height, openings, takenByEdge);
+      if (entrance) placeRepeatedEntrances(family, outline, entrance, openings, takenByEdge);
       if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
     }
 
@@ -465,7 +466,7 @@ function placeEntrance(
   req: BuildingRequest, family: Family, tier: Tier, style: Style,
   outline: P2[], candidates: number[], groundHeight: number,
   openings: Opening[], taken: Map<number, Taken[]>,
-): void {
+): Opening | undefined {
   const rng = new Rng(req.seed, 'entrance');
   const rules = RULES[family];
   const prop = proportionsOf(family);
@@ -495,18 +496,66 @@ function placeEntrance(
     for (let step = 0; step * 0.5 <= L; step++) {
       const t = step % 2 === 0 ? t0 + (step / 2) * 0.5 : t0 - ((step + 1) / 2) * 0.5;
       if (t < tMin - 1e-9 || t > tMax + 1e-9) continue;
-      if (!fits(taken, e, t - w / 2, t + w / 2)) continue;
-      take(taken, e, t - w / 2, t + w / 2);
-      openings.push({
-        id: 'entrance', kind: 'door', edge: e, offset: onModule(t - w / 2, 'near', MODULE_U),
+      const start = onModule(t - w / 2, 'near', MODULE_U);
+      if (start < margin - 1e-9 || start + w > L - margin + 1e-9) continue;
+      if (!fits(taken, e, start, start + w)) continue;
+      take(taken, e, start, start + w);
+      const entrance: Opening = {
+        id: 'entrance', kind: 'door', doorRole: 'main', edge: e, offset: start,
         width: w, height: quant(h), sill: 0, leaves: leafCount(w),
         door: doorAssembly(entranceDoorSet(req.seed, family, tier, rules.entranceGlass), w, h),
         material: `${req.theme}/${rules.entranceGlass ? 'door-glass' : 'door'}/${tier}`,
-      });
-      return;
+      };
+      openings.push(entrance);
+      return entrance;
     }
   }
   // No edge can host a door (degenerate parcel): better no entrance than a broken one.
+  return undefined;
+}
+
+/**
+ * A long public frontage repeats the accepted main entrance at stable human
+ * scale. Uniform frontage cells supply the target centres; the actual starts
+ * stay on metre seams and retain a full pier from every other opening.
+ */
+function placeRepeatedEntrances(
+  family: Family, outline: P2[], main: Opening,
+  openings: Opening[], taken: Map<number, Taken[]>,
+): void {
+  if (!(['hotel', 'office', 'corpo', 'commerce'] as Family[]).includes(family)) return;
+  const length = edgeLength(outline, main.edge);
+  const usable = length - 2 * OPENING.cornerMargin;
+  const total = Math.min(DOORS.repeatedFrontage.maxDoors,
+    Math.floor(usable / DOORS.repeatedFrontage.minPitch));
+  if (total < 2) return;
+
+  const mainCenter = main.offset + main.width / 2;
+  const targets = Array.from({ length: total }, (_, i) => ((i + 0.5) * length) / total)
+    .sort((a, b) => Math.abs(b - mainCenter) - Math.abs(a - mainCenter));
+  let placed = 0;
+  for (const target of targets) {
+    if (placed >= total - 1) break;
+    const wanted = onModule(target - main.width / 2, 'near', MODULE_U);
+    const maxSteps = Math.floor(length / (2 * MODULE_U));
+    for (let step = 0; step <= maxSteps; step++) {
+      const shift = step === 0 ? 0 : Math.ceil(step / 2) * (step % 2 === 1 ? MODULE_U : -MODULE_U);
+      const start = wanted + shift;
+      if (start < OPENING.cornerMargin - 1e-9
+        || start + main.width > length - OPENING.cornerMargin + 1e-9) continue;
+      if (!fits(taken, main.edge, start, start + main.width)) continue;
+      take(taken, main.edge, start, start + main.width);
+      openings.push({
+        ...main,
+        id: `entrance:secondary:${placed}`,
+        doorRole: 'secondary',
+        offset: start,
+        door: { ...main.door!, motion: { ...main.door!.motion } },
+      });
+      placed++;
+      break;
+    }
+  }
 }
 
 function placeLoadingDoors(
@@ -531,7 +580,7 @@ function placeLoadingDoors(
     if (!fits(taken, e, t - w / 2, t + w / 2)) continue;
     take(taken, e, t - w / 2, t + w / 2);
     openings.push({
-      id: `loading:${i}`, kind: 'door', edge: e, offset: quantOff(t - w / 2),
+      id: `loading:${i}`, kind: 'door', doorRole: 'service', edge: e, offset: quantOff(t - w / 2),
       width: w, height: h, sill: 0, leaves: 1, material: `${theme}/door/${tier}`,
       door: doorAssembly('industrial-ribbed', w, h, 'roller'),
     });
