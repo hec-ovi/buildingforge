@@ -14,3 +14,4 @@
 - src/glb + src/blueprint: output writers. Depend on mesh, layout and materials.
 - schemas/, fixtures/, tests/: the contract surface and its proof, including the linked external antenna attachment schema.
 - reference coverage and cross-layer ownership: docs/REFERENCE-COVERAGE.md.
+- src/mesh/doorHardware.ts: fitted leaf-owned pull handles and levers; shares the door frame material.

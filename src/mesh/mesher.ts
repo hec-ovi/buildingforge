@@ -10,6 +10,7 @@ import { meshFacadeRelief } from './facadeRelief.ts';
 import { meshAcUnits } from './acUnit.ts';
 import { meshFacadeServices } from './facadeServices.ts';
 import { meshFrameRing } from './frameRing.ts';
+import { meshDoorHardware } from './doorHardware.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
@@ -329,6 +330,7 @@ function doorLeaves(
     const b = a + leafW;
     const hinge = i < count / 2 ? a : b;
     const sink = mb.part(`${base}/leaf:${i}`, { parent: base, pivot: at(fr, [hinge, yb], back + t / 2) });
+    meshDoorHardware(sink, fr, a, b, yb, yt, hinge, assembly, mat('window-frame'));
     const slab = (uA: number, uB: number, y0: number, y1: number, front: number, depth: number, material: string) => {
       if (uB - uA < 1e-6 || y1 - y0 < 1e-6) return;
       sink.box(material, at(fr, [(uA + uB) / 2, (y0 + y1) / 2], front - depth / 2),

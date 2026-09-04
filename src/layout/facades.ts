@@ -696,11 +696,16 @@ function placeLoadingDoors(
 
 /** One coordinated door set per building role; dimensions always come from the accepted opening. */
 function entranceDoorSet(seed: string, family: Family, tier: Tier, glazed: boolean): DoorSet {
+  const rng = new Rng(seed, 'door-set');
   if (family === 'industrial' || family === 'security') return 'industrial-ribbed';
   if ((family === 'corpo' || family === 'hotel' || family === 'commerce')
-    && (tier === 'rich' || tier === 'high_rich')) return 'illuminated';
+    && (tier === 'rich' || tier === 'high_rich')) {
+    return glazed
+      ? rng.pick<DoorSet>(['illuminated', 'glazed-grid', 'layered'], [2, 2, 1])
+      : rng.pick<DoorSet>(['illuminated', 'layered'], [2, 1]);
+  }
   if (glazed && (tier === 'rich' || tier === 'high_rich')) return 'glazed-grid';
-  return new Rng(seed, 'door-set').chance(0.55) ? 'layered' : 'plain';
+  return rng.chance(0.55) ? 'layered' : 'plain';
 }
 
 function doorAssembly(

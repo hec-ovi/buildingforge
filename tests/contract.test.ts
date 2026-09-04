@@ -23,6 +23,7 @@ function glbJson(glb: Uint8Array): Record<string, any> {
 
 const residential = fixture('residential-mid');
 const corpo = fixture('corpo-tower');
+const illuminatedCorpo = { ...corpo, seed: 'entrance-review-0' };
 const factory = fixture('factory');
 const bridged = fixture('bridged-tower');
 const sliver = fixture('sliver-parcel');
@@ -351,13 +352,26 @@ describe('blueprint invariants', () => {
       }
     }
 
-    const corpoDoor = (await generate(corpo, KEYS)).blueprint.floors[0]!.openings
-      .find((o) => o.id === 'entrance')!;
-    expect(corpoDoor.door!.set).toBe('illuminated');
     const factoryDoors = (await generate(factory, KEYS)).blueprint.floors[0]!.openings
       .filter((o) => o.kind === 'door');
     expect(factoryDoors.every((o) => o.door!.set === 'industrial-ribbed')).toBe(true);
     expect(factoryDoors.find((o) => o.id.startsWith('loading:'))!.door!.motion.kind).toBe('roller');
+  });
+
+  it('selects compatible premium entrance sets reproducibly across seeds', async () => {
+    const sets = new Set<string>();
+    for (const seed of ['entrance-review-0', 'entrance-review-1', 'entrance-review-3']) {
+      const request = { ...corpo, seed };
+      const first = await generate(request, KEYS);
+      const repeated = await generate(request, KEYS);
+      expect(repeated.blueprint).toEqual(first.blueprint);
+      const doors = first.blueprint.floors.find((floor) => floor.index === 0)!.openings
+        .filter((opening) => opening.kind === 'door');
+      const set = doors.find((opening) => opening.doorRole === 'main')!.door!.set;
+      expect(doors.every((door) => door.door!.set === set)).toBe(true);
+      sets.add(set);
+    }
+    expect(sets).toEqual(new Set(['illuminated', 'glazed-grid', 'layered']));
   });
 
   it('entrance avoids sliver edges and every opening fits its edge (p1640 class)', async () => {
@@ -1159,7 +1173,49 @@ describe('GLB shell', () => {
           // Everything that swings is in this one subtree, the glass with it.
           if ((o.material ?? '').includes('door-glass')) expect(kinds).toContain('door-glass');
           expect([...kinds].every((k) => k === 'door' || k === 'door-glass'
-            || (o.door?.set === 'industrial-ribbed' && k === 'window-frame'))).toBe(true);
+            || k === 'window-frame')).toBe(true);
+          if (o.door!.motion.kind === 'swing') expect(kinds).toContain('window-frame');
+        }
+      }
+    }
+  });
+
+  it('fits moving door hardware inside the recessed opening at reachable height', async () => {
+    for (const req of [residential, illuminatedCorpo, { ...corpo, seed: 'entrance-review-1' }]) {
+      const { glb, blueprint } = await generate(req, KEYS);
+      const doc = await new NodeIO().readBinary(glb);
+      const nodes = new Map(doc.getRoot().listNodes().map((node) => [node.getName(), node]));
+      for (const floor of blueprint.floors) {
+        for (const opening of floor.openings.filter((o) => o.door?.motion.kind === 'swing')) {
+          const base = `${opening.kind === 'door' ? 'door' : 'balcony'}:${opening.id}`;
+          const start = floor.outline[opening.edge]!;
+          const end = floor.outline[(opening.edge + 1) % floor.outline.length]!;
+          const length = Math.hypot(end[0] - start[0], end[1] - start[1]);
+          const dx = (end[0] - start[0]) / length, dz = (end[1] - start[1]) / length;
+          for (let i = 0; i < opening.leaves!; i++) {
+            const leaf = nodes.get(`${base}/leaf:${i}`)!;
+            const hardware = leaf.getMesh()!.listPrimitives()
+              .filter((primitive) => primitive.getMaterial()!.getName().split('/')[1] === 'window-frame');
+            expect(hardware.length).toBeGreaterThan(0);
+            const [px, py, pz] = leaf.getTranslation();
+            for (const primitive of hardware) {
+              const positions = primitive.getAttribute('POSITION')!;
+              for (let vertex = 0; vertex < positions.getCount(); vertex++) {
+                const [x, y, z] = positions.getElement(vertex, [0, 0, 0]);
+                const wx = x! + px - start[0], wz = z! + pz - start[1];
+                const along = wx * dx + wz * dz;
+                const outward = wx * dz - wz * dx;
+                const height = y! + py - floor.elevation - opening.sill;
+                const leafStart = opening.offset + i * opening.width / opening.leaves!;
+                expect(along).toBeGreaterThan(leafStart);
+                expect(along).toBeLessThan(leafStart + opening.width / opening.leaves!);
+                expect(outward).toBeGreaterThanOrEqual(-opening.door!.recessDepth - 1e-5);
+                expect(outward).toBeLessThan(0);
+                expect(height).toBeGreaterThan(0.6);
+                expect(height).toBeLessThan(1.4);
+              }
+            }
+          }
         }
       }
     }
@@ -1209,7 +1265,7 @@ describe('GLB shell', () => {
   });
 
   it('builds the selected illuminated and industrial door details into their fixed or moving nodes', async () => {
-    const lit = await generate(corpo, KEYS);
+    const lit = await generate(illuminatedCorpo, KEYS);
     const litDoc = await new NodeIO().readBinary(lit.glb);
     const litFrame = litDoc.getRoot().listNodes().find((n) => n.getName() === 'door:entrance/frame')!.getMesh()!;
     const litKinds = new Set(litFrame.listPrimitives().map((p) => p.getMaterial()!.getName().split('/')[1]));
@@ -1228,7 +1284,7 @@ describe('GLB shell', () => {
   });
 
   it('keeps illuminated strips distinct from lamps and their housing in merged GLBs', async () => {
-    const { glb } = await generate({ ...corpo, options: { ...(corpo as any).options, glb: 'merged' } }, KEYS);
+    const { glb } = await generate({ ...illuminatedCorpo, options: { ...(corpo as any).options, glb: 'merged' } }, KEYS);
     const doc = await new NodeIO().readBinary(glb);
     const nodes = new Map(doc.getRoot().listNodes().map((node) => [node.getName(), node]));
     const key = 'cyberpunk/light-fixture/high_rich';

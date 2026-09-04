@@ -93,6 +93,7 @@ describe('preview textures', () => {
     expect(textures.mode).toBe('external');
 
     const litRequest = JSON.parse(readFileSync(resolve('fixtures/corpo-tower.request.json'), 'utf8'));
+    litRequest.seed = 'entrance-review-0';
     const lit = await generate(litRequest, {
       textures: { mode: 'external', baseUrl: '/materials/', source },
     });
