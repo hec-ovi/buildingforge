@@ -66,6 +66,16 @@
                     "closurePercent": { "type": "number", "minimum": 0, "maximum": 100, "description": "covering travel from the head downward as a percentage of clear glazed height; venetian slats retain their fitted gaps" }
                   }
                 },
+                "windowTreatment": {
+                  "type": "object", "required": ["privacy", "nodeId"], "additionalProperties": false,
+                  "properties": { "privacy": { "const": "shell-only" }, "nodeId": { "type": "string" } },
+                  "description": "Independent ground privacy subtree, kept only on shells without a real interior. Ordinary curtain geometry remains authored."
+                },
+                "exteriorCovering": {
+                  "type": "object", "required": ["style", "placement", "depth", "standoff", "material"], "additionalProperties": false,
+                  "properties": { "style": { "const": "metal-louvre" }, "placement": { "const": "exterior" }, "depth": { "type": "number", "exclusiveMinimum": 0 }, "standoff": { "type": "number", "minimum": 0 }, "material": { "type": "string" } },
+                  "description": "Permanent closed metallic slats in front of glass, fitted inside the opening width and height. Standoff is outward from the facade skin."
+                },
                 "state": { "enum": ["open", "partial", "half", "closed80", "closed"], "description": "legacy categorical curtain state; curtain.closurePercent is authoritative" },
                 "leaves": {
                   "type": "integer",
@@ -322,6 +332,13 @@
           "description": "fixed world-unit architectural panel field; unmatched face or storey space becomes deliberate equal borders"
         },
         "exteriorStyle": { "enum": ["residential-salvaged", "residential-weathered", "residential-modest", "premium-obsidian", "premium-office", "premium-mineral", "civic-utility", "civic-institutional", "civic-industrial"] },
+        "surfacePattern": {
+          "oneOf": [
+            { "type": "object", "required": ["kind"], "additionalProperties": false, "properties": { "kind": { "const": "continuous" } } },
+            { "type": "object", "required": ["kind", "width", "height", "jointWidth"], "additionalProperties": false, "properties": { "kind": { "const": "panel" }, "width": { "type": "number", "exclusiveMinimum": 0 }, "height": { "type": "number", "exclusiveMinimum": 0 }, "jointWidth": { "type": "number", "minimum": 0 } } }
+          ]
+        },
+        "groundMaterial": { "$ref": "#/$defs/materialVariant" },
         "materialPlan": {
           "type": "object",
           "required": ["palette", "field", "border", "trim"],

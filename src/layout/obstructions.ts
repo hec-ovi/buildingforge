@@ -106,10 +106,10 @@ export function faceObstacles(
 
   relief.byEdge.forEach((face, e) => {
     for (const u of face.ribs) {
-      push(e, { u0: u - relief.ribWidth / 2, u1: u + relief.ribWidth / 2, y0: 0, y1: top, what: 'rib', kind: 'relief', depth: relief.ribDepth });
+      if (top > relief.verticalBase) push(e, { u0: u - relief.ribWidth / 2, u1: u + relief.ribWidth / 2, y0: relief.verticalBase, y1: top, what: 'rib', kind: 'relief', depth: relief.ribDepth });
     }
     for (const u of face.columns) {
-      push(e, { u0: u - relief.columnWidth / 2, u1: u + relief.columnWidth / 2, y0: 0, y1: top, what: 'column', kind: 'relief', depth: relief.columnDepth });
+      if (top > relief.verticalBase) push(e, { u0: u - relief.columnWidth / 2, u1: u + relief.columnWidth / 2, y0: relief.verticalBase, y1: top, what: 'column', kind: 'relief', depth: relief.columnDepth });
     }
   });
 

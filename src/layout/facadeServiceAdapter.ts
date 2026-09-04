@@ -157,17 +157,18 @@ function addReliefReservations(
   for (const floor of floors) {
     for (let edge = 0; edge < floor.outline.length; edge++) {
       const face = input.relief.byEdge[edge];
-      if (face) {
+      if (face && floor.elevation + floor.height > input.relief.verticalBase) {
+        const start = Math.max(0, input.relief.verticalBase - floor.elevation);
         for (const u of face.ribs) reservations.push({
           id: `relief:rib:${floor.index}:${edge}:${u}`,
           face: { floor: floor.index, edge }, kind: 'relief',
-          rect: [u - input.relief.ribWidth / 2, 0, u + input.relief.ribWidth / 2, floor.height],
+          rect: [u - input.relief.ribWidth / 2, start, u + input.relief.ribWidth / 2, floor.height],
           depth: input.relief.ribDepth,
         });
         for (const u of face.columns) reservations.push({
           id: `relief:column:${floor.index}:${edge}:${u}`,
           face: { floor: floor.index, edge }, kind: 'relief',
-          rect: [u - input.relief.columnWidth / 2, 0, u + input.relief.columnWidth / 2, floor.height],
+          rect: [u - input.relief.columnWidth / 2, start, u + input.relief.columnWidth / 2, floor.height],
           depth: input.relief.columnDepth,
         });
       }

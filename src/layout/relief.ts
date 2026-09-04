@@ -19,6 +19,8 @@ export interface FaceRelief {
 }
 
 export interface Relief {
+  /** first above-ground walking surface; vertical trim leaves the street base clear */
+  verticalBase: number;
   ribWidth: number;
   ribDepth: number;
   columnWidth: number;
@@ -76,6 +78,7 @@ export function buildRelief(style: Style, floors: FloorLayout[], carved: CarvedA
   }
 
   return {
+    verticalBase: above[1] ? above[1].elevation + f.bandHeight / 2 : (ground ? ground.elevation + ground.height : 0),
     ribWidth: f.ribWidth, ribDepth: f.ribDepth, columnWidth: MODULE_U,
     columnDepth: COLUMN_PROUD, bandDepth: f.bandProud, bands, byEdge, outline,
   };

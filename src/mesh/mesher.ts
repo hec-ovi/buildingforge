@@ -21,7 +21,9 @@ import { fixedPanelAxis } from '../layout/module.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
 import type { BalconyBand, Blueprint, DoorAssembly, Opening } from '../types.ts';
 import { materialSlot } from '../materials/slot.ts';
-import { selectedMaterialKey } from '../layout/materialPlan.ts';
+import { selectedMaterialKey, facadeSurfacePattern } from '../layout/materialPlan.ts';
+import { meshGroundPrivacy, meshExteriorLouvre } from './windowTreatments.ts';
+import { meshWindowWeathering } from './windowWeathering.ts';
 
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
@@ -99,16 +101,18 @@ export function buildMesh(layout: Layout): MeshBuilder {
       // World-metre UVs preserve the material's physical scale. The field begins
       // after the centred solid border, so every visible joint agrees with the
       // fixed panel grid instead of stretching to close the face.
-      const horizontal = fixedPanelAxis(fr.len, layout.style.facade.panelWidth);
-      const vertical = fixedPanelAxis(f.height, layout.style.facade.panelHeight);
-      const uOrigin = horizontal.borders[0];
-      const yOrigin = f.elevation + vertical.borders[0];
+      const pattern = facadeSurfacePattern(layout.request.options!.exteriorStyle!);
+      const panel = f.index !== 0 && pattern.kind === 'panel' ? pattern : undefined;
+      const horizontal = panel ? fixedPanelAxis(fr.len, panel.width) : undefined;
+      const vertical = panel ? fixedPanelAxis(f.height, panel.height) : undefined;
+      const uOrigin = horizontal?.borders[0] ?? 0;
+      const yOrigin = f.elevation + (vertical?.borders[0] ?? 0);
       for (const piece of cutWall(fr.len, f.elevation, f.elevation + f.height, holes)) {
         const uvs = [piece.bl, piece.br, piece.tr, piece.tl]
           .map(([u, y]) => [u - uOrigin, yOrigin - y] as [number, number]);
-        sink.quadFacing(mat('wall'), at(fr, piece.bl), at(fr, piece.br), at(fr, piece.tr), at(fr, piece.tl), n3(fr), uvs);
+        sink.quadFacing(mat(f.index === 0 ? 'ground' : 'wall'), at(fr, piece.bl), at(fr, piece.br), at(fr, piece.tr), at(fr, piece.tl), n3(fr), uvs);
       }
-      meshPanelBorders(panelBorders, fr, f, holes,
+      if (horizontal && vertical) meshPanelBorders(panelBorders, fr, f, holes,
         horizontal.borders, vertical.borders, mat('column'));
     }
     for (const o of f.openings) meshOpening(mb, layout, f, o, mat);
@@ -143,6 +147,7 @@ export function buildMesh(layout: Layout): MeshBuilder {
   meshFeatures(mb, layout, mat);
   meshFireEscape(mb, layout, above, mat);
 
+  meshWindowWeathering(mb, layout);
   return mb;
 }
 
@@ -205,7 +210,8 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
 
   if (o.kind === 'window') {
     const sink = mb.part(`window:${o.id}`);
-    windowUnit(sink, fr, u0, u1, yb, yt, o, layout.style, mat);
+    const privacy = o.windowTreatment ? mb.part(o.windowTreatment.nodeId, { keepNode: true }) : undefined;
+    windowUnit(sink, fr, u0, u1, yb, yt, o, layout.style, mat, privacy);
     return;
   }
   if (o.kind === 'door' || o.kind === 'balconyDoor') {
@@ -384,6 +390,7 @@ function doorLeafDetails(
 function windowUnit(
   sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
   o: Opening, style: Style, mat: (k: string) => string,
+  privacy?: PartSink,
 ): void {
   const g = style.glazing;
   const fw = Math.min(g.frameWidth, (u1 - u0) / 4, (yt - yb) / 4);
@@ -458,6 +465,9 @@ function windowUnit(
     covering(sink, fr, g0, g1, gb, gt, glassZ - 0.035,
       o.curtain.closurePercent, frameMat, mat('curtain'));
   }
+  const fieldBounds = { u0: g0, u1: g1, y0: gb, y1: gt };
+  if (privacy) meshGroundPrivacy(privacy, fr, fieldBounds, glassZ, materialSlot(mat('curtain'), 'slat'));
+  if (o.exteriorCovering) meshExteriorLouvre(sink, fr, fieldBounds, o.exteriorCovering);
 }
 
 /** A fitted roller shade: fixed head cassette, exact fabric coverage and bottom rail. */
@@ -683,7 +693,9 @@ function meshColumns(mb: MeshBuilder, layout: Layout, above: FloorLayout[], top:
   relief.byEdge.forEach((face, e) => {
     const fr = frame(relief.outline, e);
     for (const u of face.columns) {
-      sink.box(mat('column'), at(fr, [u, top / 2], 0.06), [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2], [0, top / 2, 0], [fr.n[0] * 0.06, 0, fr.n[1] * 0.06]);
+      const base = relief.verticalBase;
+      if (top <= base) continue;
+      sink.box(mat('column'), at(fr, [u, (base + top) / 2], 0.06), [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2], [0, (top - base) / 2, 0], [fr.n[0] * 0.06, 0, fr.n[1] * 0.06]);
     }
   });
 }

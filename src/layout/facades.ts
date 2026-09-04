@@ -17,6 +17,7 @@ import type { Stack } from './floorStack.ts';
 import type { CarvedAperture, FloorLayout, Style } from './model.ts';
 import { EXTERIOR_STYLES } from './exteriorStyle.ts';
 import { selectedMaterialKey } from './materialPlan.ts';
+import { fitGroundWindows } from './groundFacade.ts';
 
 // Sun azimuth quantized to 8 compass vectors: no runtime trig, identical output on every JS engine.
 const COMPASS: P2[] = [
@@ -244,9 +245,23 @@ export function buildFacades(
   }
 
   const exteriorStyle = req.options!.exteriorStyle!;
+  for (const floor of floors) fitGroundWindows(family, floor);
   for (const floor of floors) for (const opening of floor.openings) {
-    if (opening.curtain) opening.curtain.style = EXTERIOR_STYLES[exteriorStyle].covering;
+    if (opening.curtain) {
+      const open = curtainOverrides.get(opening.id);
+      const closurePercent = open === undefined ? opening.curtain.closurePercent : quantOff(100 - open);
+      opening.curtain = { style: EXTERIOR_STYLES[exteriorStyle].covering, closurePercent };
+      opening.state = closurePercent === 0 ? 'open' : closurePercent < 45 ? 'partial'
+        : closurePercent < 65 ? 'half' : closurePercent < 100 ? 'closed80' : 'closed';
+    }
     if (opening.kind === 'window') opening.material = selectedMaterialKey(req.theme, tier, exteriorStyle, 'window-glass');
+    if (opening.kind === 'window' && floor.index === 0) {
+      opening.windowTreatment = { privacy: 'shell-only', nodeId: `ground-privacy:${opening.id}` };
+    }
+    if (opening.kind === 'window' && (family === 'industrial' || family === 'security')) {
+      opening.exteriorCovering = { style: 'metal-louvre', placement: 'exterior', depth: 0.12,
+        standoff: style.glazing.frameProud + 0.025, material: `${req.theme}/exterior-louvre/${tier}` };
+    }
   }
   return { floors, carved, anchors };
 }

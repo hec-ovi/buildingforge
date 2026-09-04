@@ -973,7 +973,7 @@ describe('GLB shell', () => {
     expect(nodeNames).toContain('aperture:ap-bridge-1');
     expect(nodeNames).toContain('anchor:ap-wire-4');
     const materialNames = root.listMaterials().map((m) => m.getName()).sort();
-    expect(materialNames).toEqual(blueprint.materials);
+    expect([...new Set(materialNames)]).toEqual(blueprint.materials);
     for (const name of materialNames) {
       expect(name).toMatch(/^cyberpunk\/[a-z-]+\/rich$/);
     }
@@ -1012,7 +1012,7 @@ describe('GLB shell', () => {
       expect(materials).toEqual(['cyberpunk/floor-slab/mid']);
     }
     const named = [...byName.keys()].filter((n) => !n.startsWith('merged:') && !n.startsWith('building:'));
-    expect(named.every((n) => n.includes('/leaf:') || n.startsWith('anchor:') || n.endsWith('/slab'))).toBe(true);
+    expect(named.every((n) => n.includes('/leaf:') || n.startsWith('anchor:') || n.startsWith('ground-privacy:') || n.endsWith('/slab'))).toBe(true);
   });
 
   it('mounts a wire anchor as a small plate on its node, the curtain wall glazed straight across it', async () => {
@@ -1476,7 +1476,7 @@ describe('material resolution', () => {
     };
 
     const expected: Record<string, string> = {
-      concrete: blueprint.facade.materialPlan.field.variantId, column: blueprint.facade.materialPlan.border.variantId, 'wall-trim': 'paint', 'window-frame': 'paint',
+      'concrete-monolith': blueprint.facade.materialPlan.field.variantId, 'wall-trim': 'paint', 'window-frame': 'paint',
       door: 'paint', roof: 'plain', 'floor-slab': 'plain', 'light-fixture': 'lamp',
     };
     for (const [kind, variant] of Object.entries(expected)) {
@@ -1485,12 +1485,12 @@ describe('material resolution', () => {
       expect(uriOf(material), `${kind} carries the named ${variant} variant`).toContain(`/${kind}/mid/${variant}/`);
       expect(blueprint.materialVariants[`cyberpunk/${kind}/mid`]).toBe(variant);
     }
-    expect(blueprint.materials).toContain('cyberpunk/concrete/mid');
+    expect(blueprint.materials).toContain('cyberpunk/concrete-monolith/mid');
     expect(blueprint.materials).not.toContain('cyberpunk/wall/mid');
     expect(blueprint.facade.materialPlan).toEqual({
       palette: 'neutral-dystopian',
-      field: { key: 'cyberpunk/concrete/mid', variantId: 'panel-mineral' },
-      border: { key: 'cyberpunk/column/mid', variantId: 'plain-mineral' },
+      field: { key: 'cyberpunk/concrete-monolith/mid', variantId: 'mineral' },
+      border: { key: 'cyberpunk/concrete-monolith/mid', variantId: 'mineral' },
       trim: { key: 'cyberpunk/wall-trim/mid', variantId: 'paint' },
     });
   });
@@ -1579,8 +1579,8 @@ describe('facade panels', () => {
         expect(Math.abs(fieldWidth / 2 - Math.round(fieldWidth / 2))).toBeLessThan(0.002);
         expect(Math.abs(fieldHeight - Math.round(fieldHeight))).toBeLessThan(0.002);
       }
-      const needsBorders = blueprint.facade.grids.some((grid) =>
-        [...grid.horizontalBorders, ...grid.verticalBorders].some((value) => value >= 0.001));
+      const needsBorders = blueprint.facade.surfacePattern.kind === 'panel'
+        && blueprint.floors.some((floor) => floor.index > 0);
       expect(doc.getRoot().listNodes().some((node) => node.getName() === 'facade-panel-borders')).toBe(needsBorders);
     }
   });
@@ -1611,8 +1611,8 @@ describe('facade panels', () => {
       expect(blueprint.facade.panelPattern.width).toBe(2);
       expect(blueprint.facade.panelPattern.height).toBe(1);
       expect(blueprint.facade.materialPlan.palette).toBe('neutral-dystopian');
-      expect(blueprint.facade.materialPlan.field.key.split('/')[1]).toBe('concrete');
-      expect(blueprint.facade.materialPlan.border.key.split('/')[1]).toBe('column');
+      expect(blueprint.facade.materialPlan.field.key.split('/')[1]).toMatch(/^concrete-(monolith|large-panel)$/);
+      expect(blueprint.facade.materialPlan.border.key.split('/')[1]).toBe('concrete-monolith');
       expect(blueprint.facade.materialPlan.trim.key.split('/')[1]).toBe('wall-trim');
     }
   });
@@ -2294,7 +2294,7 @@ describe('textured export', () => {
   it('scales tiled maps by their world size and leaves exact placements untransformed', async () => {
     const { glb } = await generate(residential);
     const json = glbJson(glb);
-    const wall = json.materials.find((m: { name: string }) => m.name === 'cyberpunk/concrete/mid');
+    const wall = json.materials.find((m: { name: string }) => m.name === 'cyberpunk/concrete-monolith/mid');
     const transform = wall.pbrMetallicRoughness.baseColorTexture.extensions.KHR_texture_transform;
     expect(transform.scale[0]).toBeGreaterThan(0);
     expect(transform.scale[1]).toBeGreaterThan(0);
@@ -2321,7 +2321,7 @@ describe('textured export', () => {
     expect(textures.mode).toBe('keys');
     const json = glbJson(glb);
     expect(json.images).toBeUndefined();
-    expect(json.materials.map((m: { name: string }) => m.name).sort()).toEqual(blueprint.materials);
+    expect([...new Set(json.materials.map((m: { name: string }) => m.name))].sort()).toEqual(blueprint.materials);
   });
 
   it('degrades to keys with a reason when no materials database is there, and stays deterministic', async () => {

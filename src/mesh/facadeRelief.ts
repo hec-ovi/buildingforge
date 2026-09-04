@@ -15,14 +15,17 @@ export function meshFacadeRelief(
   const facade = layout.style.facade;
   if (facade.ribWidth <= 0 || above.length === 0) return;
   const sink = mb.part('facade-relief');
+  const ribs = mb.part('facade-ribs');
   const material = mat('wall-trim');
 
   layout.relief.byEdge.forEach((face, edge) => {
     const fr = frame(layout.relief.outline, edge);
     for (const u of face.ribs) {
-      sink.box(material, at(fr, u, top / 2, facade.ribDepth / 2),
+      const base = layout.relief.verticalBase;
+      if (top <= base) continue;
+      ribs.box(material, at(fr, u, (base + top) / 2, facade.ribDepth / 2),
         [fr.dir[0] * facade.ribWidth / 2, 0, fr.dir[1] * facade.ribWidth / 2],
-        [0, top / 2, 0],
+        [0, (top - base) / 2, 0],
         [fr.n[0] * facade.ribDepth / 2, 0, fr.n[1] * facade.ribDepth / 2]);
     }
   });

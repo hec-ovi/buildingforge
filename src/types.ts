@@ -106,6 +106,8 @@ export interface Opening {
   apertureKind?: Exclude<ApertureKind, 'wire-anchor'>;
   /** Exact covering travel; authoritative over the legacy categorical state. */
   curtain?: { style: 'roller-shade' | 'venetian-blind'; closurePercent: number };
+  windowTreatment?: { privacy: 'shell-only'; nodeId: string };
+  exteriorCovering?: { style: 'metal-louvre'; placement: 'exterior'; depth: number; standoff: number; material: string };
   state?: CurtainState;
   /** mullion grid of a glazed opening: cols x rows panes, each within the tier's pane limit */
   panes?: { cols: number; rows: number };
@@ -281,6 +283,8 @@ export interface Blueprint {
     standoff: number;
   }[];
   facade: {
+    surfacePattern: { kind: 'continuous' } | { kind: 'panel'; width: number; height: number; jointWidth: number };
+    groundMaterial: { key: string; variantId: string };
     exteriorStyle: ExteriorStyleId;
     style: 'megablock' | 'panel' | 'glass' | 'curtain-wall';
     panelModule: number;

@@ -25,10 +25,12 @@ it('exports all nine coordinated style bindings and their matching geometry thro
       if (blueprint.materials.includes(key)) expect(selected[key]).toBe(surface.variant);
     }
     const doc = await new NodeIO().readBinary(glb);
-    for (const material of doc.getRoot().listMaterials()) {
-      const key = material.getName();
-      if (selected[key] && !material.getExtras().materialVariant) continue;
-      if (material.getExtras().materialVariant !== 'strip') expect(material.getExtras().materialVariant).toBe(selected[key]);
+    for (const node of doc.getRoot().listNodes()) for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
+      const material = primitive.getMaterial()!;
+      const key = material.getName(), variant = material.getExtras().materialVariant;
+      if (node.getName().startsWith('ground-privacy:')) { expect(variant).toBe('slat'); continue; }
+      if (key.includes('/window-grime-')) continue;
+      if (selected[key] && variant !== undefined && variant !== 'strip') expect(variant).toBe(selected[key]);
     }
     const windows = blueprint.floors.flatMap((floor) => floor.openings).filter((opening) => opening.kind === 'window');
     expect(windows.length).toBeGreaterThan(0);

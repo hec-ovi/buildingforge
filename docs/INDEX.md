@@ -6,6 +6,10 @@
 
 ## Root modules
 
+- src/layout/groundFacade.ts: sparse paired street-level windows fitted around reserved access.
+- src/mesh/windowTreatments.ts: separate shell-only ground privacy and permanent external metal louvres.
+- src/mesh/windowWeathering.ts: exact sill and jamb stains clipped to solid facade receivers.
+
 - src/layout/roundedOutline.ts: circular corner returns shared by floor rings and every facade consumer.
 - src/layout/materialPlan.ts: family-specific named concrete finishes and office slat coating, shared by blueprint and GLB.
 - src/layout/exteriorStyle.ts: nine coordinated geometry policies and seeded selection, paired with Materials bindings/exterior-styles.json.

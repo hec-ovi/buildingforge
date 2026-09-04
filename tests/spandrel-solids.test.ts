@@ -21,7 +21,7 @@ it('closes curtain-wall spandrels from the frame front to the glass back on ever
         (x! - a[0]) * direction[1]! - (z! - a[1]) * direction[0]!,
       ];
       const primitives = nodes.get(`window:${opening.id}`)!.getMesh()!.listPrimitives();
-      const panel = primitives.find((primitive) => primitive.getMaterial()!.getName().includes('/column/'))!;
+      const panel = primitives.find((primitive) => primitive.getMaterial()!.getName() === blueprint.facade.materialPlan.border.key)!;
       const positions = panel.getAttribute('POSITION')!;
       const points = Array.from({ length: positions.getCount() }, (_, index) => local(positions.getElement(index, [])));
       const extent = (axis: number) => [Math.min(...points.map((point) => point[axis]!)), Math.max(...points.map((point) => point[axis]!))];

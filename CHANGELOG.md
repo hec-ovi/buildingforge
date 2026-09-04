@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.10: continuous ground facades, symmetric sparse windows and separate shell-only privacy. Industrial and security windows carry fitted external metal louvres. Visible concrete finishes use continuous fields or true 7 x 3.5 m panels, with clipped sill and jamb weathering.
+
 0.46.9: nine coordinated exterior sets with explicit selection, named material bindings and seeded defaults. Rounded-box massing uses fitted circular corner returns. Residential service density follows its set; office glazing uses fitted slats and its matching coating.
 
 0.46.8: office, corpo and residential buildings have solid street bases with raised punched windows in alternating bays. Explicit shop floors retain storefront glazing.

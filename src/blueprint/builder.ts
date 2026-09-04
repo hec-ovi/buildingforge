@@ -5,7 +5,7 @@ import type { Layout } from '../layout/model.ts';
 import { measureWallDepth } from '../mesh/wallDepth.ts';
 import { SLAB_BAND } from '../rules/tables.ts';
 import { buildFacadeGrids } from '../layout/facadeGrid.ts';
-import { facadeMaterialPlan, buildingMaterialVariants } from '../layout/materialPlan.ts';
+import { facadeMaterialPlan, buildingMaterialVariants, facadeSurfacePattern, styleSurfaces } from '../layout/materialPlan.ts';
 import { preferredVariantForKey } from '../materials/apply.ts';
 import type { MeshBuilder } from '../mesh/primitives.ts';
 
@@ -37,6 +37,11 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     screens: layout.screens,
     lights: layout.lights,
     facade: {
+      surfacePattern: facadeSurfacePattern(layout.request.options!.exteriorStyle!),
+      groundMaterial: {
+        key: `${layout.theme}/${styleSurfaces(layout.request.options!.exteriorStyle!).ground.kind}/${layout.tier}`,
+        variantId: styleSurfaces(layout.request.options!.exteriorStyle!).ground.variant,
+      },
       exteriorStyle: layout.request.options!.exteriorStyle!,
       style: layout.style.facade.kind,
       panelModule: layout.style.facade.panelModule,

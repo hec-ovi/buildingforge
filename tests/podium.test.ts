@@ -15,8 +15,8 @@ it('builds solid street bases with raised sparse punched windows and preserves u
     const windows = floor.openings.filter((item) => item.kind === 'window');
     expect(windows.length).toBeGreaterThan(0);
     const doc = await new NodeIO().readBinary(first.glb);
-    const concreteKey = `cyberpunk/concrete/${tier}`;
-    expect(first.blueprint.materialVariants[concreteKey]).toBe(first.blueprint.facade.materialPlan.field.variantId);
+    const concreteKey = first.blueprint.facade.groundMaterial.key;
+    expect(first.blueprint.materialVariants[concreteKey]).toBe(first.blueprint.facade.groundMaterial.variantId);
     const groundWalls = doc.getRoot().listNodes().filter((item) => item.getName().startsWith('wall:0/'));
     expect(groundWalls).toHaveLength(floor.outline.length);
     for (const wall of groundWalls) {
