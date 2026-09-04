@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.8: office, corpo and residential buildings have solid street bases with raised punched windows in alternating bays. Explicit shop floors retain storefront glazing.
+
 0.46.7: public entrances default to one, with explicit repeated layouts. Window spandrels are closed solid infills. Office and corpo windows carry fitted venetian blinds with seeded closure.
 
 0.46.6: premium entrance sets vary by seed within compatible families. Swing doors carry fitted leaf-owned pull handles or levers at usable height.

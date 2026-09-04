@@ -6,6 +6,8 @@
 
 ## Root modules
 
+- schemas/proportions.json: entrance, upper-window, shopfront and solid ground-podium sizing; shared by layout and validation.
+
 - src/core: seeded rng, random seeds for standalone runs, polygon math, request validation, error set.
 - src/rules: template families, the researched numeric tables (docs/RESEARCH.md), the published proportion table and its fit arithmetic, and the signage glyph cells.
 - src/layout: style freeze, massing and the shared core placement every plate keeps (src/layout/core.ts, using the browser-safe static view of Interior's published constants in src/layout/coreFeasibility.ts), floor stack, facade bays, shared balcony bands, exact panel seams and partition anchors, glazing pane grids, facade relief, the per-face obstacle map and its clear-rectangle scan, condenser unit clusters, stable roof artifact IDs, fitted mast assemblies and external cable attachments, features. Depends on core and rules.

@@ -6,7 +6,7 @@ import { FAMILY } from './rules/families.ts';
 import { FACADE, MODULE, MODULE_U, OPENING, SLAB_BAND } from './rules/tables.ts';
 import { onModule } from './layout/module.ts';
 import {
-  PROPORTIONS, clearHeight, isStorefrontFloor, minEntranceHeight, minWindowHeight, proportionsOf,
+  PROPORTIONS, clearHeight, isStorefrontFloor, isPodiumFloor, fitPodiumWindow, minEntranceHeight, minWindowHeight, proportionsOf,
 } from './rules/proportions.ts';
 import { buildStyle } from './layout/style.ts';
 import { buildMassing } from './layout/massing.ts';
@@ -411,6 +411,14 @@ function checkProportions(layout: Layout): void {
         continue;
       }
       if (o.kind !== 'window') continue;
+      if (floor.index === 0 && isPodiumFloor(layout.family, floor.kind)) {
+        const fit = fitPodiumWindow(clear);
+        if (!fit || Math.abs(o.sill - fit.sill) > 1e-6 || Math.abs(o.height - fit.height) > MODULE / 2 + 1e-6
+          || o.width > PROPORTIONS.podium.width + 1e-6 || o.head !== undefined) {
+          fail(`podium window ${o.id} exceeds its punched opening profile`);
+        }
+        continue;
+      }
       if (curtainWall) {
         // A curtain-wall bay hangs slab to slab with its opaque spandrel at the
         // head, covering the ceiling plenum and slab above.

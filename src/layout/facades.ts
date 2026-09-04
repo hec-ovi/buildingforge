@@ -5,7 +5,7 @@ import { Rng } from '../core/rng.ts';
 import { RULES, DOORS, FACADE, OPENING, OPEN_FRONT, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U } from '../rules/tables.ts';
 import { moduleWithin, onGrid, onModule } from './module.ts';
 import {
-  clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, proportionsOf, type WindowFit,
+  clearHeight, entranceHeight, fitStorefront, fitWindow, isStorefrontFloor, isPodiumFloor, fitPodiumWindow, PROPORTIONS, proportionsOf, type WindowFit,
 } from '../rules/proportions.ts';
 import { edgeLength, edgeDir, edgeNormal, ringInsidePolygon, quant, type P2 } from '../core/polygon.ts';
 import { modulePanes } from './glazing.ts';
@@ -146,10 +146,11 @@ export function buildFacades(
     // style fills bays.
     const clear = clearHeight(level.height);
     const storefront = isGround && isStorefrontFloor(family, level.kind);
-    const rawFit = storefront ? fitStorefront(style.storefrontSill, clear) : fitWindow(prop, style.windowFraction, style.sill, clear);
+    const podium = isGround && isPodiumFloor(family, level.kind);
+    const rawFit = podium ? fitPodiumWindow(clear) : storefront ? fitStorefront(style.storefrontSill, clear) : fitWindow(prop, style.windowFraction, style.sill, clear);
     // A storey the envelope kept off the module keeps proportional windows; a module storey takes module windows.
     const fit = onGrid(level.height) ? moduleFit(rawFit, clear, storefront) : rawFit;
-    if (!noWindows && style.facade.kind === 'curtain-wall') {
+    if (!noWindows && !podium && style.facade.kind === 'curtain-wall') {
       for (let e = 0; e < outline.length; e++) {
         const normal = edgeNormal(outline, e);
         const sunFacing = normal[0] * sun[0] + normal[1] * sun[1] > 0;
@@ -157,7 +158,7 @@ export function buildFacades(
           CURTAINS_VISION[sunFacing ? 'sunFacing' : 'shaded'], req.parcel.footprint,
           balconiesOn && family === 'office', curtainOverrides);
       }
-    } else if (!noWindows && style.facade.kind === 'megablock') {
+    } else if (!noWindows && !podium && style.facade.kind === 'megablock') {
       for (let e = 0; e < outline.length; e++) {
         const normal = edgeNormal(outline, e);
         const sunFacing = normal[0] * sun[0] + normal[1] * sun[1] > 0;
@@ -181,7 +182,9 @@ export function buildFacades(
         const sunFacing = normal[0] * sun[0] + normal[1] * sun[1] > 0;
         const dist = (CURTAINS[profile] as { sunFacing: CurtainDist; shaded: CurtainDist })[sunFacing ? 'sunFacing' : 'shaded'];
 
+        const podiumPhase = podium ? new Rng(seed, `podium:${e}`).int(0, PROPORTIONS.podium.bayStride - 1) : 0;
         for (let b = 0; b < n; b++) {
+          if (podium && b % PROPORTIONS.podium.bayStride !== podiumPhase) continue;
           const bayStart = OPENING.cornerMargin + b * bayW;
           const bayCenter = bayStart + bayW / 2;
           const isBalcony = !isGround && stacks?.has(b) === true;
@@ -212,9 +215,9 @@ export function buildFacades(
           // family width, rolled by the window-to-wall density.
           if (!fit) continue;
           // a window is whole metres wide, to the nearest, never wider than its bay leaves for a pier
-          const w = Math.min(onModule(storefront ? bayW - OPENING.minPier : style.windowWidth, 'near', MODULE_U), bayW - OPENING.minPier);
+          const w = Math.min(onModule(podium ? PROPORTIONS.podium.width : storefront ? bayW - OPENING.minPier : style.windowWidth, 'near', MODULE_U), bayW - OPENING.minPier);
           if (w < MODULE_U) continue;
-          if (!storefront) {
+          if (!storefront && !podium) {
             const p = Math.min(1, Math.max(0.05, (style.wwr * bayW * level.height) / (w * fit.height)));
             if (!new Rng(seed, `win:${level.index}:${e}:${b}`).chance(p)) continue;
           }

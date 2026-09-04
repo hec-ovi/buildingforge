@@ -1871,6 +1871,7 @@ describe('facade styles', () => {
       .toEqual(new Set([4.1, 3.95, 3.9]));
     const doc = await new NodeIO().readBinary(glb);
     for (const floor of irregular) {
+      if (floor.index === 0) continue; // raised punched windows belong to the podium profile
       const ceiling = floor.elevation + floor.height - 1;
       for (const opening of floor.openings.filter((item) => item.kind === 'window')) {
         expect(opening.head).toBeGreaterThanOrEqual(1);
@@ -1890,8 +1891,10 @@ describe('facade styles', () => {
     }
   });
 
-  it('runs the curtain wall over the entrance as that door transom light', async () => {
-    const { blueprint } = await generate(corpo, KEYS);
+  it('runs a shop curtain wall over the entrance as that door transom light', async () => {
+    const request = structuredClone(corpo) as any;
+    request.building.floorKinds = Array.from({ length: request.building.floors }, (_, index) => index === 0 ? 'commerce' : 'corpo');
+    const { blueprint } = await generate(request, KEYS);
     const ground = blueprint.floors.find((f) => f.index === 0)!;
     const entrance = ground.openings.find((o) => o.id === 'entrance')!;
     // The glazing above the head belongs to the door: one opening owns the run.

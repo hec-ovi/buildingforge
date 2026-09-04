@@ -21,6 +21,7 @@ export const PROPORTIONS = table as unknown as {
   standardFamilies: Family[];
   families: Record<Family, FamilyProportions>;
   storefront: { sill: [number, number] };
+  podium: { families: Family[]; sill: number; height: number; width: number; bayStride: number };
   megablock: { tier: Tier; windowHeight: [number, number]; windowWidth: [number, number]; minSill: number };
   entranceWidth: { standard: [number, number]; grand: [number, number] };
 };
@@ -93,7 +94,20 @@ export function proportionsOf(family: Family): FamilyProportions {
 /** A ground floor that sells or receives reads as a shopfront, not as a housing floor. */
 export function isStorefrontFloor(family: Family, kind: string): boolean {
   if (family === 'industrial' || family === 'security') return false;
+  if (isPodiumFloor(family, kind)) return false;
   return kind !== 'entry' && kind !== 'basement';
+}
+
+/** Solid street base, except when the floor explicitly carries a public shop. */
+export function isPodiumFloor(family: Family, kind: string): boolean {
+  return PROPORTIONS.podium.families.includes(family)
+    && !['commerce', 'restaurant', 'coffee_shop', 'mall'].includes(kind);
+}
+
+export function fitPodiumWindow(clear: number): WindowFit | null {
+  const sill = PROPORTIONS.podium.sill;
+  const height = Math.min(PROPORTIONS.podium.height, qDown(clear - sill));
+  return height >= 0.5 ? { sill, height } : null;
 }
 
 const q = (v: number): number => Math.round(v * 20) / 20;

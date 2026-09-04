@@ -389,7 +389,7 @@ function windowUnit(
   const spandrel = o.spandrel ?? 0;
   const headBand = o.head ?? 0;
   const frameMat = mat('window-frame');
-  const curtainWall = style.facade.kind === 'curtain-wall';
+  const curtainWall = style.facade.kind === 'curtain-wall' && o.head !== undefined;
 
   // The wall is cut at the opening; the reveal ring lines it from the skin back
   // to the glass, so the hole never shows an open edge beside the frame.
