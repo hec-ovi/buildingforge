@@ -66,6 +66,18 @@
                     "closurePercent": { "type": "number", "minimum": 0, "maximum": 100, "description": "covering travel from the head downward as a percentage of clear glazed height; venetian slats retain their fitted gaps" }
                   }
                 },
+                "glazing": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["offset", "sill", "width", "height", "glassDepth", "housingBackDepth"],
+                  "properties": {
+                    "offset": { "type": "number", "minimum": 0 },
+                    "sill": { "type": "number", "minimum": 0 },
+                    "width": { "type": "number", "exclusiveMinimum": 0 },
+                    "height": { "type": "number", "exclusiveMinimum": 0 },
+                    "glassDepth": { "type": "number", "minimum": 0 },
+                    "housingBackDepth": { "type": "number", "minimum": 0 }
+                  }
+                },
                 "windowTreatment": {
                   "type": "object", "required": ["privacy", "nodeId"], "additionalProperties": false,
                   "properties": { "privacy": { "const": "shell-only" }, "nodeId": { "type": "string" } },

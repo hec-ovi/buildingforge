@@ -38,7 +38,7 @@ export function buildFeatures(
   // Fixtures first: they are facade obstacles like ribs and anchors, so the
   // sign and screen scans land clear of them and the overlay invariant proves it.
   placeLights(req, family, ground, streetEdge, groundFloor, lights, obstacles);
-  const acUnits = placeAcUnits(req, family, tier, floors, obstacles);
+  const acUnits = style.facade.kind === 'curtain-wall' ? [] : placeAcUnits(req, family, tier, floors, obstacles);
   placeSignage(req, family, ground, faces, groundFloor, top, signage, obstacles);
   placeScreens(req, family, tier, ground, faces, groundFloor.height, top, signage, screens, obstacles);
   const facadeArtifacts = [

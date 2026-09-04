@@ -107,6 +107,7 @@ export interface Opening {
   /** Exact covering travel; authoritative over the legacy categorical state. */
   curtain?: { style: 'roller-shade' | 'venetian-blind'; closurePercent: number };
   windowTreatment?: { privacy: 'shell-only'; nodeId: string };
+  glazing?: { offset: number; sill: number; width: number; height: number; glassDepth: number; housingBackDepth: number };
   exteriorCovering?: { style: 'metal-louvre'; placement: 'exterior'; depth: number; standoff: number; material: string };
   state?: CurtainState;
   /** mullion grid of a glazed opening: cols x rows panes, each within the tier's pane limit */

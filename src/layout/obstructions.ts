@@ -1,5 +1,5 @@
 // What a facade already carries, per face, in (u, y) face coordinates: every
-// opening, every aperture cut, the ribs, the columns and the floor bands. A sign
+// opening, every aperture cut, the structural piers and the floor bands. A sign
 // or a screen scans this for a clear rectangle before it lands, and the same map
 // proves afterwards that nothing overlaps.
 
@@ -107,9 +107,6 @@ export function faceObstacles(
   relief.byEdge.forEach((face, e) => {
     for (const u of face.ribs) {
       if (top > relief.verticalBase) push(e, { u0: u - relief.ribWidth / 2, u1: u + relief.ribWidth / 2, y0: relief.verticalBase, y1: top, what: 'rib', kind: 'relief', depth: relief.ribDepth });
-    }
-    for (const u of face.columns) {
-      if (top > relief.verticalBase) push(e, { u0: u - relief.columnWidth / 2, u1: u + relief.columnWidth / 2, y0: relief.verticalBase, y1: top, what: 'column', kind: 'relief', depth: relief.columnDepth });
     }
   });
 

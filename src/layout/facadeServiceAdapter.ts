@@ -165,12 +165,6 @@ function addReliefReservations(
           rect: [u - input.relief.ribWidth / 2, start, u + input.relief.ribWidth / 2, floor.height],
           depth: input.relief.ribDepth,
         });
-        for (const u of face.columns) reservations.push({
-          id: `relief:column:${floor.index}:${edge}:${u}`,
-          face: { floor: floor.index, edge }, kind: 'relief',
-          rect: [u - input.relief.columnWidth / 2, start, u + input.relief.columnWidth / 2, floor.height],
-          depth: input.relief.columnDepth,
-        });
       }
       for (const [y0, y1] of input.relief.bands) {
         const v0 = Math.max(0, y0 - floor.elevation);

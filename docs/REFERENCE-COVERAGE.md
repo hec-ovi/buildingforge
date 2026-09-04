@@ -16,7 +16,7 @@ This map records which layer owns each requirement from the September 2026 visua
 | Letter signs | Atlas glyphs are inset inside individual metal cases with deterministic cells, spacing, and depth. |
 | Open businesses | Eligible low-rise commercial fronts can publish a wide leafless `openFront` portal with a real wall cut, reveal, surround, threshold, and clear volume. |
 | Highway and duct cuts | Required connection apertures pin floor bases, cut exact clear rectangles through the wall, and fail closed when the requested building cannot contain them. |
-| Massing and secondary detail | Seeded type and wealth rules control setbacks, wings, towers, columns, facade relief, AC clusters, roofs, fire escapes, and other supported features. |
+| Massing and secondary detail | Seeded type and wealth rules control setbacks, wings, towers, structural piers, facade relief, AC clusters, roofs, fire escapes, and other supported features. |
 
 ## Cross-layer handoff
 

@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.12: grouped glazing with broad bevelled structural piers, textured metal door panels and header diffusers. Fitted utility cabinets and recessed wall lights. Windows publish authored glazing bounds for renderer room fitting.
+
 0.46.11: enclosed window-covering perimeters and single ground privacy backing. Shops and malls use sparse entrance-led displays and broad upper glazing.
 
 0.46.10: continuous ground facades, symmetric sparse windows and separate shell-only privacy. Industrial and security windows carry fitted external metal louvres. Visible concrete finishes use continuous fields or true 7 x 3.5 m panels, with clipped sill and jamb weathering.

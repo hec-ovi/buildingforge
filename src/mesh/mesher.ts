@@ -8,12 +8,16 @@ import { meshAnchorMount } from './anchorMount.ts';
 import { meshRoofArtifacts } from './mastAssembly.ts';
 import { meshFacadeRelief } from './facadeRelief.ts';
 import { meshAcUnits } from './acUnit.ts';
+import { meshLightFixture } from './lightFixture.ts';
 import { meshFacadeServices } from './facadeServices.ts';
 import { meshFrameRing } from './frameRing.ts';
 import { meshSpandrel } from './spandrel.ts';
 import { meshVenetianBlind } from './venetianBlind.ts';
 import { meshCoveringHousing } from './coveringHousing.ts';
+import { meshUtilityBox } from './utilityBox.ts';
 import { meshDoorHardware } from './doorHardware.ts';
+import { meshDoorPanels } from './doorPanels.ts';
+import { meshDoorSurround } from './doorSurround.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
@@ -139,7 +143,6 @@ export function buildMesh(layout: Layout): MeshBuilder {
   }
 
   meshFacadeRelief(mb, layout, above, top, mat);
-  meshColumns(mb, layout, above, top, mat);
   meshRoofArtifacts(mb, layout, top, mat);
   meshFacadeArtifacts(mb, layout, mat);
   meshAcUnits(mb, layout, mat);
@@ -212,7 +215,7 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
   if (o.kind === 'window') {
     const sink = mb.part(`window:${o.id}`);
     const privacy = o.windowTreatment ? mb.part(o.windowTreatment.nodeId, { keepNode: true }) : undefined;
-    windowUnit(sink, fr, u0, u1, yb, yt, o, layout.style, mat, privacy);
+    o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, layout.style, mat, privacy);
     return;
   }
   if (o.kind === 'door' || o.kind === 'balconyDoor') {
@@ -222,7 +225,9 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
     const assembly = o.door ?? DEFAULT_DOOR;
     const frameMaterial = mat('window-frame');
     reveal(frame, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], assembly.recessDepth, o.sill > 0.01, frameMaterial);
-    doorCasing(frame, fr, u0, u1, yb, yt, frameMaterial, assembly.frameWidth, assembly.frameDepth);
+    if (assembly.set !== 'layered' && assembly.set !== 'illuminated') {
+      doorCasing(frame, fr, u0, u1, yb, yt, frameMaterial, assembly.frameWidth, assembly.frameDepth);
+    }
     doorFrameDetails(frame, fr, u0, u1, yb, yt, assembly, mat);
     doorLeaves(mb, base, fr, u0, u1, yb, yt, o, assembly, mat);
     if (o.curtain) {
@@ -292,29 +297,27 @@ function doorFrameDetails(
   if (assembly.set !== 'layered' && assembly.set !== 'illuminated') return;
   const inner = assembly.frameWidth;
   const outer = assembly.set === 'illuminated' ? inner * 0.9 : inner * 1.35;
-  const depth = Math.max(0.035, assembly.frameDepth * 0.75);
+  const depth = assembly.frameDepth;
   const material = mat('window-frame');
-  const boxOn = (a: number, b: number, y0: number, y1: number) => {
-    sink.box(material, at(fr, [(a + b) / 2, (y0 + y1) / 2], depth / 2),
-      [fr.dir[0] * (b - a) / 2, 0, fr.dir[1] * (b - a) / 2], [0, (y1 - y0) / 2, 0],
-      [fr.n[0] * depth / 2, 0, fr.n[1] * depth / 2], 'along');
-  };
-  boxOn(u0 - inner - outer, u0 - inner, yb, yt + inner + outer);
-  boxOn(u1 + inner, u1 + inner + outer, yb, yt + inner + outer);
-  boxOn(u0 - inner, u1 + inner, yt + inner, yt + inner + outer);
+  meshDoorSurround(sink, fr, u0, u1, yb, yt, inner + outer, depth, material);
 
   if (assembly.set !== 'illuminated') return;
   const light = materialSlot(mat('light-fixture'), 'strip');
   const strip = Math.min(0.035, inner * 0.35);
   const proud = assembly.frameDepth + 0.012;
   const line = (a: number, b: number, y0: number, y1: number) => {
-    sink.box(light, at(fr, [(a + b) / 2, (y0 + y1) / 2], proud),
-      [fr.dir[0] * (b - a) / 2, 0, fr.dir[1] * (b - a) / 2], [0, (y1 - y0) / 2, 0],
+    sink.box(material, at(fr, [(a + b) / 2, (y0 + y1) / 2], proud - 0.008),
+      [fr.dir[0] * (b - a + 0.03) / 2, 0, fr.dir[1] * (b - a + 0.03) / 2], [0, (y1 - y0 + 0.02) / 2, 0],
       [fr.n[0] * 0.012, 0, fr.n[1] * 0.012], 'along');
+    const front = proud + 0.0045;
+    sink.quadFacing(light, at(fr, [a, y0], front), at(fr, [b, y0], front),
+      at(fr, [b, y1], front), at(fr, [a, y1], front), [fr.n[0], 0, fr.n[1]],
+      [[0, 1], [1, 1], [1, 0], [0, 0]]);
   };
-  line(u0 - inner / 2 - strip / 2, u0 - inner / 2 + strip / 2, yb + inner, yt);
-  line(u1 + inner / 2 - strip / 2, u1 + inner / 2 + strip / 2, yb + inner, yt);
-  line(u0, u1, yt + inner / 2 - strip / 2, yt + inner / 2 + strip / 2);
+  const center = (u0 + u1) / 2;
+  const length = Math.min(0.9, (u1 - u0) * 0.32);
+  line(center - length / 2, center + length / 2,
+    yt + inner / 2 - strip / 2, yt + inner / 2 + strip / 2);
 }
 
 /**
@@ -351,6 +354,7 @@ function doorLeaves(
     };
     if (!glazed) {
       slab(a, b, yb, yt, -assembly.recessDepth, t, frameMat);
+      meshDoorPanels(sink, fr, a, b, yb, yt, assembly, frameMat);
       doorLeafDetails(sink, fr, a, b, yb, yt, assembly, mat);
       continue;
     }
@@ -392,7 +396,7 @@ function windowUnit(
   sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
   o: Opening, style: Style, mat: (k: string) => string,
   privacy?: PartSink,
-): void {
+): NonNullable<Opening['glazing']> {
   const g = style.glazing;
   const fw = Math.min(g.frameWidth, (u1 - u0) / 4, (yt - yb) / 4);
   const spandrel = o.spandrel ?? 0;
@@ -470,6 +474,10 @@ function windowUnit(
   const fieldBounds = { u0: g0, u1: g1, y0: gb, y1: gt };
   if (privacy) meshGroundPrivacy(privacy, fr, fieldBounds, glassZ, materialSlot(mat('curtain'), 'slat'), frameMat);
   if (o.exteriorCovering) meshExteriorLouvre(sink, fr, fieldBounds, o.exteriorCovering);
+  return {
+    offset: g0, sill: o.sill + gb - yb, width: g1 - g0, height: gt - gb,
+    glassDepth: -glassZ, housingBackDepth: -glassZ + (o.curtain ? 0.09 : 0),
+  };
 }
 
 /** A fitted roller shade: fixed head cassette, exact fabric coverage and bottom rail. */
@@ -679,27 +687,9 @@ function meshFacadeArtifacts(mb: MeshBuilder, layout: Layout, mat: (k: string) =
     const floor = byFloor.get(a.floor);
     if (!floor) continue;
     const fr = frame(floor.outline, a.edge);
-    const [w, h, d] = a.size;
-    sink.box(mat('roof-artifact'), at(fr, [a.offset + w / 2, floor.elevation + a.sill + h / 2], d / 2),
-      [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2],
-      [0, h / 2, 0],
-      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2]);
+    meshUtilityBox(sink, fr, a.offset, floor.elevation + a.sill, a.size, a.standoff ?? 0,
+      mat('roof-artifact'), mat('window-frame'));
   }
-}
-
-function meshColumns(mb: MeshBuilder, layout: Layout, above: FloorLayout[], top: number, mat: (k: string) => string): void {
-  if (!layout.style.showColumns || above.length === 0) return;
-  const relief = layout.relief;
-  const sink = mb.part('columns');
-  const w = layout.style.columnWidth;
-  relief.byEdge.forEach((face, e) => {
-    const fr = frame(relief.outline, e);
-    for (const u of face.columns) {
-      const base = relief.verticalBase;
-      if (top <= base) continue;
-      sink.box(mat('column'), at(fr, [u, (base + top) / 2], 0.06), [fr.dir[0] * w / 2, 0, fr.dir[1] * w / 2], [0, (top - base) / 2, 0], [fr.n[0] * 0.06, 0, fr.n[1] * 0.06]);
-    }
-  });
 }
 
 /** World corners of the stair-head cutout, in the plate's own axis frame. */
@@ -758,23 +748,7 @@ function meshFeatures(mb: MeshBuilder, layout: Layout, mat: (k: string) => strin
   layout.signage.forEach((s, i) => meshSign(mb.part(`signage:${i}`), s, mat));
   layout.screens.forEach((s, i) => plate(mb.part(`screen:${i}`), s.center, s.normal, s.width, s.height, s.standoff + 0.1, mat('ad-screen'), s.standoff));
   layout.lights.forEach((l, i) => {
-    const sink = mb.part(`light:${i}`);
-    const n: V3 = [l.normal[0], 0, l.normal[1]];
-    const right: V3 = [l.normal[1], 0, -l.normal[0]];
-    const up: V3 = [0, 1, 0];
-    const [width, height, depth] = l.size;
-    const mount = add(l.position, scale(n, l.standoff));
-    sink.box(mat('window-frame'), add(mount, scale(n, depth / 2)),
-      scale(right, width / 2), scale(up, height / 2), scale(n, depth / 2));
-    const front = add(mount, scale(n, depth + 0.001));
-    const h = scale(right, width / 2);
-    const v = scale(up, height / 2);
-    sink.quadFacing(mat('light-fixture'),
-      add(add(front, scale(h, -1)), scale(v, -1)),
-      add(add(front, h), scale(v, -1)),
-      add(add(front, h), v),
-      add(add(front, scale(h, -1)), v),
-      n, [[0, 1], [1, 1], [1, 0], [0, 0]]);
+    meshLightFixture(mb.part(`light:${i}`), l, mat);
   });
 }
 

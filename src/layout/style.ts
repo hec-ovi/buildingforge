@@ -40,7 +40,6 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
     wwr,
     columnSpacing: quant(rng.range(...r.columnGrid)),
     columnWidth,
-    showColumns: concrete,
     balconyDepth,
     balconyWidth: quant(rng.range(2.4, 4.0)),
     juliet: tier === 'poor',

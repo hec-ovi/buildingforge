@@ -383,7 +383,7 @@ describe('blueprint invariants', () => {
       expect(doors.every((door) => door.door!.set === set)).toBe(true);
       sets.add(set);
     }
-    expect(sets).toEqual(new Set(['illuminated', 'glazed-grid', 'layered']));
+    expect(sets).toEqual(new Set(['illuminated', 'plain', 'layered']));
   });
 
   it('entrance avoids sliver edges and every opening fits its edge (p1640 class)', async () => {
@@ -783,8 +783,7 @@ describe('exterior light orientation', () => {
         const housing = mesh.listPrimitives()
           .find((primitive) => primitive.getMaterial()!.getName().split('/')[1] === 'window-frame')!;
         expect(lens.getAttribute('POSITION')!.getCount()).toBe(4);
-        expect(lens.getMaterial()!.getExtras().materialVariant).toBeUndefined();
-        expect(blueprint.materialVariants[lens.getMaterial()!.getName()]).toBe('lamp');
+        expect(lens.getMaterial()!.getExtras().materialVariant).toBe('strip');
         expect(housing).toBeDefined();
         expect(light.size).toEqual([0.16, 0.28, 0.08]);
 
@@ -796,14 +795,14 @@ describe('exterior light orientation', () => {
           const n = normal.getElement(v, [0, 0, 0]) as number[];
           const depth = (p[0]! - light.position[0]) * light.normal[0]
             + (p[2]! - light.position[2]) * light.normal[1];
-          expect(depth).toBeCloseTo(light.standoff + light.size[2] + 0.001, 5);
+          expect(depth).toBeCloseTo(light.standoff + light.size[2] * 0.72, 5);
           expect(n[0]).toBeCloseTo(light.normal[0], 6);
           expect(n[1]).toBeCloseTo(0, 6);
           expect(n[2]).toBeCloseTo(light.normal[1], 6);
           ys.push(p[1]!);
         }
-        expect(Math.min(...ys)).toBeCloseTo(light.position[1] - light.size[1] / 2, 5);
-        expect(Math.max(...ys)).toBeCloseTo(light.position[1] + light.size[1] / 2, 5);
+        expect(Math.min(...ys)).toBeCloseTo(light.position[1] - light.size[1] * 0.35, 5);
+        expect(Math.max(...ys)).toBeCloseTo(light.position[1] + light.size[1] * 0.35, 5);
 
         const housingPosition = housing.getAttribute('POSITION')!;
         const housingDepths: number[] = [];
@@ -996,7 +995,14 @@ describe('GLB shell', () => {
     const used = new Set<string>();
     for (const n of meshNodes) for (const p of n.getMesh()!.listPrimitives()) used.add(p.getMaterial()!.getName());
     expect([...used].sort()).toEqual(named.blueprint.materials);
-    for (const n of bulk) expect(named.blueprint.materials).toContain(n.getName().replace('merged:', ''));
+    for (const node of bulk) {
+      const material = node.getMesh()!.listPrimitives()[0]!.getMaterial()!;
+      const slot = node.getName().replace('merged:', '');
+      const [key, variant] = slot.split('#');
+      expect(named.blueprint.materials).toContain(key);
+      expect(material.getName()).toBe(key);
+      if (variant) expect(material.getExtras().materialVariant).toBe(variant);
+    }
     expect(doc.getRoot().listNodes().some((n) => n.getName() === 'anchor:ap-wire-4')).toBe(true);
     expect(merged.glb.byteLength).toBeLessThan(named.glb.byteLength);
   });
@@ -1300,17 +1306,14 @@ describe('GLB shell', () => {
     expect(ribbedKinds).toContain('window-frame');
   });
 
-  it('keeps illuminated strips distinct from lamps and their housing in merged GLBs', async () => {
+  it('keeps luminous strips distinct from their housing in merged GLBs', async () => {
     const { glb } = await generate({ ...illuminatedCorpo, options: { ...(corpo as any).options, glb: 'merged' } }, KEYS);
     const doc = await new NodeIO().readBinary(glb);
     const nodes = new Map(doc.getRoot().listNodes().map((node) => [node.getName(), node]));
     const key = 'cyberpunk/light-fixture/high_rich';
-    const lamp = nodes.get(`merged:${key}`)!.getMesh()!.listPrimitives()[0]!.getMaterial()!;
     const strip = nodes.get(`merged:${key}#strip`)!.getMesh()!.listPrimitives()[0]!.getMaterial()!;
     const housing = nodes.get('merged:cyberpunk/window-frame/high_rich')!.getMesh()!;
 
-    expect(lamp.getName()).toBe(key);
-    expect(lamp.getExtras().materialVariant).toBeUndefined();
     expect(strip.getName()).toBe(key);
     expect(strip.getExtras().materialVariant).toBe('strip');
     expect(housing.listPrimitives().every((primitive) =>
@@ -1477,13 +1480,19 @@ describe('material resolution', () => {
 
     const expected: Record<string, string> = {
       'concrete-monolith': blueprint.facade.materialPlan.field.variantId, 'wall-trim': 'paint', 'window-frame': 'paint',
-      door: 'paint', roof: 'plain', 'floor-slab': 'plain', 'light-fixture': 'lamp',
+      door: 'paint', roof: 'plain', 'floor-slab': 'plain',
     };
     for (const [kind, variant] of Object.entries(expected)) {
       const material = json.materials.find((candidate: { name: string }) => candidate.name === `cyberpunk/${kind}/mid`);
       if (!material) continue;
       expect(uriOf(material), `${kind} carries the named ${variant} variant`).toContain(`/${kind}/mid/${variant}/`);
       expect(blueprint.materialVariants[`cyberpunk/${kind}/mid`]).toBe(variant);
+    }
+    const lenses = json.materials.filter((material: any) => material.name === 'cyberpunk/light-fixture/mid');
+    expect(lenses.length).toBeGreaterThan(0);
+    for (const lens of lenses) {
+      expect(lens.extras.materialVariant).toBe('strip');
+      expect(uriOf(lens)).toContain('/light-fixture/mid/strip/');
     }
     expect(blueprint.materials).toContain('cyberpunk/concrete-monolith/mid');
     expect(blueprint.materials).not.toContain('cyberpunk/wall/mid');
@@ -1625,13 +1634,13 @@ describe('facade panels', () => {
       for (const floor of blueprint.floors) {
         if (floor.index < 1) continue; // the ground floor carries the entrance
         for (let e = 0; e < floor.outline.length; e++) {
-          // one uninterrupted run: a door or an aperture on the face moves its bays
-          const bays = floor.openings.filter((o) => o.edge === e);
-          if (bays.length !== 1 || bays[0]!.kind !== 'window') continue;
+          // Reserved access may interrupt a group; complete window groups keep equal outside piers.
+          const bays = floor.openings.filter((o) => o.edge === e).sort((a, b) => a.offset - b.offset);
+          if (!bays.length || bays.some((bay) => bay.kind !== 'window')) continue;
           const a = floor.outline[e]!, b = floor.outline[(e + 1) % floor.outline.length]!;
           const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
           const head = bays[0]!.offset;
-          const tail = len - (head + bays[0]!.width);
+          const tail = len - (bays[bays.length - 1]!.offset + bays[bays.length - 1]!.width);
           expect(Math.abs(head - tail), `edge ${e} of floor ${floor.index} leaves a wider pier at one corner`).toBeLessThan(2e-3);
           checked++;
         }
@@ -1860,9 +1869,9 @@ describe('facade styles', () => {
         for (let i = 1; i < pos.length; i += 3) highest = Math.max(highest, pos[i]!);
         expect(highest).toBeLessThanOrEqual(floor.elevation + b.sill + b.height - b.head! + 1e-6);
       }
-      // The skin runs corner to corner, not as scattered punched holes.
+      // Broad structural piers divide full-height glazing groups.
       for (const [edge, width] of glazed) {
-        expect(width / edgeLen(floor.outline, edge)).toBeGreaterThan(0.84) // whole-metre bays: up to a metre of pier past the corner inset;
+        expect(width / edgeLen(floor.outline, edge)).toBeGreaterThan(0.6);
       }
     }
   });

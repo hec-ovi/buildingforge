@@ -2,6 +2,7 @@
 // street face, aperture cuts reserved first, openings never overlapping.
 
 import { Rng } from '../core/rng.ts';
+import { structuralProfile } from './structuralProfile.ts';
 import { RULES, DOORS, FACADE, OPENING, OPEN_FRONT, CURTAINS, CURTAINS_VISION, type CurtainDist, MODULE, MODULE_U } from '../rules/tables.ts';
 import { moduleWithin, onGrid, onModule } from './module.ts';
 import {
@@ -492,11 +493,23 @@ function placeCurtainWallBays(
   if (height - spandrel - head < 1.2) return;
 
   // A wire anchor mounts on the skin, so the glazing runs straight across it.
-  const blocks = blockedSpans((taken.get(e) ?? []).filter((t) => !t.anchor), openings, e).sort((a, b) => a.start - b.start);
+  const blocks = blockedSpans((taken.get(e) ?? []).filter((t) => !t.anchor), openings, e);
+  // Group glazing into a few structural bays, with broad continuous wall piers.
+  const profile = structuralProfile(style);
+  const groups = Math.max(1, Math.min(4, Math.floor(L / new Rng(seed, `structural-bays:${e}`).range(11, 15))));
+  const pierSpan = Math.ceil(profile.width + 2 * OPENING.minPier);
+  const groupWidth = Math.floor((L - 2 * cw.cornerInset - (groups - 1) * pierSpan) / groups);
+  const origin = (L - groups * groupWidth - (groups - 1) * pierSpan) / 2;
+  for (let index = 1; index < groups; index++) {
+    const center = origin + groupWidth * index + pierSpan * (index - 0.5);
+    const half = pierSpan / 2 - OPENING.minPier;
+    if (blocks.some((block) => center + half + OPENING.minPier > block.start
+      && center - half - OPENING.minPier < block.end)) continue;
+    blocks.push({ start: center - half, end: center + half });
+  }
+  blocks.sort((a, b) => a.start - b.start);
   // Equal piers at both corners: the metre that does not divide the face is
   // split between them, so two faces never meet on a wide band of bare wall.
-  const usable = L - 2 * cw.cornerInset;
-  const origin = cw.cornerInset + (usable - Math.floor(usable)) / 2;
   let u = origin;
   const bays: { start: number; end: number }[] = [];
   for (const b of blocks) {
@@ -636,11 +649,13 @@ function placeEntrance(
       if (start < margin - 1e-9 || start + w > L - margin + 1e-9) continue;
       if (!fits(taken, e, start, start + w)) continue;
       take(taken, e, start, start + w);
+      const set = entranceDoorSet(req.seed, family, tier, rules.entranceGlass);
+      const glazed = set === 'glazed-grid';
       const entrance: Opening = {
         id: 'entrance', kind: 'door', doorRole: 'main', edge: e, offset: start,
         width: w, height: quant(h), sill: 0, leaves: leafCount(w),
-        door: doorAssembly(entranceDoorSet(req.seed, family, tier, rules.entranceGlass), w, h),
-        material: `${req.theme}/${rules.entranceGlass ? 'door-glass' : 'door'}/${tier}`,
+        door: doorAssembly(set, w, h),
+        material: `${req.theme}/${glazed ? 'door-glass' : 'door'}/${tier}`,
       };
       openings.push(entrance);
       return entrance;
@@ -727,13 +742,12 @@ function placeLoadingDoors(
 function entranceDoorSet(seed: string, family: Family, tier: Tier, glazed: boolean): DoorSet {
   const rng = new Rng(seed, 'door-set');
   if (family === 'industrial' || family === 'security') return 'industrial-ribbed';
-  if ((family === 'corpo' || family === 'hotel' || family === 'commerce')
+  if ((family === 'corpo' || family === 'office' || family === 'hotel' || family === 'commerce')
     && (tier === 'rich' || tier === 'high_rich')) {
-    return glazed
+    return glazed && family === 'commerce'
       ? rng.pick<DoorSet>(['illuminated', 'glazed-grid', 'layered'], [2, 2, 1])
-      : rng.pick<DoorSet>(['illuminated', 'layered'], [2, 1]);
+      : rng.pick<DoorSet>(['illuminated', 'plain', 'layered'], [2, 2, 1]);
   }
-  if (glazed && (tier === 'rich' || tier === 'high_rich')) return 'glazed-grid';
   return rng.chance(0.55) ? 'layered' : 'plain';
 }
 

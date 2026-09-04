@@ -31,7 +31,7 @@ it('keeps a sparse paired ground facade and separate removable privacy in both G
     }
     expect(blueprint.floors.filter((floor) => floor.index > 0).flatMap((floor) => floor.openings)
       .every((opening) => opening.windowTreatment === undefined)).toBe(true);
-    if (mode === 'named') for (const node of doc.getRoot().listNodes().filter((node) => ['columns', 'facade-ribs'].includes(node.getName()))) {
+    if (mode === 'named') for (const node of doc.getRoot().listNodes().filter((node) => node.getName() === 'facade-ribs')) {
       for (const primitive of node.getMesh()!.listPrimitives()) {
         const position = primitive.getAttribute('POSITION')!;
         for (let index = 0; index < position.getCount(); index++) expect(position.getElement(index, [0, 0, 0])[1])

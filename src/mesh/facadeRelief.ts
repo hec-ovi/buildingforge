@@ -4,7 +4,8 @@ import { edgeDir, edgeLength, edgeNormal, type P2 } from '../core/polygon.ts';
 import type { FloorLayout, Layout } from '../layout/model.ts';
 import { capDown, capFrame, capUp } from './caps.ts';
 import { meshBandRun } from './bandRun.ts';
-import type { MeshBuilder, PartSink, V3 } from './primitives.ts';
+import { meshStructuralPier } from './structuralPier.ts';
+import type { MeshBuilder, PartSink } from './primitives.ts';
 
 interface Frame { v: P2; dir: P2; n: P2; len: number }
 
@@ -13,7 +14,7 @@ export function meshFacadeRelief(
   mat: (kind: string) => string,
 ): void {
   const facade = layout.style.facade;
-  if (facade.ribWidth <= 0 || above.length === 0) return;
+  if (above.length === 0) return;
   const sink = mb.part('facade-relief');
   const ribs = mb.part('facade-ribs');
   const material = mat('wall-trim');
@@ -23,15 +24,13 @@ export function meshFacadeRelief(
     for (const u of face.ribs) {
       const base = layout.relief.verticalBase;
       if (top <= base) continue;
-      ribs.box(material, at(fr, u, (base + top) / 2, facade.ribDepth / 2),
-        [fr.dir[0] * facade.ribWidth / 2, 0, fr.dir[1] * facade.ribWidth / 2],
-        [0, (top - base) / 2, 0],
-        [fr.n[0] * facade.ribDepth / 2, 0, fr.n[1] * facade.ribDepth / 2]);
+      meshStructuralPier(ribs, fr, u, layout.relief.ribWidth, base, top,
+        layout.relief.ribDepth, mat('column'));
     }
   });
 
   for (const floor of above) {
-    if (floor.index === 0) continue;
+    if (floor.index === 0 || facade.bandHeight <= 0) continue;
     const y0 = floor.elevation - facade.bandHeight / 2;
     const y1 = floor.elevation + facade.bandHeight / 2;
     const corners = floor.outline.map((_, index) => cornerJoin(floor.outline, index, facade.bandProud));
@@ -52,14 +51,6 @@ function frame(outline: P2[], edge: number): Frame {
     n: edgeNormal(outline, edge),
     len: edgeLength(outline, edge),
   };
-}
-
-function at(fr: Frame, u: number, y: number, proud: number): V3 {
-  return [
-    fr.v[0] + fr.dir[0] * u + fr.n[0] * proud,
-    y,
-    fr.v[1] + fr.dir[1] * u + fr.n[1] * proud,
-  ];
 }
 
 /** Add only the exposed face of a bounded bevel when a miter would grow too long. */

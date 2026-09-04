@@ -6,6 +6,12 @@
 
 ## Root modules
 
+- src/layout/structuralProfile.ts and src/mesh/structuralPier.ts: shared fitted pier dimensions and closed bevelled concrete geometry.
+- src/mesh/doorPanels.ts and src/mesh/doorSurround.ts: mapped solid leaf panels and closed bevelled entrance surrounds.
+- src/mesh/utilityBox.ts: fitted service cabinet lids, hardware and ventilation details.
+
+- src/mesh/lightFixture.ts: fitted metal housings with recessed diffusers and projecting protective caps.
+
 - src/mesh/coveringHousing.ts: closed side, head and sill returns between glazing and recessed coverings.
 
 - src/layout/commercialFacade.ts: entrance-led shop displays and sparse upper commercial glazing, fitted around reserved openings.

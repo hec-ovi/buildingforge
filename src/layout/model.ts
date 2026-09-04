@@ -21,7 +21,6 @@ export interface Style {
   wwr: number;
   columnSpacing: number;
   columnWidth: number;
-  showColumns: boolean;
   balconyDepth: number;
   balconyWidth: number;
   juliet: boolean;
@@ -76,7 +75,7 @@ export interface Layout {
   tier: Tier;
   theme: string;
   style: Style;
-  /** ribs, columns and floor bands, the one source both the mesher and the placement scan read */
+  /** structural piers and floor bands shared by the mesher and placement scan */
   relief: Relief;
   floors: FloorLayout[];
   balconyBands: BalconyBand[];

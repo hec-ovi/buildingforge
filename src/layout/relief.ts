@@ -1,21 +1,12 @@
-// Where the facade's structure lands: the ribs on the panel grid, the perimeter
-// columns and the floor bands. The mesher builds from this and the placement
-// scan avoids it, so a sign can never sit on a rib the mesher drew somewhere
-// else.
+// Broad structural piers and floor bands shared by meshing and fixture placement.
 
-import { MODULE_U, OPENING } from '../rules/tables.ts';
-import { fixedPanelAxis } from './module.ts';
 import { edgeLength, type P2 } from '../core/polygon.ts';
 import type { CarvedAperture, FloorLayout, Style } from './model.ts';
-
-/** A perimeter column stands this far off the wall (the mesher builds it there). */
-export const COLUMN_PROUD = 0.12;
+import { structuralProfile } from './structuralProfile.ts';
 
 export interface FaceRelief {
-  /** center u of every vertical rib on this face */
+  /** centre u of every broad structural pier on this face */
   ribs: number[];
-  /** center u of every perimeter column on this face */
-  columns: number[];
 }
 
 export interface Relief {
@@ -23,9 +14,7 @@ export interface Relief {
   verticalBase: number;
   ribWidth: number;
   ribDepth: number;
-  columnWidth: number;
-  /** how far a column and a floor band stand off the wall */
-  columnDepth: number;
+  /** how far a floor band stands off the wall */
   bandDepth: number;
   /** floor bands as absolute [y0, y1], spanning every face */
   bands: [number, number][];
@@ -36,6 +25,7 @@ export interface Relief {
 
 export function buildRelief(style: Style, floors: FloorLayout[], carved: CarvedAperture[]): Relief {
   const f = style.facade;
+  const profile = structuralProfile(style);
   const above = floors.filter((fl) => fl.index >= 0);
   const ground = above[0];
   const constant = above.length > 0 && above.every((fl) => fl.outline === ground!.outline);
@@ -55,31 +45,34 @@ export function buildRelief(style: Style, floors: FloorLayout[], carved: CarvedA
       const len = edgeLength(outline, e);
       // No rib and no column ever lands on an opening or an aperture cut.
       const forbidden: [number, number][] = [];
-      for (const fl of above) for (const o of fl.openings) if (o.edge === e) forbidden.push([o.offset - 0.2, o.offset + o.width + 0.2]);
+      for (const fl of above.filter((floor) => floor.index > 0)) {
+        for (const o of fl.openings) if (o.edge === e) forbidden.push([o.offset - 0.2, o.offset + o.width + 0.2]);
+      }
       for (const c of carved) if (c.aperture.face === e) {
         const us = c.facePoly.map((p) => p[0]);
         forbidden.push([Math.min(...us) - 0.2, Math.max(...us) + 0.2]);
       }
-      const clear = (u: number, w: number) => !forbidden.some(([a, b]) => u + w / 2 > a && u - w / 2 < b);
-      // Ribs stand on panel seams; a column is one panel wide and covers whole panels from a grid line.
+      // One broad member occupies each sufficient solid run, with quiet wall between members.
       const ribs: number[] = [];
-      if (f.ribWidth > 0) {
-        const axis = fixedPanelAxis(len, f.panelWidth);
-        for (const u of axis.boundaries.slice(1, -1)) if (clear(u, f.ribWidth)) ribs.push(u);
+      let cursor = 0.3;
+      const addPier = (start: number, end: number) => {
+        if (end - start < profile.width) return;
+        const center = (start + end) / 2;
+        if (ribs.length && center - ribs[ribs.length - 1]! < 5) return;
+        if (ribs.length < 4) ribs.push(center);
+      };
+      for (const [start, end] of forbidden.sort((a, b) => a[0] - b[0])) {
+        addPier(cursor, Math.min(start, len - 0.3));
+        cursor = Math.max(cursor, end);
       }
-      const columns: number[] = [];
-      if (style.showColumns) {
-        const w = MODULE_U;
-        const pitch = Math.max(2 * MODULE_U, Math.round(style.columnSpacing / MODULE_U) * MODULE_U);
-        for (let u = OPENING.cornerMargin + pitch + w / 2; u < len - w; u += pitch) if (clear(u, w)) columns.push(u);
-      }
-      byEdge.push({ ribs, columns });
+      addPier(cursor, len - 0.3);
+      byEdge.push({ ribs });
     }
   }
 
   return {
     verticalBase: above[1] ? above[1].elevation + f.bandHeight / 2 : (ground ? ground.elevation + ground.height : 0),
-    ribWidth: f.ribWidth, ribDepth: f.ribDepth, columnWidth: MODULE_U,
-    columnDepth: COLUMN_PROUD, bandDepth: f.bandProud, bands, byEdge, outline,
+    ribWidth: profile.width, ribDepth: profile.depth,
+    bandDepth: f.bandProud, bands, byEdge, outline,
   };
 }

@@ -293,7 +293,7 @@ function checkEdgeRuns(floor: Layout['floors'][number]): void {
 
 /**
  * Nothing overlaid on a facade sits on its structure: every sign and every ad
- * screen keeps clear of the columns, ribs, floor bands and openings already on
+ * screen keeps clear of the structural piers, floor bands and openings already on
  * that face.
  */
 function checkOverlays(layout: Layout, obstacles: Map<number, Rect[]>): void {
