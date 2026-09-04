@@ -2,17 +2,17 @@ import type { Opening } from '../types.ts';
 import type { P2 } from '../core/polygon.ts';
 import type { PartSink, V3 } from './primitives.ts';
 import { materialSlot } from '../materials/slot.ts';
-import { meshVenetianBlind } from './venetianBlind.ts';
+import { meshCoveringHousing } from './coveringHousing.ts';
 
 interface Frame { v: P2; dir: P2; n: P2 }
 interface Field { u0: number; u1: number; y0: number; y1: number }
 
-export function meshGroundPrivacy(sink: PartSink, frame: Frame, field: Field, glass: number, material: string): void {
-  const front = glass - 0.15;
-  meshVenetianBlind(sink, frame, field.u0, field.u1, field.y0, field.y1, front, 100, material, material);
+export function meshGroundPrivacy(sink: PartSink, frame: Frame, field: Field, glass: number, material: string, frameMaterial: string): void {
+  const back = glass - 0.23;
+  meshCoveringHousing(sink, frame, field, glass - 0.09, back, frameMaterial);
   // A matte closed backing excludes views into the unoccupied shell through slat gaps.
-  const at = (u: number, y: number): V3 => [frame.v[0] + frame.dir[0] * u + frame.n[0] * (front - 0.08), y,
-    frame.v[1] + frame.dir[1] * u + frame.n[1] * (front - 0.08)];
+  const at = (u: number, y: number): V3 => [frame.v[0] + frame.dir[0] * u + frame.n[0] * back, y,
+    frame.v[1] + frame.dir[1] * u + frame.n[1] * back];
   sink.quadFacing(material, at(field.u0, field.y0), at(field.u1, field.y0), at(field.u1, field.y1), at(field.u0, field.y1),
     [frame.n[0], 0, frame.n[1]], [[0, 1], [1, 1], [1, 0], [0, 0]]);
 }

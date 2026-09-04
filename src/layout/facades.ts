@@ -18,6 +18,7 @@ import type { CarvedAperture, FloorLayout, Style } from './model.ts';
 import { EXTERIOR_STYLES } from './exteriorStyle.ts';
 import { selectedMaterialKey } from './materialPlan.ts';
 import { fitGroundWindows } from './groundFacade.ts';
+import { fitCommercialWindows } from './commercialFacade.ts';
 
 // Sun azimuth quantized to 8 compass vectors: no runtime trig, identical output on every JS engine.
 const COMPASS: P2[] = [
@@ -246,6 +247,7 @@ export function buildFacades(
 
   const exteriorStyle = req.options!.exteriorStyle!;
   for (const floor of floors) fitGroundWindows(family, floor);
+  fitCommercialWindows(req, floors, style);
   for (const floor of floors) for (const opening of floor.openings) {
     if (opening.curtain) {
       const open = curtainOverrides.get(opening.id);

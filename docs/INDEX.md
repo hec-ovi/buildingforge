@@ -6,6 +6,10 @@
 
 ## Root modules
 
+- src/mesh/coveringHousing.ts: closed side, head and sill returns between glazing and recessed coverings.
+
+- src/layout/commercialFacade.ts: entrance-led shop displays and sparse upper commercial glazing, fitted around reserved openings.
+
 - src/layout/groundFacade.ts: sparse paired street-level windows fitted around reserved access.
 - src/mesh/windowTreatments.ts: separate shell-only ground privacy and permanent external metal louvres.
 - src/mesh/windowWeathering.ts: exact sill and jamb stains clipped to solid facade receivers.

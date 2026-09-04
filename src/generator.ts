@@ -40,6 +40,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   const shape = !req.options?.shape || req.options.shape === 'auto' ? policy.shape ?? 'auto' : req.options.shape;
   req = { ...req, options: { ...req.options, exteriorStyle, shape } };
   let facade = policy.facade;
+  if (facade === 'curtain-wall' && ['commerce', 'mall'].includes(req.building.type)) facade = 'glass';
   if (facade === 'megablock' && tier !== 'poor') facade = 'panel';
   if (facade === 'curtain-wall' && (family === 'residential' || family === 'hotel')
     && req.options?.balconies === 'on' && req.options.balconyStyle === 'full') facade = 'glass';

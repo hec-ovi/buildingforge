@@ -12,6 +12,7 @@ import { meshFacadeServices } from './facadeServices.ts';
 import { meshFrameRing } from './frameRing.ts';
 import { meshSpandrel } from './spandrel.ts';
 import { meshVenetianBlind } from './venetianBlind.ts';
+import { meshCoveringHousing } from './coveringHousing.ts';
 import { meshDoorHardware } from './doorHardware.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
@@ -464,9 +465,10 @@ function windowUnit(
     const covering = o.curtain.style === 'venetian-blind' ? meshVenetianBlind : rollerShade;
     covering(sink, fr, g0, g1, gb, gt, glassZ - 0.035,
       o.curtain.closurePercent, frameMat, mat('curtain'));
+    meshCoveringHousing(sink, fr, field, glassZ, glassZ - 0.09, frameMat);
   }
   const fieldBounds = { u0: g0, u1: g1, y0: gb, y1: gt };
-  if (privacy) meshGroundPrivacy(privacy, fr, fieldBounds, glassZ, materialSlot(mat('curtain'), 'slat'));
+  if (privacy) meshGroundPrivacy(privacy, fr, fieldBounds, glassZ, materialSlot(mat('curtain'), 'slat'), frameMat);
   if (o.exteriorCovering) meshExteriorLouvre(sink, fr, fieldBounds, o.exteriorCovering);
 }
 

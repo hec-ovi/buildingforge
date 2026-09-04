@@ -28,7 +28,7 @@ it('exports all nine coordinated style bindings and their matching geometry thro
     for (const node of doc.getRoot().listNodes()) for (const primitive of node.getMesh()?.listPrimitives() ?? []) {
       const material = primitive.getMaterial()!;
       const key = material.getName(), variant = material.getExtras().materialVariant;
-      if (node.getName().startsWith('ground-privacy:')) { expect(variant).toBe('slat'); continue; }
+      if (node.getName().startsWith('ground-privacy:') && key.includes('/curtain/')) { expect(variant).toBe('slat'); continue; }
       if (key.includes('/window-grime-')) continue;
       if (selected[key] && variant !== undefined && variant !== 'strip') expect(variant).toBe(selected[key]);
     }
