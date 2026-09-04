@@ -1,8 +1,8 @@
 # CONTRACT: exterior preview
 
-Purpose: renders one generated exterior in a browser and exposes fixture, seed, camera, clipping and inspection controls.
+Purpose: renders one generated exterior in a browser and exposes fixture, seed, style, shape, camera, clipping and inspection controls.
 
-Status: v0.46.8, implemented.
+Status: v0.46.9, implemented.
 
 ## Entry
 
@@ -21,7 +21,7 @@ The page outputs a WebGL canvas, request and inspection controls, blueprint stat
 
 ## Events
 
-- Fixture change, Enter, `generate`, and `random seed` emit `onGenerate(request)`.
+- Fixture, style and shape changes, Enter, `generate`, and `random seed` emit `onGenerate(request)`.
 - The clip slider emits fractions from 0 to 1. The three display toggles emit Booleans. The camera selector emits `orbit | eye`.
 - Pointer, wheel and right-button gestures drive `OrbitControls`. A toast closes from its button or timeout.
 
@@ -39,6 +39,7 @@ A failed theme fetch supplies `null`, so the generator reports its normal keys f
 - Presentation code calls the root generator and contains no building rules.
 - The initial browser module graph contains no Node filesystem adapter. Core-fit constants come from Interior's published JSON schema through a static data import.
 - Requests are cloned before the seed is applied; fixtures remain unchanged.
+- Style choices are Auto and the nine IDs grouped by the Materials style binding. Shape choices follow the request schema, including `rounded-box`. Controls set only `options.exteriorStyle` and `options.shape`; Auto omits the corresponding override. Changing fixture restores its style and shape while retaining its other options.
 - The seed field always shows the seed sent to generation.
 - A theme fetch is cached once per theme. Generated GLB and blueprint values always come from the same call.
 - Orbit frames the measured GLB bounds. Street eye stands 1.7 m above the pavement in front of the main entrance.
@@ -49,5 +50,6 @@ A failed theme fetch supplies `null`, so the generator reports its normal keys f
 
 - [Exterior contract](../../CONTRACT.md): request, GLB, blueprint and closed generation errors.
 - [Materials contract](../../../materials/CONTRACT.md): theme index and maps served read-only at `/materials`.
+- [Exterior styles](../../../materials/bindings/exterior-styles.json): named style IDs and display groups.
 - Three.js `WebGLRenderer`, `GLTFLoader` and `OrbitControls`.
 - Browser DOM, WebGL, `ResizeObserver`, and Vite fixture and material routing.

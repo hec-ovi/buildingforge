@@ -6,6 +6,10 @@
 
 ## Root modules
 
+- src/layout/roundedOutline.ts: circular corner returns shared by floor rings and every facade consumer.
+- src/layout/materialPlan.ts: family-specific named concrete finishes and office slat coating, shared by blueprint and GLB.
+- src/layout/exteriorStyle.ts: nine coordinated geometry policies and seeded selection, paired with Materials bindings/exterior-styles.json.
+
 - schemas/proportions.json: entrance, upper-window, shopfront and solid ground-podium sizing; shared by layout and validation.
 
 - src/core: seeded rng, random seeds for standalone runs, polygon math, request validation, error set.

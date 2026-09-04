@@ -7,7 +7,7 @@ import { quant } from '../core/polygon.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Style } from './model.ts';
 
-export function buildStyle(seed: string, family: Family, tier: Tier, floors: number): Style {
+export function buildStyle(seed: string, family: Family, tier: Tier, floors: number, facadeKind?: Style['facade']['kind']): Style {
   const rng = new Rng(seed, 'style');
   const r = RULES[family];
   const p = proportionsOf(family);
@@ -19,7 +19,7 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
   const wwrMid = r.windowToWall[0] + wwrSpan / 2;
   const wwr = Math.min(r.windowToWall[1], Math.max(r.windowToWall[0], wwrMid + TIER_WWR_SHIFT[tier] * wwrSpan / 2));
 
-  const facade = buildFacade(seed, family, tier);
+  const facade = buildFacade(seed, family, tier, facadeKind);
 
   // Concrete shows fat perimeter columns; steel or curtain wall reads thin (docs/RESEARCH.md structure rules).
   const concrete = floors <= STRUCTURE.concreteMaxFloors && facade.kind !== 'curtain-wall';
@@ -51,8 +51,8 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
 }
 
 /** One facade style per building, its relief drawn once so every face agrees. */
-function buildFacade(seed: string, family: Family, tier: Tier): Style['facade'] {
-  const kind = facadeStyleFor(family, tier);
+function buildFacade(seed: string, family: Family, tier: Tier, facadeKind?: Style['facade']['kind']): Style['facade'] {
+  const kind = facadeKind ?? facadeStyleFor(family, tier);
   const s = FACADE.styles[kind];
   const rng = new Rng(seed, 'facade');
   return {

@@ -91,22 +91,6 @@ export interface Layout {
   roof: Blueprint['roof'];
 }
 
-export interface FacadeMaterialPlan {
-  palette: 'neutral-dystopian';
-  field: { key: string; variantId: 'panel' };
-  border: { key: string; variantId: 'plain' };
-  trim: { key: string; variantId: 'paint' };
-}
-
-export function facadeMaterialPlan(theme: string, tier: Tier): FacadeMaterialPlan {
-  return {
-    palette: 'neutral-dystopian',
-    field: { key: materialKey(theme, 'concrete', tier), variantId: 'panel' },
-    border: { key: materialKey(theme, 'column', tier), variantId: 'plain' },
-    trim: { key: materialKey(theme, 'wall-trim', tier), variantId: 'paint' },
-  };
-}
-
 export function materialKey(theme: string, kind: string, tier: Tier): string {
   return `${theme}/${kind}/${tier}`;
 }

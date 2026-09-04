@@ -65,13 +65,14 @@ function doubleSidedForKey(key: string): boolean {
 }
 
 /** Untextured materials named by the canonical key: what a keys-only consumer resolves itself. */
-function keysOnly(doc: Document, slots: string[], reason?: string): MaterialPlan {
+function keysOnly(doc: Document, slots: string[], selected: Record<string, string>, reason?: string): MaterialPlan {
   const bySlot = new Map<string, Material>();
   for (const slot of slots) {
     const [key, variant] = splitMaterialSlot(slot);
     const material = doc.createMaterial(key)
       .setDoubleSided(doubleSidedForKey(key)).setMetallicFactor(0).setRoughnessFactor(1);
-    if (variant) material.setExtras({ materialVariant: variant });
+    const preferred = variant ?? selected[key];
+    if (preferred) material.setExtras({ materialVariant: preferred });
     bySlot.set(slot, material);
   }
   return { mode: 'keys', reason, bySlot, imageUris: new Map() };
@@ -79,14 +80,15 @@ function keysOnly(doc: Document, slots: string[], reason?: string): MaterialPlan
 
 export function createMaterials(
   doc: Document, slots: string[], theme: string, seed: string, opts: TextureOptions, source: MaterialSource | null,
+  selected: Record<string, string> = {},
 ): MaterialPlan {
   const mode = opts.mode ?? 'external';
-  if (mode === 'keys') return keysOnly(doc, slots);
+  if (mode === 'keys') return keysOnly(doc, slots, selected);
   if (!source) {
     if (mode === 'embed') {
       throw new ExteriorError('E_MATERIAL_UNRESOLVED', `embedded textures need the materials database; theme "${theme}" was not found`);
     }
-    return keysOnly(doc, slots, `no materials database for theme "${theme}"`);
+    return keysOnly(doc, slots, selected, `no materials database for theme "${theme}"`);
   }
 
   const resolve = buildResolver(source.index);
@@ -104,7 +106,7 @@ export function createMaterials(
     if (!entry) {
       throw new ExteriorError('E_MATERIAL_UNRESOLVED', `theme "${theme}" has no entry for material key ${key}`, { key });
     }
-    const preferred = authoredVariant ?? preferredVariantForKey(key);
+    const preferred = authoredVariant ?? selected[key] ?? preferredVariantForKey(key);
     const variant = preferred
       ? entry.variants.find((candidate) => candidate.id === preferred)
       : entry.variants[new Rng(seed, `material:${key}`).int(0, entry.variants.length - 1)];
@@ -118,7 +120,7 @@ export function createMaterials(
       .setMetallicFactor(p.metallicFactor ?? 1)
       .setRoughnessFactor(p.roughnessFactor ?? 1)
       .setAlphaMode(p.alphaMode ?? 'OPAQUE');
-    if (authoredVariant) material.setExtras({ materialVariant: authoredVariant });
+    if (authoredVariant ?? selected[key]) material.setExtras({ materialVariant: authoredVariant ?? selected[key] });
 
     const infos: TextureInfo[] = [];
     for (const slot of MAP_SLOTS) {

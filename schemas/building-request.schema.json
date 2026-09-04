@@ -83,7 +83,8 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "shape": { "enum": ["auto", "box", "octagon", "cylinder", "pyramid", "setback"], "default": "auto" },
+        "shape": { "enum": ["auto", "box", "rounded-box", "octagon", "cylinder", "pyramid", "setback"], "default": "auto" },
+        "exteriorStyle": { "enum": ["residential-salvaged", "residential-weathered", "residential-modest", "premium-obsidian", "premium-office", "premium-mineral", "civic-utility", "civic-institutional", "civic-industrial"], "description": "Coordinated facade geometry and material set. Omission selects a compatible set by seed, use and tier." },
         "glb": { "enum": ["named", "merged"], "default": "named", "description": "named = contract node per part (canonical, inspectable); merged = one mesh per material key for runtime scale. Same blueprint either way." },
         "balconies": { "enum": ["auto", "on", "off"], "default": "auto" },
         "balconyStyle": { "enum": ["auto", "bay", "full"], "default": "auto", "description": "bay keeps one landing per door; full joins compatible doors on a face into one long band; auto selects by family, tier and seed" },

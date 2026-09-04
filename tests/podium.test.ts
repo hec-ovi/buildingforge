@@ -8,7 +8,7 @@ const source = JSON.parse(readFileSync(new URL('../fixtures/residential-mid.requ
 
 it('builds solid street bases with raised sparse punched windows and preserves upper floors', async () => {
   for (const [type, tier] of [['residential', 'poor'], ['offices', 'rich'], ['corpo', 'high_rich']]) {
-    const request = { ...source, building: { type, tier, floors: 4 }, options: { balconies: 'off' } };
+    const request = { ...source, building: { type, tier, floors: 4 }, options: { balconies: 'off', exteriorStyle: type === 'residential' ? 'residential-salvaged' : 'premium-office' } };
     const first = await generate(request, keys);
     const floor = first.blueprint.floors.find((item) => item.index === 0)!;
     expect(floor.openings.filter((item) => item.kind === 'door')).toHaveLength(1);
@@ -16,7 +16,7 @@ it('builds solid street bases with raised sparse punched windows and preserves u
     expect(windows.length).toBeGreaterThan(0);
     const doc = await new NodeIO().readBinary(first.glb);
     const concreteKey = `cyberpunk/concrete/${tier}`;
-    expect(first.blueprint.materialVariants[concreteKey]).toBe('panel');
+    expect(first.blueprint.materialVariants[concreteKey]).toBe(first.blueprint.facade.materialPlan.field.variantId);
     const groundWalls = doc.getRoot().listNodes().filter((item) => item.getName().startsWith('wall:0/'));
     expect(groundWalls).toHaveLength(floor.outline.length);
     for (const wall of groundWalls) {
@@ -28,7 +28,7 @@ it('builds solid street bases with raised sparse punched windows and preserves u
       expect(opening.width).toBeLessThanOrEqual(2);
       expect(opening.head).toBeUndefined();
       const node = doc.getRoot().listNodes().find((item) => item.getName() === `window:${opening.id}`)!;
-      const pane = node.getMesh()!.listPrimitives().find((item) => item.getMaterial()!.getName().includes('/window-glass/'))!;
+      const pane = node.getMesh()!.listPrimitives().find((item) => item.getMaterial()!.getName() === opening.material)!;
       const positions = pane.getAttribute('POSITION')!;
       for (let index = 0; index < positions.getCount(); index++) {
         const y = positions.getElement(index, [])[1]!;

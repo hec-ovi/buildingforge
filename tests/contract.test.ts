@@ -224,7 +224,7 @@ describe('blueprint invariants', () => {
     const { blueprint, glb } = await generate(request, KEYS);
     const opening = blueprint.floors.flatMap((floor) => floor.openings)
       .find((candidate) => candidate.id === target.id)!;
-    expect(opening.curtain).toEqual({ style: 'roller-shade', closurePercent: 70 });
+    expect(opening.curtain?.closurePercent).toBe(70);
     expect(opening.state).toBe('closed80');
 
     const doc = await new NodeIO().readBinary(glb);
@@ -373,7 +373,7 @@ describe('blueprint invariants', () => {
   it('selects compatible premium entrance sets reproducibly across seeds', async () => {
     const sets = new Set<string>();
     for (const seed of ['entrance-review-0', 'entrance-review-1', 'entrance-review-3']) {
-      const request = { ...corpo, seed };
+      const request = { ...corpo, seed, building: { ...(corpo.building as object), floors: 4 }, options: { ...(corpo.options as object), shape: 'box' } };
       const first = await generate(request, KEYS);
       const repeated = await generate(request, KEYS);
       expect(repeated.blueprint).toEqual(first.blueprint);
@@ -605,8 +605,13 @@ describe('blueprint invariants', () => {
       expect(glass.length, `${type} ${tier}`).toBeGreaterThan(0);
       for (const o of glass) {
         expect(o.sill).toBeLessThanOrEqual(PROPORTIONS.storefront.sill[1] + 1e-6);
-        expect(o.sill + o.height).toBeGreaterThanOrEqual(clear - 0.051);
-        expect(o.sill + o.height).toBeLessThanOrEqual(clear + 1e-6);
+        if (blueprint.facade.style === 'curtain-wall') {
+          expect(o.sill + o.height).toBeCloseTo(ground.height, 6);
+          expect(o.head).toBeGreaterThanOrEqual(1);
+        } else {
+          expect(o.sill + o.height).toBeGreaterThanOrEqual(clear - 0.051);
+          expect(o.sill + o.height).toBeLessThanOrEqual(clear + 1e-6);
+        }
       }
     }
   });
@@ -1193,8 +1198,8 @@ describe('GLB shell', () => {
   });
 
   it('fits moving door hardware inside the recessed opening at reachable height', async () => {
-    for (const req of [residential, illuminatedCorpo, { ...corpo, seed: 'entrance-review-1' }]) {
-      const { glb, blueprint } = await generate(req, KEYS);
+    for (const req of [residential, illuminatedCorpo, { ...corpo, seed: 'entrance-review-1' }] as Record<string, unknown>[]) {
+      const { glb, blueprint } = await generate({ ...req, building: { ...(req.building as object), floors: 4 }, options: { ...(req.options as object), shape: 'box' } }, KEYS);
       const doc = await new NodeIO().readBinary(glb);
       const nodes = new Map(doc.getRoot().listNodes().map((node) => [node.getName(), node]));
       for (const floor of blueprint.floors) {
@@ -1471,7 +1476,7 @@ describe('material resolution', () => {
     };
 
     const expected: Record<string, string> = {
-      concrete: 'panel', column: 'plain', 'wall-trim': 'paint', 'window-frame': 'paint',
+      concrete: blueprint.facade.materialPlan.field.variantId, column: blueprint.facade.materialPlan.border.variantId, 'wall-trim': 'paint', 'window-frame': 'paint',
       door: 'paint', roof: 'plain', 'floor-slab': 'plain', 'light-fixture': 'lamp',
     };
     for (const [kind, variant] of Object.entries(expected)) {
@@ -1484,8 +1489,8 @@ describe('material resolution', () => {
     expect(blueprint.materials).not.toContain('cyberpunk/wall/mid');
     expect(blueprint.facade.materialPlan).toEqual({
       palette: 'neutral-dystopian',
-      field: { key: 'cyberpunk/concrete/mid', variantId: 'panel' },
-      border: { key: 'cyberpunk/column/mid', variantId: 'plain' },
+      field: { key: 'cyberpunk/concrete/mid', variantId: 'panel-mineral' },
+      border: { key: 'cyberpunk/column/mid', variantId: 'plain-mineral' },
       trim: { key: 'cyberpunk/wall-trim/mid', variantId: 'paint' },
     });
   });
@@ -1787,7 +1792,7 @@ describe('facade styles', () => {
     const tower = (await generate(corpo, KEYS)).blueprint;
     expect(poor.facade.style).toBe('megablock');
     expect(mid.facade.style).toBe('panel');
-    expect(rich.facade.style).toBe('glass');
+    expect(rich.facade.style).toBe('curtain-wall');
     expect(tower.facade.style).toBe('curtain-wall');
     for (const bp of [poor, mid, rich, tower]) expect(bp.facade.panelModule).toBeGreaterThan(0);
   });

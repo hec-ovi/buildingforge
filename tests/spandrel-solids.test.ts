@@ -39,7 +39,7 @@ it('closes curtain-wall spandrels from the frame front to the glass back on ever
           return Array.from({ length: attribute.getCount() }, (_, index) => local(attribute.getElement(index, []))[2]!);
         });
       expect(front).toBeCloseTo(Math.max(...depthOf('/window-frame/')), 4);
-      expect(back).toBeCloseTo(Math.min(...depthOf('/window-glass/')), 4);
+      expect(back).toBeCloseTo(Math.min(...depthOf(opening.material!)), 4);
 
       const indices = panel.getIndices()!.getArray()!;
       const edges = new Map<string, number>();

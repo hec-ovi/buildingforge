@@ -21,6 +21,7 @@ import { fixedPanelAxis } from '../layout/module.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
 import type { BalconyBand, Blueprint, DoorAssembly, Opening } from '../types.ts';
 import { materialSlot } from '../materials/slot.ts';
+import { selectedMaterialKey } from '../layout/materialPlan.ts';
 
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
@@ -50,7 +51,7 @@ interface Frame { v: P2; dir: P2; n: P2; len: number }
 export function buildMesh(layout: Layout): MeshBuilder {
   const mb = new MeshBuilder();
   const { theme, tier } = layout;
-  const mat = (kind: string) => `${theme}/${kind === 'wall' ? 'concrete' : kind}/${tier}`;
+  const mat = (kind: string) => selectedMaterialKey(theme, tier, layout.request.options!.exteriorStyle!, kind === 'wall' ? 'concrete' : kind);
   const floors = layout.floors;
   const above = floors.filter((f) => f.index >= 0);
   const lowest = floors[0]!;

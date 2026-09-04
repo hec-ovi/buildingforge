@@ -26,7 +26,7 @@ export function buildFacadeGrids(
       const partitionAnchors = solid
         .filter(([start, end]) => end - start >= MIN_PARTITION_SEAT - 1e-9)
         .map(([start, end]) => ({
-          offset: mm((start + end) / 2),
+          offset: (start + end) / 2,
           width: mm(end - start),
         }));
       grids.push({

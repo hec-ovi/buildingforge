@@ -11,6 +11,7 @@ import { autoSource } from '../materials/autoSource.ts';
 import { writeBinaryWithUris } from './pack.ts';
 import type { MeshBuilder, Prim } from '../mesh/primitives.ts';
 import type { Layout } from '../layout/model.ts';
+import { buildingMaterialVariants } from '../layout/materialPlan.ts';
 
 const EXTENSIONS = [KHRTextureTransform, KHRMaterialsTransmission, KHRMaterialsIOR, KHRMaterialsEmissiveStrength];
 
@@ -27,7 +28,8 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
   scene.addChild(root);
 
   const source = options.source !== undefined ? options.source : await autoSource(layout.theme, options.dir);
-  const plan = createMaterials(doc, mb.materialSlots(), layout.theme, layout.request.seed, options, source);
+  const plan = createMaterials(doc, mb.materialSlots(), layout.theme, layout.request.seed, options, source,
+    buildingMaterialVariants(layout.theme, layout.tier, layout.request.options!.exteriorStyle!));
   const materialOf = (slot: string): Material => plan.bySlot.get(slot)!;
 
   const addPrim = (mesh: ReturnType<Document['createMesh']>, key: string, prim: Prim) => {

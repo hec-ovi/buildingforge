@@ -6,6 +6,7 @@ import { FAMILY, type AtlasType, type Tier } from '../rules/families.ts';
 import { RULES, SIGNAGE } from '../rules/tables.ts';
 import { area, selfIntersects, edgeDir, edgeNormal } from './polygon.ts';
 import type { Aperture, BuildingRequest, P2 } from '../types.ts';
+import { EXTERIOR_STYLE_IDS } from '../layout/exteriorStyle.ts';
 
 const TYPES: AtlasType[] = ['residential', 'hotel', 'offices', 'corpo', 'hospital', 'clinic', 'police', 'military', 'factory', 'commerce', 'mall', 'restaurant', 'coffee_shop'];
 const TIERS: Tier[] = ['poor', 'mid', 'rich', 'high_rich'];
@@ -142,7 +143,8 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
     return s;
   };
   const out: NonNullable<BuildingRequest['options']> = {};
-  out.shape = oneOf(o.shape, ['auto', 'box', 'octagon', 'cylinder', 'pyramid', 'setback'], 'options.shape') as never;
+  out.exteriorStyle = oneOf(o.exteriorStyle, EXTERIOR_STYLE_IDS, 'options.exteriorStyle') as never;
+  out.shape = oneOf(o.shape, ['auto', 'box', 'rounded-box', 'octagon', 'cylinder', 'pyramid', 'setback'], 'options.shape') as never;
   out.glb = oneOf(o.glb, ['named', 'merged'], 'options.glb') as never;
   out.balconies = oneOf(o.balconies, ['auto', 'on', 'off'], 'options.balconies') as never;
   out.balconyStyle = oneOf(o.balconyStyle, ['auto', 'bay', 'full'], 'options.balconyStyle') as never;

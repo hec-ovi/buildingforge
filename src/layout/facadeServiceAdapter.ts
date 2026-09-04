@@ -96,7 +96,10 @@ export function buildFacadeServiceDetails(input: AdapterInput): FacadeServicesOu
   }));
   const modes = resolveModes(request, input.family, input.tier, style);
   const density = request.options?.facadeServices === 'on' || request.options?.hangingClothes === 'on'
-    ? 1 : input.tier === 'poor' ? 0.8 : input.tier === 'mid' ? 0.65 : 0.25;
+    ? 1 : request.options?.exteriorStyle === 'residential-salvaged' ? 0.85
+      : request.options?.exteriorStyle === 'residential-weathered' ? 0.7
+        : request.options?.exteriorStyle === 'residential-modest' ? 0.55
+          : input.tier === 'poor' ? 0.8 : input.tier === 'mid' ? 0.65 : 0.25;
   const serviceInput: FacadeServicesInput = {
     seed: request.seed,
     profile: input.family === 'residential' ? 'residential'
@@ -136,9 +139,11 @@ function resolveModes(
 ): FacadeServicesInput['modes'] {
   const serviceMode = request.options?.facadeServices ?? 'auto';
   const clothesMode = request.options?.hangingClothes ?? 'auto';
+  const styleId = request.options?.exteriorStyle ?? '';
   const serviceEligible = (style.facade.kind === 'megablock' || style.facade.kind === 'panel')
-    && ['residential', 'industrial', 'commerce'].includes(family);
-  const clothesEligible = family === 'residential' && (tier === 'poor' || tier === 'mid');
+    && (['residential', 'industrial', 'commerce'].includes(family) || styleId.startsWith('civic-'));
+  const clothesEligible = family === 'residential'
+    && ((tier === 'poor' || tier === 'mid') || styleId.startsWith('residential-'));
   return {
     services: serviceMode === 'on' || (serviceMode === 'auto' && serviceEligible) ? 'on' : 'off',
     clothes: clothesMode === 'on' || (clothesMode === 'auto' && clothesEligible) ? 'on' : 'off',

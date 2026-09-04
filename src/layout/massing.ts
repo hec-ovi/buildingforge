@@ -14,6 +14,7 @@ import type { Family, Tier } from '../rules/families.ts';
 import { CORE_PLATE, FACADE } from '../rules/tables.ts';
 import { MIN_PLATE_DEPTH, coreAxis, plateDepth } from './plate.ts';
 import { bestCoreFit, coreRects } from './core.ts';
+import { roundedOutline } from './roundedOutline.ts';
 
 // 16-gon unit ring, precomputed so no trig runs at generation time.
 const RING16: P2[] = [
@@ -25,7 +26,7 @@ const RING16: P2[] = [
   [0.7071067811865476, -0.7071067811865476], [0.9238795325112867, -0.3826834323650898],
 ];
 
-export type Shape = 'box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
+export type Shape = 'box' | 'rounded-box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
 
 export interface Massing {
   /** outline per above-ground floor index (0..floors-1); basements reuse outline 0 */
@@ -119,14 +120,14 @@ function pickShape(rng: Rng, family: Family, tier: Tier, floors: number): Shape 
   if (family === 'industrial' || family === 'commerce' || family === 'security' || family === 'hospital') return 'box';
   if (family === 'corpo' || family === 'office') {
     if (floors >= 12) {
-      const shapes: Shape[] = ['box', 'setback', 'octagon', 'cylinder', 'pyramid'];
-      const weights = [0.35, 0.35, 0.18, 0.09, tier === 'high_rich' ? 0.03 : 0];
+      const shapes: Shape[] = ['box', 'setback', 'rounded-box', 'octagon', 'cylinder', 'pyramid'];
+      const weights = [0.25, 0.25, 0.25, 0.13, 0.09, tier === 'high_rich' ? 0.03 : 0];
       return rng.pick(shapes, weights);
     }
-    return rng.pick(['box', 'octagon'] as Shape[], [0.8, 0.2]);
+    return rng.pick(['box', 'rounded-box', 'octagon'] as Shape[], [0.6, 0.25, 0.15]);
   }
   // residential, hotel
-  if (floors >= 10) return rng.pick(['box', 'setback', 'cylinder'] as Shape[], [0.6, 0.3, 0.1]);
+  if (floors >= 10) return rng.pick(['box', 'setback', 'rounded-box', 'cylinder'] as Shape[], [0.45, 0.3, 0.15, 0.1]);
   return 'box';
 }
 
@@ -152,6 +153,11 @@ function baseOutline(
   if (shape === 'octagon') {
     return fitRing(parcel, rng, (hu, hv) => octagon(hu, hv, Math.min(hu, hv) * rng.range(0.3, 0.5)), inset, holdsCore)
       ?? boxed();
+  }
+  if (shape === 'rounded-box') {
+    const radiusShare = rng.range(0.14, 0.22);
+    return fitRing(parcel, rng, (hu, hv) => roundedOutline(hu, hv,
+      Math.min(4, Math.max(1, Math.min(hu, hv) * radiusShare))), inset, holdsCore) ?? boxed();
   }
   if (shape === 'cylinder') {
     return fitRing(parcel, rng, (hu, hv) => {

@@ -5,15 +5,16 @@ import type { Layout } from '../layout/model.ts';
 import { measureWallDepth } from '../mesh/wallDepth.ts';
 import { SLAB_BAND } from '../rules/tables.ts';
 import { buildFacadeGrids } from '../layout/facadeGrid.ts';
-import { facadeMaterialPlan } from '../layout/model.ts';
+import { facadeMaterialPlan, buildingMaterialVariants } from '../layout/materialPlan.ts';
 import { preferredVariantForKey } from '../materials/apply.ts';
 import type { MeshBuilder } from '../mesh/primitives.ts';
 
 export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
   const topFloor = layout.floors[layout.floors.length - 1]!;
   const materials = mb.materialKeys();
+  const selected = buildingMaterialVariants(layout.theme, layout.tier, layout.request.options!.exteriorStyle!);
   const materialVariants = Object.fromEntries(materials
-    .map((key) => [key, preferredVariantForKey(key)] as const)
+    .map((key) => [key, selected[key] ?? preferredVariantForKey(key)] as const)
     .filter((entry): entry is [string, string] => entry[1] !== undefined));
   return {
     buildingId: layout.request.buildingId,
@@ -36,6 +37,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     screens: layout.screens,
     lights: layout.lights,
     facade: {
+      exteriorStyle: layout.request.options!.exteriorStyle!,
       style: layout.style.facade.kind,
       panelModule: layout.style.facade.panelModule,
       panelPattern: {
@@ -45,7 +47,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
         origin: layout.style.facade.panelOrigin,
         boundary: layout.style.facade.panelBoundary,
       },
-      materialPlan: facadeMaterialPlan(layout.theme, layout.tier),
+      materialPlan: facadeMaterialPlan(layout.theme, layout.tier, layout.request.options!.exteriorStyle!),
       wallDepth: measureWallDepth(layout, mb),
       slabBand: {
         below: slabBandBelow(layout),
@@ -72,7 +74,8 @@ function slabBandBelow(layout: Layout): number {
   let band = Infinity;
   for (const floor of layout.floors) {
     for (const opening of floor.openings) {
-      if (opening.kind === 'window' && opening.head !== undefined) band = Math.min(band, opening.head);
+      if (opening.kind === 'window') band = Math.min(band,
+        opening.head ?? Math.max(0, floor.height - opening.sill - opening.height));
     }
   }
   return Number.isFinite(band) ? band : SLAB_BAND.below;

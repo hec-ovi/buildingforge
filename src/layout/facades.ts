@@ -15,6 +15,8 @@ import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
 import type { Stack } from './floorStack.ts';
 import type { CarvedAperture, FloorLayout, Style } from './model.ts';
+import { EXTERIOR_STYLES } from './exteriorStyle.ts';
+import { selectedMaterialKey } from './materialPlan.ts';
 
 // Sun azimuth quantized to 8 compass vectors: no runtime trig, identical output on every JS engine.
 const COMPASS: P2[] = [
@@ -241,10 +243,10 @@ export function buildFacades(
     floors.push({ index: level.index, kind: level.kind, elevation: level.elevation, height: level.height, outline, openings });
   }
 
-  if (family === 'office' || family === 'corpo') {
-    for (const floor of floors) for (const opening of floor.openings) {
-      if (opening.curtain) opening.curtain.style = 'venetian-blind';
-    }
+  const exteriorStyle = req.options!.exteriorStyle!;
+  for (const floor of floors) for (const opening of floor.openings) {
+    if (opening.curtain) opening.curtain.style = EXTERIOR_STYLES[exteriorStyle].covering;
+    if (opening.kind === 'window') opening.material = selectedMaterialKey(req.theme, tier, exteriorStyle, 'window-glass');
   }
   return { floors, carved, anchors };
 }

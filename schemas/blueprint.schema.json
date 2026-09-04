@@ -296,7 +296,7 @@
     },
     "facade": {
       "type": "object",
-      "required": ["style", "panelModule", "panelPattern", "materialPlan", "wallDepth", "slabBand", "grids"],
+      "required": ["style", "exteriorStyle", "panelModule", "panelPattern", "materialPlan", "wallDepth", "slabBand", "grids"],
       "additionalProperties": false,
       "properties": {
         "style": {
@@ -321,6 +321,7 @@
           },
           "description": "fixed world-unit architectural panel field; unmatched face or storey space becomes deliberate equal borders"
         },
+        "exteriorStyle": { "enum": ["residential-salvaged", "residential-weathered", "residential-modest", "premium-obsidian", "premium-office", "premium-mineral", "civic-utility", "civic-institutional", "civic-industrial"] },
         "materialPlan": {
           "type": "object",
           "required": ["palette", "field", "border", "trim"],

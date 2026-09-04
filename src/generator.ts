@@ -9,6 +9,7 @@ import {
   PROPORTIONS, clearHeight, isStorefrontFloor, isPodiumFloor, fitPodiumWindow, minEntranceHeight, minWindowHeight, proportionsOf,
 } from './rules/proportions.ts';
 import { buildStyle } from './layout/style.ts';
+import { selectExteriorStyle, EXTERIOR_STYLES } from './layout/exteriorStyle.ts';
 import { buildMassing } from './layout/massing.ts';
 import { coreAxis } from './layout/plate.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
@@ -31,10 +32,18 @@ import type { FloorLayout, Layout } from './layout/model.ts';
 import type { GenerateOptions, GenerateResult, P3 } from './types.ts';
 
 export async function generate(raw: unknown, options: GenerateOptions = {}): Promise<GenerateResult> {
-  const req = validateRequest(raw);
+  let req = validateRequest(raw);
   const family = FAMILY[req.building.type];
   const tier = req.building.tier;
-  const style = buildStyle(req.seed, family, tier, req.building.floors);
+  const exteriorStyle = selectExteriorStyle(req, family, tier);
+  const policy = EXTERIOR_STYLES[exteriorStyle];
+  const shape = !req.options?.shape || req.options.shape === 'auto' ? policy.shape ?? 'auto' : req.options.shape;
+  req = { ...req, options: { ...req.options, exteriorStyle, shape } };
+  let facade = policy.facade;
+  if (facade === 'megablock' && tier !== 'poor') facade = 'panel';
+  if (facade === 'curtain-wall' && (family === 'residential' || family === 'hotel')
+    && req.options?.balconies === 'on' && req.options.balconyStyle === 'full') facade = 'glass';
+  const style = buildStyle(req.seed, family, tier, req.building.floors, facade);
   const facadeInset = facadeDepth(style.facade.kind);
   const stack = buildFloorStack(req, family, tier, style);
   const massing = buildMassing(

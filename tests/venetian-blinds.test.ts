@@ -24,7 +24,7 @@ it('fits office slats behind glass with exact open overrides and a clear fully r
     const slats = primitives.find((primitive) => primitive.getMaterial()!.getName().includes('/curtain/'));
     if (closure === 0) { expect(slats).toBeUndefined(); continue; }
     expect(slats).toBeDefined();
-    const glass = primitives.find((primitive) => primitive.getMaterial()!.getName().includes('/window-glass/'))!;
+    const glass = primitives.find((primitive) => primitive.getMaterial()!.getName() === opening.material)!;
     const a = floor.outline[opening.edge]!;
     const b = floor.outline[(opening.edge + 1) % floor.outline.length]!;
     const length = Math.hypot(b[0] - a[0], b[1] - a[1]);

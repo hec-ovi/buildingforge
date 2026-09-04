@@ -7,6 +7,11 @@ import type { FacadeServicesOutput, WindowDamage } from './facade-services/index
 export type P2 = [number, number];
 export type P3 = [number, number, number];
 
+export type ExteriorStyleId =
+  | 'residential-salvaged' | 'residential-weathered' | 'residential-modest'
+  | 'premium-obsidian' | 'premium-office' | 'premium-mineral'
+  | 'civic-utility' | 'civic-institutional' | 'civic-industrial';
+
 export type ApertureKind = 'bridge' | 'ac-tube' | 'wire-anchor' | 'tunnel';
 
 export interface Aperture {
@@ -50,7 +55,8 @@ export interface BuildingRequest {
   theme: string;
   apertures?: Aperture[];
   options?: {
-    shape?: 'auto' | 'box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
+    shape?: 'auto' | 'box' | 'rounded-box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
+    exteriorStyle?: ExteriorStyleId;
     glb?: 'named' | 'merged';
     balconies?: 'auto' | 'on' | 'off';
     balconyStyle?: 'auto' | 'bay' | 'full';
@@ -275,6 +281,7 @@ export interface Blueprint {
     standoff: number;
   }[];
   facade: {
+    exteriorStyle: ExteriorStyleId;
     style: 'megablock' | 'panel' | 'glass' | 'curtain-wall';
     panelModule: number;
     panelPattern: {
@@ -286,9 +293,9 @@ export interface Blueprint {
     };
     materialPlan: {
       palette: 'neutral-dystopian';
-      field: { key: string; variantId: 'panel' };
-      border: { key: string; variantId: 'plain' };
-      trim: { key: string; variantId: 'paint' };
+      field: { key: string; variantId: string };
+      border: { key: string; variantId: string };
+      trim: { key: string; variantId: string };
     };
     /** how far the deepest opening unit reaches behind the outline skin, measured on the built geometry */
     wallDepth: number;

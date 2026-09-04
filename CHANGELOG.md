@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.9: nine coordinated exterior sets with explicit selection, named material bindings and seeded defaults. Rounded-box massing uses fitted circular corner returns. Residential service density follows its set; office glazing uses fitted slats and its matching coating.
+
 0.46.8: office, corpo and residential buildings have solid street bases with raised punched windows in alternating bays. Explicit shop floors retain storefront glazing.
 
 0.46.7: public entrances default to one, with explicit repeated layouts. Window spandrels are closed solid infills. Office and corpo windows carry fitted venetian blinds with seeded closure.
