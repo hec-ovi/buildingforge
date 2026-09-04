@@ -62,8 +62,8 @@
                   "additionalProperties": false,
                   "description": "exact window-covering geometry on windows and glazed balcony doors",
                   "properties": {
-                    "style": { "const": "roller-shade" },
-                    "closurePercent": { "type": "number", "minimum": 0, "maximum": 100, "description": "percentage of the clear glazed height covered from the head downward" }
+                    "style": { "enum": ["roller-shade", "venetian-blind"] },
+                    "closurePercent": { "type": "number", "minimum": 0, "maximum": 100, "description": "covering travel from the head downward as a percentage of clear glazed height; venetian slats retain their fitted gaps" }
                   }
                 },
                 "state": { "enum": ["open", "partial", "half", "closed80", "closed"], "description": "legacy categorical curtain state; curtain.closurePercent is authoritative" },

@@ -207,7 +207,7 @@ describe('blueprint invariants', () => {
     expect(coverage.has(50)).toBe(true);
     expect(coverage.has(100)).toBe(true);
     expect([...coverage].some((value) => value > 0 && value < 50)).toBe(true);
-    expect(curtains.every((curtain) => curtain.style === 'roller-shade')).toBe(true);
+    expect(curtains.every((curtain) => curtain.style === 'venetian-blind')).toBe(true);
   });
 
   it('turns a 30 percent open override into exact 70 percent fitted coverage', async () => {
@@ -307,7 +307,8 @@ describe('blueprint invariants', () => {
   });
 
   it('repeats one fitted entrance set across a long public frontage', async () => {
-    const { blueprint } = await generate(corpo, KEYS);
+    const { blueprint } = await generate({ ...corpo,
+      options: { ...(corpo as any).options, entranceLayout: 'repeated' } }, KEYS);
     const ground = blueprint.floors.find((floor) => floor.index === 0)!;
     const doors = ground.openings.filter((opening) => opening.kind === 'door');
     const main = doors.find((door) => door.doorRole === 'main')!;
@@ -332,6 +333,17 @@ describe('blueprint invariants', () => {
     expect(industrial.find((door) => door.id === 'entrance')!.doorRole).toBe('main');
     expect(industrial.filter((door) => door.id.startsWith('loading:'))
       .every((door) => door.doorRole === 'service')).toBe(true);
+  });
+
+  it('uses one public entrance unless repetition is requested', async () => {
+    for (const request of [corpo, bridged]) {
+      const { blueprint } = await generate(request, KEYS);
+      const entrances = blueprint.floors.find((floor) => floor.index === 0)!.openings
+        .filter((opening) => opening.doorRole === 'main' || opening.doorRole === 'secondary');
+      expect(entrances).toHaveLength(1);
+      expect(entrances[0]!.doorRole).toBe('main');
+    }
+    expect(await code({ ...corpo, options: { entranceLayout: 'many' } })).toBe('E_SCHEMA');
   });
 
   it('publishes one fitted frame set and movement envelope on every door', async () => {

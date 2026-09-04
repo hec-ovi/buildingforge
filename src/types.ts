@@ -55,6 +55,7 @@ export interface BuildingRequest {
     balconies?: 'auto' | 'on' | 'off';
     balconyStyle?: 'auto' | 'bay' | 'full';
     openFront?: 'auto' | 'on' | 'off';
+    entranceLayout?: 'single' | 'repeated';
     fireEscape?: boolean | 'auto' | 'on' | 'off';
     windows?: 'auto' | 'none';
     signage?: Signage;
@@ -97,8 +98,8 @@ export interface Opening {
   height: number;
   sill: number;
   apertureKind?: Exclude<ApertureKind, 'wire-anchor'>;
-  /** exact roller-shade coverage; authoritative over the legacy categorical state */
-  curtain?: { style: 'roller-shade'; closurePercent: number };
+  /** Exact covering travel; authoritative over the legacy categorical state. */
+  curtain?: { style: 'roller-shade' | 'venetian-blind'; closurePercent: number };
   state?: CurtainState;
   /** mullion grid of a glazed opening: cols x rows panes, each within the tier's pane limit */
   panes?: { cols: number; rows: number };

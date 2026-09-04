@@ -132,7 +132,9 @@ export function buildFacades(
       const portal = placeOpenFront(req, tier, outline, streetEdges, level.height, openings, takenByEdge);
       if (!portal) {
         const entrance = placeEntrance(req, family, tier, style, outline, streetEdges, level.height, openings, takenByEdge);
-        if (entrance) placeRepeatedEntrances(family, outline, entrance, openings, takenByEdge);
+        if (entrance && req.options?.entranceLayout === 'repeated') {
+          placeRepeatedEntrances(family, outline, entrance, openings, takenByEdge);
+        }
       }
       if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
     }
@@ -236,6 +238,11 @@ export function buildFacades(
     floors.push({ index: level.index, kind: level.kind, elevation: level.elevation, height: level.height, outline, openings });
   }
 
+  if (family === 'office' || family === 'corpo') {
+    for (const floor of floors) for (const opening of floor.openings) {
+      if (opening.curtain) opening.curtain.style = 'venetian-blind';
+    }
+  }
   return { floors, carved, anchors };
 }
 

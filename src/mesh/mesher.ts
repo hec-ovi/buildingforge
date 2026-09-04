@@ -10,6 +10,8 @@ import { meshFacadeRelief } from './facadeRelief.ts';
 import { meshAcUnits } from './acUnit.ts';
 import { meshFacadeServices } from './facadeServices.ts';
 import { meshFrameRing } from './frameRing.ts';
+import { meshSpandrel } from './spandrel.ts';
+import { meshVenetianBlind } from './venetianBlind.ts';
 import { meshDoorHardware } from './doorHardware.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
@@ -218,7 +220,8 @@ function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening
     if (o.curtain) {
       const stile = Math.min(DOOR.stile, (u1 - u0) / Math.max(3, o.leaves ?? 1));
       const rail = Math.min(DOOR.rail, (yt - yb) / 4);
-      rollerShade(frame, fr, u0 + stile, u1 - stile, yb + rail, yt - rail,
+      const covering = o.curtain.style === 'venetian-blind' ? meshVenetianBlind : rollerShade;
+      covering(frame, fr, u0 + stile, u1 - stile, yb + rail, yt - rail,
         -assembly.recessDepth - DOOR.leafThickness - 0.035,
         o.curtain.closurePercent, frameMaterial, mat('curtain'));
     }
@@ -393,7 +396,7 @@ function windowUnit(
   const recess = style.facade.windowRecess;
   const z = -recess;
   const lining = recess + g.glassInset;
-  if (lining > 0.005) {
+  if (!curtainWall && lining > 0.005) {
     reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], lining, true, frameMat);
   }
 
@@ -417,10 +420,10 @@ function windowUnit(
   const depth = curtainWall ? g.frameProud + g.glassInset : g.frameProud + FRAME_BITE;
   const { g0, g1, gb, gt } = { g0: field.u0, g1: field.u1, gb: field.y0, gt: field.y1 };
 
-  // The head spandrel is an opaque matte panel over the ceiling plenum and slab,
-  // not metal, so it does not flare.
-  if (spandrel > 0) strip(sink, fr, u0, u1, yb, sill, proud, mat('column'));
-  if (headBand > 0) strip(sink, fr, u0, u1, headY, yt, proud, mat('column'));
+  // Solid opaque infill closes every exposed edge back to the glazing plane.
+  const panelBack = z - g.glassInset;
+  if (spandrel > 0) meshSpandrel(sink, fr, { u0, u1, y0: yb, y1: sill }, proud, panelBack, mat('column'));
+  if (headBand > 0) meshSpandrel(sink, fr, { u0, u1, y0: headY, y1: yt }, proud, panelBack, mat('column'));
   meshFrameRing(sink, fr, outer, inner, proud, depth, frameMat);
 
   const { cols, rows } = o.panes ?? paneGrid(u1 - u0, gt - gb, g);
@@ -450,7 +453,8 @@ function windowUnit(
   }
 
   if (o.curtain) {
-    rollerShade(sink, fr, g0, g1, gb, gt, glassZ - 0.035,
+    const covering = o.curtain.style === 'venetian-blind' ? meshVenetianBlind : rollerShade;
+    covering(sink, fr, g0, g1, gb, gt, glassZ - 0.035,
       o.curtain.closurePercent, frameMat, mat('curtain'));
   }
 }

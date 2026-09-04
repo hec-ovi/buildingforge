@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.7: public entrances default to one, with explicit repeated layouts. Window spandrels are closed solid infills. Office and corpo windows carry fitted venetian blinds with seeded closure.
+
 0.46.6: premium entrance sets vary by seed within compatible families. Swing doors carry fitted leaf-owned pull handles or levers at usable height.
 
 0.46.5: window surrounds are closed extruded rings with complete front, back, outer and inner boundary faces. Facade bands share fitted miter endpoints, with bounded bevels at acute corners, so each band is one closed two-manifold without duplicate run-end faces.
