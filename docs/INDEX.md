@@ -8,6 +8,9 @@
 
 - src/layout/buildingGrid.ts: phase-aligned rectangular plate fitting and setbacks on the supplied construction grid. Facade panels fit their own border remainders inside those plates.
 - src/layout/plateCore.ts: shared core fit on rectangular construction axes; aperture-constrained polygons retain their permitted frame search.
+- src/layout/corePreflight.ts: final opening-aware core placement through Interior's browser-safe feasibility surface, using the measured shell depth.
+- src/layout/roofAccess.ts: roof cutout and enclosure fitted to the shared solver's actual stair footprint.
+- src/layout/roof.ts: roof equipment placed around the final stair enclosure; facade fittings freeze before opening geometry and core placement.
 - src/layout/structuralProfile.ts and src/mesh/structuralPier.ts: shared fitted pier dimensions and closed bevelled concrete geometry.
 - src/mesh/doorPanels.ts and src/mesh/doorSurround.ts: mapped solid leaf panels and closed bevelled entrance surrounds.
 - src/mesh/utilityBox.ts: fitted service cabinet lids, hardware and ventilation details.

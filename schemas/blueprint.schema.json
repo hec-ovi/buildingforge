@@ -8,6 +8,13 @@
   "additionalProperties": false,
   "properties": {
     "buildingId": { "type": "string" },
+    "coreFrame": {
+      "type": "object", "required": ["anglesDeg"], "additionalProperties": false,
+      "description": "Ordered permitted core axes in degrees, unique modulo 180. Entrance orientation may flip an axis. A published roof locks its selected axis and exact center.",
+      "properties": {
+        "anglesDeg": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "number" } }
+      }
+    },
     "seed": { "type": "string" },
     "bounds": {
       "type": "object",
@@ -363,6 +370,7 @@
           },
           "description": "stable material keys and named variants for the neutral concrete facade system"
         },
+        "coreAdjacency": { "$ref": "#/$defs/coreAdjacency" },
         "wallDepth": {
           "type": "number",
           "minimum": 0,
@@ -478,7 +486,7 @@
           "description": "stair-head cutout in the roof plane and the housing over it; its threshold is roof.elevation, its axis is the shared core frame, its complete rectangle is reserved for the stair shaft and arrival landing, and its door faces the stair-a arrival side; null when the plate is too small for access plus its walk space",
           "properties": {
             "center": { "$ref": "#/$defs/point2" },
-            "axis": { "$ref": "#/$defs/point2", "description": "unit vector along `width`; the cutout rectangle follows the plate's own axis" },
+            "axis": { "$ref": "#/$defs/point2", "description": "unit vector along width on the selected shared core frame" },
             "width": { "type": "number", "exclusiveMinimum": 0 },
             "depth": { "type": "number", "exclusiveMinimum": 0 },
             "housingHeight": { "type": "number", "exclusiveMinimum": 0 },
@@ -530,6 +538,32 @@
     }
   },
   "$defs": {
+    "coreAdjacencyRule": {
+      "type": "object", "required": ["role", "clearDepth"], "additionalProperties": false,
+      "properties": {
+        "role": { "enum": ["structure", "circulation", "room"] },
+        "clearDepth": { "type": "number", "minimum": 0 }
+      }
+    },
+    "coreAdjacency": {
+      "type": "object", "required": ["glazing"], "additionalProperties": false,
+      "description": "Core-only clearance after the full facade lining. Windows and openings with a glazing field take the default. Unique floor/opening overrides replace it. Omission retains structural compatibility.",
+      "properties": {
+        "glazing": { "$ref": "#/$defs/coreAdjacencyRule" },
+        "overrides": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["floor", "opening", "role", "clearDepth"], "additionalProperties": false,
+            "properties": {
+              "floor": { "type": "integer" },
+              "opening": { "type": "string", "minLength": 1 },
+              "role": { "enum": ["structure", "circulation", "room"] },
+              "clearDepth": { "type": "number", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
     "fittedSegment": {
       "type": "object",
       "required": ["from", "to"],

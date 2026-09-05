@@ -380,8 +380,8 @@ export const PARAPET: [number, number] = [0.9, 1.1];
  * clear around the housing and in front of its door.
  */
 export const ROOF_ACCESS = {
-  width: [2.4, 3.0] as [number, number],
-  depth: [3.0, 3.8] as [number, number],
+  /** Total allowance across the shaft for enclosure walls and arrival space. */
+  enclosureAllowance: 1.0,
   housingHeight: [2.4, 2.9] as [number, number],
   /** the housing is a room: its walls carry this thickness, so they read solid from inside too */
   wallThickness: 0.2,

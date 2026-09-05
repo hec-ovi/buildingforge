@@ -70,6 +70,7 @@ export interface CarvedAperture {
 }
 
 export interface Layout {
+  coreFrame?: Blueprint['coreFrame'];
   request: BuildingRequest;
   family: Family;
   tier: Tier;

@@ -144,6 +144,7 @@
           "default": "off",
           "description": "explicit opt-in pane damage; sparse selects at most one window per forty candidates and preserves its fitted frame"
         },
+        "coreAdjacency": { "$ref": "blueprint.schema.json#/$defs/coreAdjacency" },
         "curtains": {
           "type": "object",
           "additionalProperties": false,

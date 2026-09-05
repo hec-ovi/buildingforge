@@ -12,7 +12,7 @@ const NODE: Record<OpeningKind, string> = {
   window: 'window:', door: 'door:', balconyDoor: 'balcony:', openFront: 'open-front:', aperture: 'aperture:',
 };
 
-export function measureWallDepth(layout: Layout, mb: MeshBuilder): number {
+export function measureWallDepth(layout: Pick<Layout, 'floors'>, mb: MeshBuilder): number {
   const byName = new Map(mb.parts.map((p) => [p.name, p]));
   const children = new Map<string, Part[]>();
   for (const p of mb.parts) if (p.parent) children.set(p.parent, [...(children.get(p.parent) ?? []), p]);

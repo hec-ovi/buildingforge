@@ -7,6 +7,7 @@ import { RULES, SIGNAGE } from '../rules/tables.ts';
 import { area, selfIntersects, edgeDir, edgeNormal } from './polygon.ts';
 import type { Aperture, BuildingGrid, BuildingRequest, P2 } from '../types.ts';
 import { EXTERIOR_STYLE_IDS } from '../layout/exteriorStyle.ts';
+import { validateCoreAdjacency } from './validateCoreAdjacency.ts';
 
 const TYPES: AtlasType[] = ['residential', 'hotel', 'offices', 'corpo', 'hospital', 'clinic', 'police', 'military', 'factory', 'commerce', 'mall', 'restaurant', 'coffee_shop'];
 const TIERS: Tier[] = ['poor', 'mid', 'rich', 'high_rich'];
@@ -159,6 +160,7 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
     return s;
   };
   const out: NonNullable<BuildingRequest['options']> = {};
+  if (o.coreAdjacency !== undefined) out.coreAdjacency = validateCoreAdjacency(o.coreAdjacency);
   out.exteriorStyle = oneOf(o.exteriorStyle, EXTERIOR_STYLE_IDS, 'options.exteriorStyle') as never;
   out.shape = oneOf(o.shape, ['auto', 'box', 'rounded-box', 'octagon', 'cylinder', 'pyramid', 'setback'], 'options.shape') as never;
   out.glb = oneOf(o.glb, ['named', 'merged'], 'options.glb') as never;

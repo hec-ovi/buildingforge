@@ -19,11 +19,15 @@ import { buildRelief } from './layout/relief.ts';
 import { mountAnchors } from './layout/anchors.ts';
 import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.ts';
 import { coreRects, facadeDepth } from './layout/core.ts';
+import { coreAdjacency, corePerimeterClearance, validateAdjacencyOpenings } from './layout/coreAdjacency.ts';
+import { constructionCoreFrame, fitBuildingCore } from './layout/corePreflight.ts';
 import { acClusterName } from './layout/acUnits.ts';
-import { buildFeatures } from './layout/features.ts';
+import { buildFacadeFeatures } from './layout/features.ts';
+import { buildRoof } from './layout/roof.ts';
 import { validateMastAssemblies } from './layout/mastAssembly.ts';
 import { buildFacadeServiceDetails } from './layout/facadeServiceAdapter.ts';
-import { buildMesh } from './mesh/mesher.ts';
+import { buildMesh, buildOpeningMesh } from './mesh/mesher.ts';
+import { measureWallDepth } from './mesh/wallDepth.ts';
 import { writeGlb } from './glb/writer.ts';
 import { buildBlueprint } from './blueprint/builder.ts';
 import { area, edgeLength, edgeNormal, pointSegmentDistance, type P2 } from './core/polygon.ts';
@@ -45,7 +49,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   if (facade === 'curtain-wall' && (family === 'residential' || family === 'hotel')
     && req.options?.balconies === 'on' && req.options.balconyStyle === 'full') facade = 'glass';
   const style = buildStyle(req.seed, family, tier, req.building.floors, facade);
-  const facadeInset = facadeDepth(style.facade.kind);
+  const facadeInset = facadeDepth(style.facade.kind) + corePerimeterClearance(req);
   const stack = buildFloorStack(req, family, tier, style);
   const balconyInset = balconiesEnabled(req, family, tier) ? style.balconyDepth : 0;
   const floorHeights = stack.levels.map((floor) => floor.height);
@@ -58,30 +62,41 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   let plan = planFacades(balconyInset);
   if (balconyInset > 0 && !plan.balconyBands.some((band) => band.depth > 0) && !req.apertures?.length) plan = planFacades(0);
   const { massing, streetEdges, facades, balconyBands } = plan;
+  validateAdjacencyOpenings(coreAdjacency(req), facades.floors);
   const corePlate = inspectCorePlate(
     facades.floors, facadeInset, facades.floors.filter((floor) => floor.index >= 0).length, massing.rectangular);
+  if (corePlate.error) throw corePlate.error;
+  const coreFrame = constructionCoreFrame(corePlate.axis, massing.rectangular);
   const relief = buildRelief(style, facades.floors, facades.carved);
   const obstacles = faceObstacles(facades.floors, facades.carved, facades.anchors, relief, stack.top);
   const anchors = mountAnchors(facades.anchors, massing.groundOutline, obstacles);
-  const features = buildFeatures(
-    req, family, tier, style, massing, stack.top, facades.floors, streetEdges, obstacles, corePlate.axis);
+  const features = buildFacadeFeatures(
+    req, family, tier, style, massing, stack.top, facades.floors, streetEdges, obstacles);
   const facadeServices = buildFacadeServiceDetails({
     request: req, family, tier, style, floors: facades.floors, relief, anchors, balconyBands,
     facadeArtifacts: features.facadeArtifacts, signage: features.signage, screens: features.screens,
     lights: features.lights, fireEscape: features.fireEscape,
   });
+  const openingLayout = { request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved };
+  const openingMesh = buildOpeningMesh(openingLayout);
+  const coreStair = fitBuildingCore({
+    buildingId: req.buildingId, floors: facades.floors, ...(coreFrame ? { coreFrame } : {}),
+    facade: { style: style.facade.kind, wallDepth: measureWallDepth(openingLayout, openingMesh), coreAdjacency: coreAdjacency(req) },
+  });
+  const roof = buildRoof(req, family, stack.top, style, facades.floors, coreStair);
 
   const layout: Layout = {
+    ...(coreFrame ? { coreFrame } : {}),
     request: req, family, tier, theme: req.theme, style, relief,
     floors: facades.floors, balconyBands, carved: facades.carved, anchors,
-    facadeServices,
+    facadeServices, roof,
     ...features,
   };
   checkInvariants(layout, obstacles);
 
-  const mb = buildMesh(layout);
+  const mb = buildMesh(layout, openingMesh);
   const blueprint = buildBlueprint(layout, mb);
-  if (corePlate.error) throw corePlate.error;
+  fitBuildingCore(blueprint);
   const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   return { glb, blueprint, textures };
 }

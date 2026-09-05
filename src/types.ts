@@ -49,6 +49,17 @@ export interface CurtainOverride {
   openPercent: number;
 }
 
+export interface CoreAdjacencyRule {
+  role: 'structure' | 'circulation' | 'room';
+  /** Clear depth inward from the complete facade lining to an actual core solid. */
+  clearDepth: number;
+}
+
+export interface CoreAdjacency {
+  glazing: CoreAdjacencyRule;
+  overrides?: (CoreAdjacencyRule & { floor: number; opening: string })[];
+}
+
 export interface BuildingRequest {
   seed: string;
   buildingId: string;
@@ -78,6 +89,7 @@ export interface BuildingRequest {
     facadeServices?: 'auto' | 'on' | 'off';
     hangingClothes?: 'auto' | 'on' | 'off';
     windowDamage?: 'off' | 'sparse';
+    coreAdjacency?: CoreAdjacency;
     curtains?: {
       profile?: 'day' | 'night';
       sunAzimuthDeg?: number;
@@ -125,7 +137,7 @@ export interface Opening {
   /** curtain-wall bay: opaque head spandrel covering its ceiling plenum and the slab above */
   head?: number;
   /** door and balconyDoor: swinging leaves, one node subtree each in the GLB */
-  leaves?: number;
+  leaves?: 1 | 2 | 3 | 4;
   /** door and balconyDoor: exact fixed-frame and movement envelope selected for this building */
   door?: DoorAssembly;
   /** door only: how the interior and navigation layers connect the opening */
@@ -250,6 +262,7 @@ export interface FacadeArtifact {
 }
 
 export interface Blueprint {
+  coreFrame?: { anglesDeg: number[] };
   buildingId: string;
   seed: string;
   bounds: { footprint: P2[]; height: number };
@@ -312,6 +325,7 @@ export interface Blueprint {
     };
     /** how far the deepest opening unit reaches behind the outline skin, measured on the built geometry */
     wallDepth: number;
+    coreAdjacency?: CoreAdjacency;
     /** the opaque band kept at every floor line, so an interior slab never reads through the glass */
     slabBand: { below: number; above: number };
     /** exact per-floor face grids and opening-free seats for facade-aligned interior partitions */

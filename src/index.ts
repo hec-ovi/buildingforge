@@ -6,5 +6,6 @@ export type { MaterialSource, ThemeIndex } from './materials/theme.ts';
 export type {
   BuildingRequest, BuildingGrid, Blueprint, GenerateOptions, GenerateResult, Aperture, Floor, Opening, FacadeArtifact,
   ExternalAttachment, MastAssembly, RoofArtifact,
+  CoreAdjacency, CoreAdjacencyRule,
 } from './types.ts';
 export type { FacadeServicesOutput } from './facade-services/index.ts';

@@ -55,10 +55,21 @@ const DEFAULT_DOOR: DoorAssembly = {
 
 interface Frame { v: P2; dir: P2; n: P2; len: number }
 
-export function buildMesh(layout: Layout): MeshBuilder {
+type OpeningLayout = Pick<Layout, 'floors' | 'style' | 'carved' | 'theme' | 'tier' | 'request'>;
+
+/** Opening parts establish the exact glazing fields and inward shell depth. */
+export function buildOpeningMesh(layout: OpeningLayout): MeshBuilder {
   const mb = new MeshBuilder();
-  const { theme, tier } = layout;
-  const mat = (kind: string) => selectedMaterialKey(theme, tier, layout.request.options!.exteriorStyle!, kind === 'wall' ? 'concrete' : kind);
+  const mat = materialResolver(layout);
+  for (const floor of layout.floors) {
+    for (const opening of floor.openings) meshOpening(mb, layout, floor, opening, mat);
+  }
+  return mb;
+}
+
+/** Complete the shell around its already fitted opening parts. */
+export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBuilder {
+  const mat = materialResolver(layout);
   const floors = layout.floors;
   const above = floors.filter((f) => f.index >= 0);
   const lowest = floors[0]!;
@@ -120,7 +131,6 @@ export function buildMesh(layout: Layout): MeshBuilder {
       if (horizontal && vertical) meshPanelBorders(panelBorders, fr, f, holes,
         horizontal.borders, vertical.borders, mat('column'));
     }
-    for (const o of f.openings) meshOpening(mb, layout, f, o, mat);
   }
   meshBalconyBands(mb, layout, mat);
 
@@ -153,6 +163,11 @@ export function buildMesh(layout: Layout): MeshBuilder {
 
   meshWindowWeathering(mb, layout);
   return mb;
+}
+
+function materialResolver(layout: OpeningLayout): (kind: string) => string {
+  const { theme, tier } = layout;
+  return (kind: string) => selectedMaterialKey(theme, tier, layout.request.options!.exteriorStyle!, kind === 'wall' ? 'concrete' : kind);
 }
 
 /**
@@ -206,7 +221,7 @@ function n3(fr: Frame): V3 {
   return [fr.n[0], 0, fr.n[1]];
 }
 
-function meshOpening(mb: MeshBuilder, layout: Layout, f: FloorLayout, o: Opening, mat: (k: string) => string): void {
+function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: Opening, mat: (k: string) => string): void {
   const fr = frame(f.outline, o.edge);
   const yb = f.elevation + o.sill;
   const yt = yb + o.height;

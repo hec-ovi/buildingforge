@@ -10,13 +10,14 @@ The shell is empty inside except one separator plane per floor, which a floor-fi
 
 ```
 npm install
+npm --prefix ../interior run build:feasibility         # shared browser and Node core solver
 npm test                                              # contract tests
 npm run preview                                       # 3D viewer: orbit or street eye, height clipping, opening highlight
 npm run generate -- fixtures/corpo-tower.request.json out   # textured GLB + blueprint
 npm run typecheck
 ```
 
-`fixtures/` ships ten requests: corpo, residential, factory, bridged, pinned and shallow towers, a sliver parcel, a rotated core, and two city integration cases. The preview loads any fixture, generates it in the browser and shows the finished textured building.
+`fixtures/` contains corpo, residential, factory, bridged, pinned and shallow towers, a sliver parcel, a rotated core, and city integration cases. The preview loads any fixture, generates it in the browser and shows the finished textured building.
 
 A run with no seed rolls one and prints it, so the building can be regenerated exactly:
 
@@ -37,7 +38,7 @@ npm run generate -- request.json out --keys-only        # material keys, no maps
 - **options**: one of nine coordinated exterior sets, shape including rounded-box, balconies and balcony style, open business frontage, fire escape, window style and sparse damage, facade services, hanging clothes, signage marquee or logo, ad screens, roof artifacts, curtain profile and per-opening open percentage
 - **textures**: `external` map URIs against a base path (default), `embed` for one self-contained file, or `keys` for a consumer that resolves the material keys itself
 
-`schemas/floor-constants.json` publishes the per-type constants (floor height bands, minimum footprint area) and the recipe a caller uses to pick a guaranteed feasible floor count before generating, so a batch never discovers infeasibility halfway through. `schemas/proportions.json` publishes the opening sizes: entrance heights by family (2.4 m residential up to 6 m corpo lobbies) and widths, window heights as a share of each floor's clear height with sill ranges, and the storefront and megablock rows.
+`schemas/floor-constants.json` publishes per-type floor heights, minimum footprint areas and the aperture-compatible floor-count recipe. The shared core solver checks actual opening clearance before output. `options.coreAdjacency` selects usable depth behind glazing, defaulting to 1.2 m after the full lining. `schemas/proportions.json` publishes entrance, window and storefront sizes.
 
 ## Out
 

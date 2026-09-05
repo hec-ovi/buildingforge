@@ -1,33 +1,30 @@
-// Facade and roof features: signage, ad screens, lights, fire escape, roof artifacts.
+// Facade features: signage, ad screens, lights, equipment and fire escape.
 
 import { ExteriorError } from '../core/errors.ts';
 import { cellCentre } from './module.ts';
 import { Rng } from '../core/rng.ts';
-import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, ROOF_ACCESS, ROOF_ARTIFACTS, OPENING, MODULE, MODULE_U } from '../rules/tables.ts';
-import { edgeLength, edgeDir, edgeNormal, ringInsidePolygon, centroid, quant, type P2 } from '../core/polygon.ts';
+import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, OPENING, MODULE, MODULE_U } from '../rules/tables.ts';
+import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
 import { crossed, edgeU, findClearRect, type Rect } from './obstructions.ts';
 import { placeAcUnits } from './acUnits.ts';
-import type { Blueprint, BuildingRequest, P3, RoofArtifact, Signage } from '../types.ts';
+import type { Blueprint, BuildingRequest, P3, Signage } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
 import type { FloorLayout, Style } from './model.ts';
-import { buildMastAssembly } from './mastAssembly.ts';
-import { CORE_CONSTANTS } from './coreFeasibility.ts';
 
-export interface Features {
+export interface FacadeFeatures {
   signage: Blueprint['signage'];
   screens: Blueprint['screens'];
   lights: Blueprint['lights'];
   facadeArtifacts: Blueprint['facadeArtifacts'];
   fireEscape: Blueprint['fireEscape'];
-  roof: Blueprint['roof'];
 }
 
-export function buildFeatures(
+export function buildFacadeFeatures(
   req: BuildingRequest, family: Family, tier: Tier, style: Style,
   massing: Massing, top: number, floors: FloorLayout[], faces: number[],
-  obstacles: Map<number, Rect[]>, coreFrameAxis: P2,
-): Features {
+  obstacles: Map<number, Rect[]>,
+): FacadeFeatures {
   const streetEdge = faces[0] as number;
   const ground = massing.groundOutline;
   const groundFloor = floors.find((f) => f.index === 0)!;
@@ -46,9 +43,8 @@ export function buildFeatures(
     ...placeFacadeArtifacts(req, style, floors, signage, screens, obstacles),
   ];
   const fireEscape = placeFireEscape(req, family, tier, massing, floors, streetEdge);
-  const roof = buildRoof(req, family, massing, top, style, floors, coreFrameAxis);
 
-  return { signage, screens, lights, facadeArtifacts, fireEscape, roof };
+  return { signage, screens, lights, facadeArtifacts, fireEscape };
 }
 
 /** The rectangle a placed sign or screen occupies on its face. */
@@ -446,177 +442,3 @@ function servingSeat(above: FloorLayout[], edge: number, len: number): { u: numb
   }
   return best ? { u: best.u, toFloor: best.toFloor } : null;
 }
-
-function buildRoof(
-  req: BuildingRequest, family: Family, massing: Massing, top: number,
-  style: Style, floors: FloorLayout[], coreFrameAxis: P2,
-): Blueprint['roof'] {
-  const topFloor = floors[floors.length - 1]!;
-  const outline = topFloor.outline;
-  const elevation = quant(top);
-  const artifacts: RoofArtifact[] = [];
-  const bulkhead = placeBulkhead(req, floors, coreFrameAxis);
-  if ((req.options?.roofArtifacts ?? 'auto') !== 'off') {
-    const rng = new Rng(req.seed, 'roof');
-    const placed: { cx: number; cz: number; hw: number; hd: number }[] = [];
-    // The stair head and the walk space around it are taken before anything lands.
-    if (bulkhead) placed.push(bulkheadKeepOut(bulkhead));
-    const [cx0, cz0] = centroid(outline);
-    for (const [ruleIndex, rule] of ROOF_ARTIFACTS[family].entries()) {
-      if (!rng.chance(rule.chance)) continue;
-      const w = quant(rng.range(...rule.size[0]));
-      const d = quant(rng.range(...rule.size[1]));
-      const h = quant(rng.range(...rule.size[2]));
-      // rotationDeg 90 means the box occupies [d, w] on the ground; size stays [w, d, h].
-      const rotationDeg = rng.chance(0.5) ? 90 : 0;
-      const ww = rotationDeg === 90 ? d : w;
-      const dd = rotationDeg === 90 ? w : d;
-      const spot = findRoofSpot(outline, placed, ww, dd, cx0, cz0, rng, rule.kind === 'helipad' || rule.kind === 'penthouse-screen');
-      if (!spot) continue;
-      placed.push({ cx: spot[0], cz: spot[1], hw: ww / 2 + 0.4, hd: dd / 2 + 0.4 });
-      const artifact: RoofArtifact = {
-        id: `roof-artifact:${rule.kind}:${ruleIndex}`,
-        kind: rule.kind, center: [quant(spot[0]), quant(spot[1])], size: [w, d, h], rotationDeg,
-      };
-      if (rule.mastVariant) artifact.mastAssembly = buildMastAssembly(artifact, elevation, rule.mastVariant);
-      artifacts.push(artifact);
-    }
-  }
-  return { elevation, outline, parapetHeight: style.parapetHeight, bulkhead, artifacts };
-}
-
-/**
- * The stair head lands in the middle of the plate, its rectangle aligned with
- * the plate's own long axis. Published so the interior can put its stair there
- * and the engine can walk the roof around it; null when the plate is too small
- * to hold the housing plus its walk space.
- */
-function placeBulkhead(
-  req: BuildingRequest, floors: FloorLayout[], coreFrameAxis: P2,
-): Blueprint['roof']['bulkhead'] {
-  const rng = new Rng(req.seed, 'roof-access');
-  // The cutout is the interior stair head's own size, square so either stair orientation lands
-  // in it, from the stair constants the interior publishes; without them the table's ranges.
-  const floorHeights = floors.map((floor) => floor.height);
-  const side = stairHeadSide(floorHeights);
-  const width = side ?? quant(rng.range(...ROOF_ACCESS.width));
-  const depth = side ?? quant(rng.range(...ROOF_ACCESS.depth));
-  const outline = floors[floors.length - 1]!.outline;
-  const center = centroid(outline).map(quant) as P2;
-  // Preflight passes the same principal-or-rotated frame the interior selects.
-  const axis = coreFrameAxis;
-  const cross: P2 = [-axis[1], axis[0]];
-  const c = ROOF_ACCESS.clearance;
-  const hw = width / 2 + c;
-  const hd = depth / 2 + c;
-  const corners: P2[] = ([[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]] as P2[]).map(([u, v]): P2 => [
-    center[0] + axis[0] * u + cross[0] * v,
-    center[1] + axis[1] * u + cross[1] * v,
-  ]);
-  if (!ringInsidePolygon(outline, corners)) return null;
-  return {
-    center, axis, width, depth,
-    housingHeight: quant(rng.range(...ROOF_ACCESS.housingHeight)),
-    doorNormal: cross,
-    doorWidth: ROOF_ACCESS.doorWidth,
-    doorHeight: ROOF_ACCESS.doorHeight,
-  };
-}
-
-/** Axis-aligned box the roof artifacts must stay out of: the housing plus its walk space. */
-function bulkheadKeepOut(b: NonNullable<Blueprint['roof']['bulkhead']>): { cx: number; cz: number; hw: number; hd: number } {
-  const cross: P2 = [-b.axis[1], b.axis[0]];
-  const halfX = Math.abs(b.axis[0]) * b.width / 2 + Math.abs(cross[0]) * b.depth / 2;
-  const halfZ = Math.abs(b.axis[1]) * b.width / 2 + Math.abs(cross[1]) * b.depth / 2;
-  return {
-    cx: b.center[0], cz: b.center[1],
-    hw: halfX + ROOF_ACCESS.clearance, hd: halfZ + ROOF_ACCESS.clearance,
-  };
-}
-
-function findRoofSpot(
-  outline: P2[], placed: { cx: number; cz: number; hw: number; hd: number }[],
-  w: number, d: number, cx0: number, cz0: number, rng: Rng, preferCenter: boolean,
-): P2 | null {
-  const candidates: P2[] = preferCenter ? [[cx0, cz0]] : [];
-  for (let i = 0; i < 8; i++) {
-    candidates.push([cx0 + rng.range(-0.4, 0.4) * spanX(outline), cz0 + rng.range(-0.4, 0.4) * spanZ(outline)]);
-  }
-  for (const [cx, cz] of candidates) {
-    const corners: P2[] = [
-      [cx - w / 2, cz - d / 2], [cx + w / 2, cz - d / 2], [cx + w / 2, cz + d / 2], [cx - w / 2, cz + d / 2],
-    ];
-    if (!ringInsidePolygon(outline, corners)) continue;
-    const clash = placed.some((q) => Math.abs(cx - q.cx) < w / 2 + q.hw && Math.abs(cz - q.cz) < d / 2 + q.hd);
-    if (clash) continue;
-    return [cx, cz];
-  }
-  return null;
-}
-
-function spanX(outline: P2[]): number {
-  let min = Infinity, max = -Infinity;
-  for (const [x] of outline) { if (x < min) min = x; if (x > max) max = x; }
-  return max - min;
-}
-
-function spanZ(outline: P2[]): number {
-  let min = Infinity, max = -Infinity;
-  for (const [, z] of outline) { if (z < min) min = z; if (z > max) max = z; }
-  return max - min;
-}
-
-/** The interior's stair constants, as it publishes them for consumers (../interior/schemas/core-feasibility.json). */
-const STAIR_CONSTANTS: StairConstants = {
-  columnWidth: CORE_CONSTANTS.stairColumnWidth,
-  riserMin: CORE_CONSTANTS.stairRiserMin,
-  riserIdeal: CORE_CONSTANTS.stairRiserIdeal,
-  riserMax: CORE_CONSTANTS.stairRiserMax,
-  tread: CORE_CONSTANTS.stairTread,
-  maxRisersPerFlight: CORE_CONSTANTS.maxRisersPerFlight,
-  landing: CORE_CONSTANTS.stairLanding,
-  wallThickness: CORE_CONSTANTS.wallThickness,
-};
-
-interface StairConstants {
-  columnWidth: number;
-  riserMin: number;
-  riserIdeal: number;
-  riserMax: number;
-  tread: number;
-  maxRisersPerFlight: number;
-  landing: number;
-  wallThickness: number;
-}
-
-/**
- * The side of the square the stair head needs: the stair column width or the
- * shaft depth, whichever is longer, by the interior's own recipe (step 5 of
- * its core feasibility: the worst comfortable riser count per flight over
- * every one- or two-storey climb, times the tread, plus two landings and the
- * dividing wall, rounded up to a decimetre).
- */
-function stairHeadSide(floorHeights: number[]): number | null {
-  const c = STAIR_CONSTANTS;
-  if (floorHeights.length === 0) return null;
-  const climbs = [...floorHeights];
-  for (let i = 0; i + 1 < floorHeights.length; i++) climbs.push(floorHeights[i]! + floorHeights[i + 1]!);
-  let worst = 0;
-  for (const climb of climbs) {
-    const idealRisers = climb / c.riserIdeal;
-    const flights = 2 * Math.ceil(idealRisers / (2 * c.maxRisersPerFlight));
-    const minTotal = Math.ceil(climb / c.riserMax - 1e-9);
-    const maxTotal = Math.floor(climb / c.riserMin + 1e-9);
-    const minMultiple = Math.ceil(minTotal / flights) * flights;
-    const maxMultiple = Math.floor(maxTotal / flights) * flights;
-    if (minMultiple > maxMultiple) return null;
-    const nearest = Math.round(idealRisers / flights) * flights;
-    const totalRisers = Math.max(minMultiple, Math.min(maxMultiple, nearest));
-    worst = Math.max(worst, totalRisers / flights);
-  }
-  const depth = Math.ceil((worst * c.tread + 2 * c.landing + c.wallThickness) * 10 - 1e-9) / 10;
-  return quant(Math.max(c.columnWidth, depth) + STAIR_HEAD_MARGIN);
-}
-
-/** Room around the stair head inside the housing, so a stair a little off the housing centre still lands in it. */
-const STAIR_HEAD_MARGIN = 1.0;

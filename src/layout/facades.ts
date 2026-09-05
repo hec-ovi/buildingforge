@@ -352,8 +352,8 @@ function moduleFit(fit: WindowFit | null, clear: number, storefront: boolean): W
 
 
 /** Swinging leaves: one per person-width of opening, four at the widest portal. */
-function leafCount(width: number): number {
-  return Math.min(4, Math.max(1, Math.ceil(width / DOORS.maxLeafWidth - 1e-9)));
+function leafCount(width: number): NonNullable<Opening['leaves']> {
+  return Math.min(4, Math.max(1, Math.ceil(width / DOORS.maxLeafWidth - 1e-9))) as NonNullable<Opening['leaves']>;
 }
 
 /**

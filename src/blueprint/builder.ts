@@ -8,6 +8,7 @@ import { buildFacadeGrids } from '../layout/facadeGrid.ts';
 import { facadeMaterialPlan, buildingMaterialVariants, facadeSurfacePattern, styleSurfaces } from '../layout/materialPlan.ts';
 import { preferredVariantForKey } from '../materials/apply.ts';
 import type { MeshBuilder } from '../mesh/primitives.ts';
+import { coreAdjacency } from '../layout/coreAdjacency.ts';
 
 export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
   const topFloor = layout.floors[layout.floors.length - 1]!;
@@ -18,6 +19,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     .filter((entry): entry is [string, string] => entry[1] !== undefined));
   return {
     buildingId: layout.request.buildingId,
+    ...(layout.coreFrame ? { coreFrame: layout.coreFrame } : {}),
     seed: layout.request.seed,
     bounds: {
       footprint: layout.floors.find((f) => f.index === 0)!.outline,
@@ -54,6 +56,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
       },
       materialPlan: facadeMaterialPlan(layout.theme, layout.tier, layout.request.options!.exteriorStyle!),
       wallDepth: measureWallDepth(layout, mb),
+      coreAdjacency: coreAdjacency(layout.request),
       slabBand: {
         below: slabBandBelow(layout),
         above: 0,
