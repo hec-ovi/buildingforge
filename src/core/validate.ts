@@ -168,6 +168,10 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   out.balconyStyle = oneOf(o.balconyStyle, ['auto', 'bay', 'full'], 'options.balconyStyle') as never;
   out.openFront = oneOf(o.openFront, ['auto', 'on', 'off'], 'options.openFront') as never;
   out.entranceLayout = oneOf(o.entranceLayout, ['single', 'repeated'], 'options.entranceLayout') as never;
+  out.doorMotion = oneOf(o.doorMotion, ['swing', 'pocket'], 'options.doorMotion') as never;
+  if (out.doorMotion === 'pocket' && out.openFront === 'on') {
+    fail('options.openFront', 'an open frontage cannot carry the required pocket entrance');
+  }
   out.windows = oneOf(o.windows, ['auto', 'none'], 'options.windows') as never;
   out.adScreens = oneOf(o.adScreens, ['auto', 'on', 'off'], 'options.adScreens') as never;
   out.roofArtifacts = oneOf(o.roofArtifacts, ['auto', 'off'], 'options.roofArtifacts') as never;

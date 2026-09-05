@@ -4,6 +4,7 @@ import type { Layout } from '../layout/model.ts';
 import { materialSlot } from '../materials/slot.ts';
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
 import type { MeshBuilder, V3 } from './primitives.ts';
+import { openingEnvelope } from '../layout/openingEnvelope.ts';
 
 /** Fitted alpha decals cut by the same solid receiver boundaries as the walls. */
 export function meshWindowWeathering(builder: MeshBuilder, layout: Layout): void {
@@ -28,10 +29,11 @@ export function meshWindowWeathering(builder: MeshBuilder, layout: Layout): void
         const x0 = Math.max(0, receiver.x), x1 = Math.min(length, receiver.x + receiver.width);
         const y0 = Math.max(floor.elevation, receiver.y), y1 = Math.min(floor.elevation + floor.height, receiver.y + receiver.height);
         if (x1 - x0 < 0.05 || y1 - y0 < 0.05) continue;
-        const holes: Hole[] = floor.openings.filter((other) => other.edge === edge).map((other) =>
-          rectHole(other.offset - 0.055, floor.elevation + other.sill - 0.055,
-            other.width + 0.11,
-            other.height + (other.transom ? other.transom + 0.15 : 0) + 0.11));
+        const holes: Hole[] = floor.openings.filter((other) => other.edge === edge).map((other) => {
+          const field = openingEnvelope(other);
+          return rectHole(field.offset - 0.055, floor.elevation + field.sill - 0.055,
+            field.width + 0.11, field.height + (other.transom ? other.transom + 0.15 : 0) + 0.11);
+        });
         for (const cut of layout.carved) if (cut.aperture.face === edge) holes.push({ poly: cut.facePoly });
         const localHoles = holes.map((hole): Hole => ({ poly: hole.poly.map(([u, y]) => [u - x0, y]) }));
         const material = materialSlot(`${layout.theme}/${receiver.kind}/${layout.tier}`, receiver.variant);

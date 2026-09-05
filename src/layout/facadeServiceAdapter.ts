@@ -15,6 +15,7 @@ import { FACADE } from '../rules/tables.ts';
 import type { BuildingRequest, Blueprint } from '../types.ts';
 import type { FloorLayout, Style } from './model.ts';
 import type { Relief } from './relief.ts';
+import { openingEnvelope } from './openingEnvelope.ts';
 
 interface AdapterInput {
   request: BuildingRequest;
@@ -61,14 +62,15 @@ export function buildFacadeServiceDetails(input: AdapterInput): FacadeServicesOu
   const windows: WindowInput[] = [];
   for (const floor of above) {
     for (const opening of floor.openings) {
+      const field = openingEnvelope(opening);
       const face = { floor: floor.index, edge: opening.edge };
       const access = opening.kind === 'door' || opening.kind === 'balconyDoor' || opening.kind === 'openFront';
       reservations.push({
         id: `opening:${opening.id}`,
         face,
         kind: access ? 'access' : 'opening',
-        rect: [opening.offset, opening.sill, opening.offset + opening.width,
-          opening.sill + opening.height
+        rect: [field.offset, field.sill, field.offset + field.width,
+          field.sill + field.height
             + (opening.transom ? FACADE.curtainWall.transomGap + opening.transom : 0)],
         depth: access ? opening.door?.motion.clearDepth ?? opening.portal?.clearDepth ?? 0 : 0.1,
       });

@@ -5,6 +5,7 @@ import { ExteriorError } from '../core/errors.ts';
 import { edgeLength } from '../core/polygon.ts';
 import { fixedPanelAxis } from './module.ts';
 import type { Blueprint, Floor } from '../types.ts';
+import { openingEnvelope } from './openingEnvelope.ts';
 
 const PARTITION_THICKNESS = 0.12;
 const PARTITION_EDGE_CLEARANCE = 0.02;
@@ -21,7 +22,10 @@ export function buildFacadeGrids(
       const verticalAxis = fixedPanelAxis(floor.height, panelHeight);
       const occupied = merge(floor.openings
         .filter((opening) => opening.edge === edge)
-        .map((opening): [number, number] => [opening.offset, opening.offset + opening.width]));
+        .map((opening): [number, number] => {
+          const field = openingEnvelope(opening);
+          return [field.offset, field.offset + field.width];
+        }));
       const solid = complement(length, occupied);
       const partitionAnchors = solid
         .filter(([start, end]) => end - start >= MIN_PARTITION_SEAT - 1e-9)

@@ -81,6 +81,8 @@ export interface BuildingRequest {
     balconyStyle?: 'auto' | 'bay' | 'full';
     openFront?: 'auto' | 'on' | 'off';
     entranceLayout?: 'single' | 'repeated';
+    /** Ground public entrance mechanism; loading shutters, balcony and roof doors keep their own motion. */
+    doorMotion?: 'swing' | 'pocket';
     fireEscape?: boolean | 'auto' | 'on' | 'off';
     windows?: 'auto' | 'none';
     signage?: Signage;
@@ -102,13 +104,33 @@ export type OpeningKind = 'door' | 'window' | 'balconyDoor' | 'openFront' | 'ape
 export type CurtainState = 'open' | 'partial' | 'half' | 'closed80' | 'closed';
 export type DoorSet = 'plain' | 'layered' | 'glazed-grid' | 'industrial-ribbed' | 'illuminated';
 
+/** Face-local rectangle with its inward attachment depth, in metres. */
+export interface DoorEnvelope {
+  offset: number;
+  sill: number;
+  width: number;
+  height: number;
+  backDepth: number;
+}
+
+export interface PocketMotion {
+  kind: 'pocket';
+  maxTravel: number;
+  clearDepth: 0;
+  leaves: { leaf: 0 | 1; travelU: number; pocket: DoorEnvelope & { frontDepth: number } }[];
+}
+
 export interface DoorAssembly {
   set: DoorSet;
   frameWidth: number;
   frameDepth: number;
   recessDepth: number;
   thresholdHeight: number;
-  motion: {
+  /** Clear passage and interior lining attachment; required with pocket motion. */
+  clearance?: DoorEnvelope;
+  /** Complete opaque assembly envelope, including skins and fixed casing. */
+  cassette?: DoorEnvelope;
+  motion: PocketMotion | {
     kind: 'swing' | 'roller';
     maxTravel: number;
     clearDepth: number;
@@ -136,7 +158,7 @@ export interface Opening {
   spandrel?: number;
   /** curtain-wall bay: opaque head spandrel covering its ceiling plenum and the slab above */
   head?: number;
-  /** door and balconyDoor: swinging leaves, one node subtree each in the GLB */
+  /** door and balconyDoor: moving leaves, one node subtree each in the GLB */
   leaves?: 1 | 2 | 3 | 4;
   /** door and balconyDoor: exact fixed-frame and movement envelope selected for this building */
   door?: DoorAssembly;

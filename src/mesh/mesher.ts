@@ -16,10 +16,12 @@ import { meshVenetianBlind } from './venetianBlind.ts';
 import { meshCoveringHousing } from './coveringHousing.ts';
 import { meshUtilityBox } from './utilityBox.ts';
 import { meshDoorHardware } from './doorHardware.ts';
-import { meshDoorPanels } from './doorPanels.ts';
+import { meshDoorPanels, meshDoorRibs } from './doorPanels.ts';
+import { meshPocketDoor } from './pocketDoor.ts';
+import { openingEnvelope } from '../layout/openingEnvelope.ts';
 import { meshDoorSurround } from './doorSurround.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
-import { BALCONY, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
+import { BALCONY, DOORS, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
 import { fixedPanelAxis } from '../layout/module.ts';
@@ -41,12 +43,7 @@ const FRAME_BITE = 0.01;
 
 
 /** Leaf sections shared by every fitted door set. */
-const DOOR = {
-  leafThickness: 0.055,
-  stile: 0.11,
-  rail: 0.16,
-  paneThickness: 0.02,
-};
+const DOOR = DOORS.leaf;
 
 const DEFAULT_DOOR: DoorAssembly = {
   set: 'plain', frameWidth: 0.09, frameDepth: 0.05, recessDepth: REVEAL, thresholdHeight: 0,
@@ -104,7 +101,8 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
       for (const o of f.openings) {
         if (o.edge !== e) continue;
         if (o.kind === 'aperture') continue;
-        holes.push(rectHole(o.offset, f.elevation + o.sill, o.width, o.height));
+        const field = openingEnvelope(o);
+        holes.push(rectHole(field.offset, f.elevation + field.sill, field.width, field.height));
         if (o.transom) {
           holes.push(rectHole(o.offset, f.elevation + o.sill + o.height + FACADE.curtainWall.transomGap, o.width, o.transom));
         }
@@ -234,6 +232,10 @@ function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: 
     return;
   }
   if (o.kind === 'door' || o.kind === 'balconyDoor') {
+    if (o.door?.motion.kind === 'pocket') {
+      meshPocketDoor(mb, fr, f, o, mat);
+      return;
+    }
     const base = o.kind === 'door' ? `door:${o.id}` : `balcony:${o.id}`;
     mb.part(base); // the door as a whole: frame plus one node per leaf
     const frame = mb.part(`${base}/frame`, { parent: base });
@@ -370,7 +372,7 @@ function doorLeaves(
     if (!glazed) {
       slab(a, b, yb, yt, -assembly.recessDepth, t, frameMat);
       meshDoorPanels(sink, fr, a, b, yb, yt, assembly, frameMat);
-      doorLeafDetails(sink, fr, a, b, yb, yt, assembly, mat);
+      meshDoorRibs(sink, fr, a, b, yb, yt, assembly, mat('window-frame'));
       continue;
     }
     // Stiles and rails carry the leaf; the pane sits inside them, thinner, so no
@@ -380,23 +382,6 @@ function doorLeaves(
     slab(a + stile, b - stile, yb, yb + rail, -assembly.recessDepth, t, frameMat);
     slab(a + stile, b - stile, yt - rail, yt, -assembly.recessDepth, t, frameMat);
     slab(a + stile, b - stile, yb + rail, yt - rail, -assembly.recessDepth - (t - DOOR.paneThickness) / 2, DOOR.paneThickness, glassMat);
-  }
-}
-
-/** Repeated ribs are leaf-owned geometry, so they follow an industrial door through its travel. */
-function doorLeafDetails(
-  sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
-  assembly: DoorAssembly, mat: (k: string) => string,
-): void {
-  if (assembly.set !== 'industrial-ribbed') return;
-  const ribH = 0.035;
-  const depth = 0.025;
-  const front = -assembly.recessDepth + depth / 2;
-  const inset = Math.min(0.1, (u1 - u0) / 8);
-  for (let y = yb + 0.25; y < yt - 0.2; y += 0.28) {
-    sink.box(mat('window-frame'), at(fr, [(u0 + u1) / 2, y], front),
-      [fr.dir[0] * (u1 - u0 - 2 * inset) / 2, 0, fr.dir[1] * (u1 - u0 - 2 * inset) / 2],
-      [0, ribH / 2, 0], [fr.n[0] * depth / 2, 0, fr.n[1] * depth / 2], 'along');
   }
 }
 

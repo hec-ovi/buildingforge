@@ -3,6 +3,7 @@ import { edgeLength } from '../core/polygon.ts';
 import type { BuildingRequest, Opening } from '../types.ts';
 import type { FloorLayout, Style } from './model.ts';
 import { modulePanes } from './glazing.ts';
+import { openingEnvelope } from './openingEnvelope.ts';
 
 /** Shop glazing follows the entrance and leaves broad uninterrupted wall fields. */
 export function fitCommercialWindows(request: BuildingRequest, floors: FloorLayout[], style: Style): void {
@@ -44,7 +45,8 @@ export function fitCommercialWindows(request: BuildingRequest, floors: FloorLayo
 function freeSpans(start: number, end: number, reserved: Opening[]): [number, number][] {
   let spans: [number, number][] = end > start ? [[start, end]] : [];
   for (const opening of reserved) {
-    const lo = opening.offset - 1.5, hi = opening.offset + opening.width + 1.5;
+    const field = openingEnvelope(opening);
+    const lo = field.offset - 1.5, hi = field.offset + field.width + 1.5;
     spans = spans.flatMap(([a, b]): [number, number][] => {
       if (hi <= a || lo >= b) return [[a, b]];
       return [...(lo > a ? [[a, lo] as [number, number]] : []), ...(hi < b ? [[hi, b] as [number, number]] : [])];

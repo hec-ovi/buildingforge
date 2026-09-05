@@ -7,6 +7,7 @@ import { edgeLength, type P2 } from '../core/polygon.ts';
 import type { CarvedAperture, FloorLayout } from './model.ts';
 import type { Relief } from './relief.ts';
 import { anchorRect, type AnchorSeat } from './anchors.ts';
+import { openingEnvelope } from './openingEnvelope.ts';
 
 export interface Rect {
   u0: number; u1: number; y0: number; y1: number;
@@ -62,6 +63,7 @@ export function faceObstacles(
   for (const floor of floors) {
     if (floor.index < 0) continue;
     for (const o of floor.openings) {
+      const field = openingEnvelope(o);
       const glass = o.kind === 'window';
       const spandrel = o.spandrel ?? 0;
       const head = o.head ?? 0;
@@ -75,9 +77,9 @@ export function faceObstacles(
         });
       }
       push(o.edge, {
-        u0: o.offset, u1: o.offset + o.width,
-        y0: floor.elevation + o.sill + spandrel,
-        y1: floor.elevation + o.sill + o.height - head,
+        u0: field.offset, u1: field.offset + field.width,
+        y0: floor.elevation + field.sill + spandrel,
+        y1: floor.elevation + field.sill + field.height - head,
         what: `${glass ? 'glazing' : 'opening'} ${o.id}`,
         kind: glass ? 'glazing' : 'opening', depth: glass ? GLASS_PROUD : 0,
       });

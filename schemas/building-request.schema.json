@@ -93,6 +93,7 @@
     "options": {
       "type": "object",
       "additionalProperties": false,
+      "not": { "required": ["doorMotion", "openFront"], "properties": { "doorMotion": { "const": "pocket" }, "openFront": { "const": "on" } } },
       "properties": {
         "shape": { "enum": ["auto", "box", "rounded-box", "octagon", "cylinder", "pyramid", "setback"], "default": "auto", "description": "Omitted and auto produce rectangular plates. Other shapes require explicit selection; aperture-bound parcel faces stay exact." },
         "exteriorStyle": { "enum": ["residential-salvaged", "residential-weathered", "residential-modest", "premium-obsidian", "premium-office", "premium-mineral", "civic-utility", "civic-institutional", "civic-industrial"], "description": "Coordinated facade geometry and material set. Omission selects a compatible set by seed, use and tier." },
@@ -101,6 +102,7 @@
         "balconyStyle": { "enum": ["auto", "bay", "full"], "default": "auto", "description": "bay keeps one landing per door; full joins compatible doors on a face into one long band; auto selects by family, tier and seed" },
         "openFront": { "enum": ["auto", "on", "off"], "default": "auto", "description": "permanently open street frontage for eligible compact commerce, restaurant and coffee-shop buildings" },
         "entranceLayout": { "enum": ["single", "repeated"], "default": "single", "description": "one public entrance by default; repeated fits coordinated doors along eligible long frontages when no open frontage is selected" },
+        "doorMotion": { "enum": ["swing", "pocket"], "default": "swing", "description": "Ground public entrances only. Pocket requires complete opaque wall cassettes and replaces automatic open frontage; explicit openFront:on conflicts. Loading shutters, balcony doors and roof doors retain their own motion." },
         "fireEscape": { "oneOf": [{ "type": "boolean" }, { "enum": ["auto", "on", "off"] }], "default": "auto", "description": "auto lets the rule decide (a seeded few of the eligible buildings wear one); on forces it where the building is eligible, off never" },
         "windows": { "enum": ["auto", "none"], "default": "auto" },
         "signage": {

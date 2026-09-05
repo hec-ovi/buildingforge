@@ -1,0 +1,21 @@
+{
+  "seed": "pocket-contract",
+  "buildingId": "pocket-one-sided",
+  "theme": "cyberpunk",
+  "parcel": {
+    "footprint": [[71.125, -42.375], [95.71444053536439, -25.18897619698556], [81.96562149295283, -5.517423768694055], [57.376180957588446, -22.703447571708494]],
+    "accessPoint": [71.125, -42.375],
+    "maxHeight": 16,
+    "buildingGrid": { "origin": [71.125, -42.375], "angle": 0.61, "spacing": 0.5 }
+  },
+  "building": { "type": "residential", "tier": "poor", "floors": 3 },
+  "options": {
+    "doorMotion": "pocket",
+    "balconies": "off",
+    "fireEscape": "off",
+    "roofArtifacts": "off",
+    "facadeServices": "on",
+    "signage": { "mode": "marquee", "text": "ENTRY" },
+    "adScreens": "on"
+  }
+}

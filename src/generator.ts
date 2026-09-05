@@ -28,6 +28,8 @@ import { validateMastAssemblies } from './layout/mastAssembly.ts';
 import { buildFacadeServiceDetails } from './layout/facadeServiceAdapter.ts';
 import { buildMesh, buildOpeningMesh } from './mesh/mesher.ts';
 import { measureWallDepth } from './mesh/wallDepth.ts';
+import { openingEnvelope } from './layout/openingEnvelope.ts';
+import { checkPocketDoor } from './layout/pocketInvariants.ts';
 import { writeGlb } from './glb/writer.ts';
 import { buildBlueprint } from './blueprint/builder.ts';
 import { area, edgeLength, edgeNormal, pointSegmentDistance, type P2 } from './core/polygon.ts';
@@ -148,6 +150,7 @@ function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
   }
   for (const floor of layout.floors) {
     for (const o of floor.openings) {
+      checkPocketDoor(floor, o);
       const isDoor = o.kind === 'door' || o.kind === 'balconyDoor';
       if (isDoor !== (o.door !== undefined)) {
         throw new ExteriorError('E_INVARIANT',
@@ -300,10 +303,11 @@ function checkEdgeRuns(floor: Layout['floors'][number]): void {
     byEdge.set(o.edge, list);
   }
   for (const [edge, list] of byEdge) {
-    const sorted = [...list].sort((a, b) => a.offset - b.offset);
+    const sorted = [...list].sort((a, b) => openingEnvelope(a).offset - openingEnvelope(b).offset);
     for (let i = 1; i < sorted.length; i++) {
       const prev = sorted[i - 1]!, cur = sorted[i]!;
-      if (cur.offset < prev.offset + prev.width - 1e-6) {
+      const prevField = openingEnvelope(prev), curField = openingEnvelope(cur);
+      if (curField.offset < prevField.offset + prevField.width - 1e-6) {
         throw new ExteriorError('E_INVARIANT',
           `openings ${prev.id} and ${cur.id} overlap on edge ${edge} of floor ${floor.index}; exterior bug, report with the request`);
       }

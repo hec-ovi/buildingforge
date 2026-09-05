@@ -1,0 +1,21 @@
+{
+  "seed": "pocket-contract",
+  "buildingId": "pocket-paired",
+  "theme": "cyberpunk",
+  "parcel": {
+    "footprint": [[0, 0], [30, 0], [30, 24], [0, 24]],
+    "accessPoint": [15, 0],
+    "maxHeight": 16,
+    "buildingGrid": { "origin": [0, 0], "angle": 0, "spacing": 0.5 }
+  },
+  "building": { "type": "residential", "tier": "poor", "floors": 3 },
+  "options": {
+    "doorMotion": "pocket",
+    "balconies": "off",
+    "fireEscape": "off",
+    "roofArtifacts": "off",
+    "facadeServices": "on",
+    "signage": { "mode": "marquee", "text": "ENTRY" },
+    "adScreens": "on"
+  }
+}

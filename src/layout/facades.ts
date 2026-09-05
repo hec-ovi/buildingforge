@@ -21,6 +21,9 @@ import { balconiesEnabled } from './balconies.ts';
 import { selectedMaterialKey } from './materialPlan.ts';
 import { fitGroundWindows } from './groundFacade.ts';
 import { fitCommercialWindows } from './commercialFacade.ts';
+import { fitPocketDoor, fittedPocketLeaves, pocketInsidePlate } from './pocketDoor.ts';
+import { openingEnvelope } from './openingEnvelope.ts';
+import { ExteriorError } from '../core/errors.ts';
 
 // Sun azimuth quantized to 8 compass vectors: no runtime trig, identical output on every JS engine.
 const COMPASS: P2[] = [
@@ -130,7 +133,8 @@ export function buildFacades(
     // 2. Entrance and service doors on the ground floor (doors exist even window-less),
     // reserved before any window fill so the facade always keeps its entrance zone.
     if (isGround) {
-      const portal = placeOpenFront(req, tier, outline, streetEdges, level.height, openings, takenByEdge);
+      const portal = req.options?.doorMotion === 'pocket' ? undefined
+        : placeOpenFront(req, tier, outline, streetEdges, level.height, openings, takenByEdge);
       if (!portal) {
         const entrance = placeEntrance(req, family, tier, style, outline, streetEdges, level.height, openings, takenByEdge);
         if (entrance && req.options?.entranceLayout === 'repeated') {
@@ -515,7 +519,7 @@ function placeCurtainWallBays(
     // The skin runs on over a door as that door's transom light, so the entrance
     // never punches a blank panel through the glass. It belongs to the door
     // opening: one opening owns one stretch of an edge.
-    if (b.door) {
+    if (b.door && b.door.door?.motion.kind !== 'pocket') {
       const sill = b.door.sill + b.door.height + cw.transomGap;
       // Rounded down onto the grid, and stopping under the band that hides the
       // slab above, the way every bay on the face does.
@@ -623,6 +627,39 @@ function placeEntrance(
   const clear = clearHeight(groundHeight);
   const h = moduleWithin(entranceHeight(prop, style.entrancePick, clear), prop.entrance[0], Math.min(prop.entrance[1], clear));
 
+  if (req.options?.doorMotion === 'pocket') {
+    const set = entranceDoorSet(req.seed, family, tier, false);
+    for (const edge of candidates) {
+      if (edge >= outline.length) continue;
+      const length = edgeLength(outline, edge);
+      const origin = outline[edge]!, along = edgeDir(outline, edge);
+      const target = (req.parcel.accessPoint[0] - origin[0]) * along[0]
+        + (req.parcel.accessPoint[1] - origin[1]) * along[1];
+      const minimum = Math.ceil(DOORS.width.standard[0] / MODULE_U) * MODULE_U;
+      for (let width = onModule(wWant, 'near', MODULE_U); width >= minimum; width -= MODULE_U) {
+        const starts = Array.from({ length: Math.max(0, Math.floor((length - width) / MODULE_U) + 1) }, (_, i) => i * MODULE_U)
+          .sort((a, b) => Math.abs(a + width / 2 - target) - Math.abs(b + width / 2 - target) || a - b);
+        for (const offset of starts) {
+          const door = fitPocketDoor(set, offset, width, quant(h), (a, b, depth) =>
+            a >= OPENING.cornerMargin && b <= length - OPENING.cornerMargin
+              && fits(taken, edge, a, b) && pocketInsidePlate(outline, edge, a, b, depth));
+          if (!door || door.cassette!.height > groundHeight) continue;
+          const envelope = door.cassette!;
+          take(taken, edge, envelope.offset, envelope.offset + envelope.width);
+          const entrance: Opening = {
+            id: 'entrance', kind: 'door', doorRole: 'main', edge, offset, width, height: quant(h), sill: 0,
+            leaves: fittedPocketLeaves(door), door, material: `${req.theme}/door/${tier}`,
+          };
+          openings.push(entrance);
+          return entrance;
+        }
+      }
+    }
+    throw new ExteriorError('E_DOOR_FIT', 'no street face fits the required entrance passage and complete pocket cassette', {
+      buildingId: req.buildingId, motion: 'pocket', role: 'main', edges: candidates,
+    });
+  }
+
   for (const e of candidates) {
     if (e >= outline.length) continue;
     const L = edgeLength(outline, e);
@@ -674,7 +711,7 @@ function placeRepeatedEntrances(
   const length = edgeLength(outline, main.edge);
   const usable = length - 2 * OPENING.cornerMargin;
   const total = Math.min(DOORS.repeatedFrontage.maxDoors,
-    Math.floor(usable / DOORS.repeatedFrontage.minPitch));
+    Math.floor(usable / Math.max(DOORS.repeatedFrontage.minPitch, openingEnvelope(main).width + OPENING.minPier)));
   if (total < 2) return;
 
   const mainCenter = main.offset + main.width / 2;
@@ -690,14 +727,22 @@ function placeRepeatedEntrances(
       const start = wanted + shift;
       if (start < OPENING.cornerMargin - 1e-9
         || start + main.width > length - OPENING.cornerMargin + 1e-9) continue;
-      if (!fits(taken, main.edge, start, start + main.width)) continue;
-      take(taken, main.edge, start, start + main.width);
+      const door = main.door!.motion.kind === 'pocket'
+        ? fitPocketDoor(main.door!.set, start, main.width, main.height, (a, b, depth) =>
+          a >= OPENING.cornerMargin && b <= length - OPENING.cornerMargin && fits(taken, main.edge, a, b)
+            && pocketInsidePlate(outline, main.edge, a, b, depth))
+        : { ...main.door!, motion: { ...main.door!.motion } };
+      if (!door) continue;
+      const envelope = door.cassette ?? { offset: start, width: main.width };
+      if (!fits(taken, main.edge, envelope.offset, envelope.offset + envelope.width)) continue;
+      take(taken, main.edge, envelope.offset, envelope.offset + envelope.width);
       openings.push({
         ...main,
         id: `entrance:secondary:${placed}`,
         doorRole: 'secondary',
         offset: start,
-        door: { ...main.door!, motion: { ...main.door!.motion } },
+        door,
+        leaves: fittedPocketLeaves(door) ?? main.leaves,
       });
       placed++;
       break;

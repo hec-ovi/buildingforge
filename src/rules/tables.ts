@@ -87,6 +87,7 @@ export const TIER_WWR_SHIFT: Record<Tier, number> = { poor: -0.35, mid: 0, rich:
  */
 export const DOORS = {
   width: PROPORTIONS.entranceWidth,
+  leaf: { leafThickness: 0.055, stile: 0.11, rail: 0.16, paneThickness: 0.02, panelDepth: 0.018, ribDepth: 0.025 },
   /** one swinging leaf: wider than this and the entrance takes two */
   maxLeafWidth: 1.2,
   /** long public frontages repeat complete door sets at no less than this bay pitch */

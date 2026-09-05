@@ -100,28 +100,35 @@
                   "type": "integer",
                   "minimum": 1,
                   "maximum": 4,
-                  "description": "door and balconyDoor: swinging leaves; the GLB carries one node subtree per leaf, hinged on its own pivot"
+                  "description": "door and balconyDoor: moving leaves; the GLB carries one closed-pose node subtree per leaf"
                 },
                 "door": {
                   "type": "object",
                   "required": ["set", "frameWidth", "frameDepth", "recessDepth", "thresholdHeight", "motion"],
                   "additionalProperties": false,
                   "description": "present exactly on door and balconyDoor: the coordinated visible set, fixed frame dimensions and movement envelope",
+                  "allOf": [{
+                    "if": { "properties": { "motion": { "type": "object", "properties": { "kind": { "const": "pocket" } } } } },
+                    "then": { "required": ["clearance", "cassette"] },
+                    "else": { "not": { "anyOf": [{ "required": ["clearance"] }, { "required": ["cassette"] }] } }
+                  }],
                   "properties": {
                     "set": { "enum": ["plain", "layered", "glazed-grid", "industrial-ribbed", "illuminated"] },
                     "frameWidth": { "type": "number", "exclusiveMinimum": 0 },
                     "frameDepth": { "type": "number", "exclusiveMinimum": 0 },
                     "recessDepth": { "type": "number", "minimum": 0 },
                     "thresholdHeight": { "type": "number", "minimum": 0 },
+                    "clearance": { "$ref": "#/$defs/doorEnvelope", "description": "Usable passage and interior lining attachment plane; face U, floor-relative sill, positive depth inward." },
+                    "cassette": { "$ref": "#/$defs/doorEnvelope", "description": "Complete fixed assembly face rectangle and deepest opaque back skin; not a traversable wall opening." },
                     "motion": {
-                      "type": "object",
-                      "required": ["kind", "maxTravel", "clearDepth"],
-                      "additionalProperties": false,
-                      "properties": {
-                        "kind": { "enum": ["swing", "roller"] },
-                        "maxTravel": { "type": "number", "minimum": 0, "description": "degrees for swing, meters for roller" },
-                        "clearDepth": { "type": "number", "minimum": 0, "description": "depth reserved behind the threshold for movement" }
-                      }
+                      "oneOf": [{
+                        "type": "object", "required": ["kind", "maxTravel", "clearDepth"], "additionalProperties": false,
+                        "properties": {
+                          "kind": { "enum": ["swing", "roller"] },
+                          "maxTravel": { "type": "number", "minimum": 0, "description": "degrees for swing, meters for roller" },
+                          "clearDepth": { "type": "number", "minimum": 0, "description": "depth reserved behind the threshold for movement" }
+                        }
+                      }, { "$ref": "#/$defs/pocketMotion" }]
                     }
                   }
                 },
@@ -538,6 +545,39 @@
     }
   },
   "$defs": {
+    "doorEnvelope": {
+      "type": "object", "required": ["offset", "sill", "width", "height", "backDepth"], "additionalProperties": false,
+      "properties": {
+        "offset": { "type": "number", "minimum": 0 }, "sill": { "type": "number", "minimum": 0 },
+        "width": { "type": "number", "exclusiveMinimum": 0 }, "height": { "type": "number", "exclusiveMinimum": 0 },
+        "backDepth": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "pocketMotion": {
+      "type": "object", "required": ["kind", "maxTravel", "clearDepth", "leaves"], "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "pocket" }, "maxTravel": { "type": "number", "exclusiveMinimum": 0 }, "clearDepth": { "const": 0 },
+        "leaves": {
+          "type": "array", "minItems": 1, "maxItems": 2,
+          "items": {
+            "type": "object", "required": ["leaf", "travelU", "pocket"], "additionalProperties": false,
+            "properties": {
+              "leaf": { "type": "integer", "minimum": 0, "maximum": 1 },
+              "travelU": { "type": "number", "not": { "const": 0 }, "description": "Signed face-tangent translation from the authored closed pose to full open; multiply by open fraction." },
+              "pocket": {
+                "type": "object", "required": ["offset", "sill", "width", "height", "frontDepth", "backDepth"], "additionalProperties": false,
+                "description": "Free chamber containing the whole fully open leaf, finish and hardware. Positive depths point inward; opaque skins are outside these bounds.",
+                "properties": {
+                  "offset": { "type": "number", "minimum": 0 }, "sill": { "type": "number", "minimum": 0 },
+                  "width": { "type": "number", "exclusiveMinimum": 0 }, "height": { "type": "number", "exclusiveMinimum": 0 },
+                  "frontDepth": { "type": "number", "minimum": 0 }, "backDepth": { "type": "number", "exclusiveMinimum": 0 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "coreAdjacencyRule": {
       "type": "object", "required": ["role", "clearDepth"], "additionalProperties": false,
       "properties": {

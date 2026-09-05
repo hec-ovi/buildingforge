@@ -13,6 +13,8 @@
 - src/layout/roof.ts: roof equipment placed around the final stair enclosure; facade fittings freeze before opening geometry and core placement.
 - src/layout/structuralProfile.ts and src/mesh/structuralPier.ts: shared fitted pier dimensions and closed bevelled concrete geometry.
 - src/mesh/doorPanels.ts and src/mesh/doorSurround.ts: mapped solid leaf panels and closed bevelled entrance surrounds.
+- src/layout/pocketDoor.ts and src/mesh/pocketDoor.ts: fitted ground entrance cassettes, reserved leaf travel and opaque sliding assemblies.
+- src/layout/openingEnvelope.ts: complete opening assembly reservations shared by walls, glazing and facade attachments.
 - src/mesh/utilityBox.ts: fitted service cabinet lids, hardware and ventilation details.
 
 - src/mesh/lightFixture.ts: fitted metal housings with recessed diffusers and projecting protective caps.

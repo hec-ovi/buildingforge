@@ -1,6 +1,7 @@
 import { edgeLength } from '../core/polygon.ts';
 import type { Floor, Opening } from '../types.ts';
 import type { Family } from '../rules/families.ts';
+import { openingEnvelope } from './openingEnvelope.ts';
 
 /** Paired ground openings leave broad solid fields around the entrance. */
 export function fitGroundWindows(family: Family, floor: Floor): void {
@@ -19,8 +20,10 @@ export function fitGroundWindows(family: Family, floor: Floor): void {
     const width = Math.min(2, template.width);
     const firstRadius = entrance ? entrance.width / 2 + 2 + width / 2 : 3;
     const fits = (offset: number) => offset >= 1 && offset + width <= length - 1
-      && occupied.every((opening) => offset + width + 1 <= opening.offset
-        || offset >= opening.offset + opening.width + 1);
+      && occupied.every((opening) => {
+        const field = openingEnvelope(opening);
+        return offset + width + 1 <= field.offset || offset >= field.offset + field.width + 1;
+      });
     const accepted: Opening[] = [];
     for (let pair = 0; pair < 2; pair++) {
       const radius = firstRadius + pair * 7;

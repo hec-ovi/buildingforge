@@ -2,6 +2,7 @@ import type { P2 } from '../core/polygon.ts';
 import type { DoorAssembly } from '../types.ts';
 import type { FrameBasis } from './frameRing.ts';
 import type { PartSink, V3 } from './primitives.ts';
+import { DOORS } from '../rules/tables.ts';
 
 /** Pressed metal panels with clipped corners, a sloping rim and metre-scale UVs. */
 export function meshDoorPanels(
@@ -12,7 +13,7 @@ export function meshDoorPanels(
   const width = b - a, height = top - bottom;
   const margin = Math.min(0.1, width * 0.12);
   const base = -assembly.recessDepth - 0.002;
-  const front = -assembly.recessDepth + 0.018;
+  const front = -assembly.recessDepth + DOORS.leaf.panelDepth;
   const ranges: [number, number][] = assembly.set === 'layered'
     ? [[bottom + margin, bottom + height * 0.36], [bottom + height * 0.36 + 0.035, top - margin]]
     : [[bottom + margin, top - margin]];
@@ -22,6 +23,22 @@ export function meshDoorPanels(
     const outer = clippedRect(a + margin, b - margin, y0, y1, cut);
     const inner = clippedRect(a + margin + bevel, b - margin - bevel, y0 + bevel, y1 - bevel, cut * 0.85);
     panel(sink, basis, outer, inner, base, front, material);
+  }
+}
+
+/** Raised industrial sections remain within the shared moving finish depth. */
+export function meshDoorRibs(
+  sink: PartSink, basis: FrameBasis, u0: number, u1: number, bottom: number, top: number,
+  assembly: DoorAssembly, material: string,
+): void {
+  if (assembly.set !== 'industrial-ribbed') return;
+  const depth = DOORS.leaf.ribDepth, front = -assembly.recessDepth + depth / 2;
+  const inset = Math.min(0.1, (u1 - u0) / 8);
+  for (let y = bottom + 0.25; y < top - 0.2; y += 0.28) {
+    sink.box(material, [basis.v[0] + basis.dir[0] * (u0 + u1) / 2 + basis.n[0] * front, y,
+      basis.v[1] + basis.dir[1] * (u0 + u1) / 2 + basis.n[1] * front],
+    [basis.dir[0] * (u1 - u0 - 2 * inset) / 2, 0, basis.dir[1] * (u1 - u0 - 2 * inset) / 2],
+    [0, 0.035 / 2, 0], [basis.n[0] * depth / 2, 0, basis.n[1] * depth / 2], 'along');
   }
 }
 
