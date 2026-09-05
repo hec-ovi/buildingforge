@@ -40,7 +40,6 @@
 - src/materials: the materials box seen from here: canonical keys, authored GLB variant slots, theme index types, glTF material and sidedness building, and the sources that read the database from disk or over HTTP.
 - src/glb + src/blueprint: output writers. Depend on mesh, layout and materials.
 - schemas/, fixtures/, tests/: the contract surface and its proof, including the linked external antenna attachment schema.
-- reference coverage and cross-layer ownership: docs/REFERENCE-COVERAGE.md.
 - src/mesh/doorHardware.ts: fitted leaf-owned pull handles and levers; shares the door frame material.
 - src/mesh/spandrel.ts: closed opaque infill fitted from frame front to glass back, with matte column material.
 - src/mesh/venetianBlind.ts: fitted office slats and supports at the published closure percentage.
