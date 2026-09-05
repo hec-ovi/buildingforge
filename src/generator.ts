@@ -11,14 +11,14 @@ import {
 import { buildStyle } from './layout/style.ts';
 import { selectExteriorStyle, EXTERIOR_STYLES } from './layout/exteriorStyle.ts';
 import { buildMassing } from './layout/massing.ts';
-import { coreAxis } from './layout/plate.ts';
+import { fitPlateCore } from './layout/plateCore.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
 import { buildFacades } from './layout/facades.ts';
-import { buildBalconyBands } from './layout/balconies.ts';
+import { balconiesEnabled, buildBalconyBands } from './layout/balconies.ts';
 import { buildRelief } from './layout/relief.ts';
 import { mountAnchors } from './layout/anchors.ts';
 import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.ts';
-import { bestCoreFit, coreRects, facadeDepth } from './layout/core.ts';
+import { coreRects, facadeDepth } from './layout/core.ts';
 import { acClusterName } from './layout/acUnits.ts';
 import { buildFeatures } from './layout/features.ts';
 import { validateMastAssemblies } from './layout/mastAssembly.ts';
@@ -37,7 +37,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   const tier = req.building.tier;
   const exteriorStyle = selectExteriorStyle(req, family, tier);
   const policy = EXTERIOR_STYLES[exteriorStyle];
-  const shape = !req.options?.shape || req.options.shape === 'auto' ? policy.shape ?? 'auto' : req.options.shape;
+  const shape = !req.options?.shape || req.options.shape === 'auto' ? 'box' : req.options.shape;
   req = { ...req, options: { ...req.options, exteriorStyle, shape } };
   let facade = policy.facade;
   if (facade === 'curtain-wall' && ['commerce', 'mall'].includes(req.building.type)) facade = 'glass';
@@ -47,13 +47,19 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   const style = buildStyle(req.seed, family, tier, req.building.floors, facade);
   const facadeInset = facadeDepth(style.facade.kind);
   const stack = buildFloorStack(req, family, tier, style);
-  const massing = buildMassing(
-    req, family, tier, style.balconyDepth, facadeInset, stack.levels.map((floor) => floor.height));
-  const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
-  const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
-  const balconyBands = buildBalconyBands(req, family, tier, style, facades.floors);
+  const balconyInset = balconiesEnabled(req, family, tier) ? style.balconyDepth : 0;
+  const floorHeights = stack.levels.map((floor) => floor.height);
+  const planFacades = (inset: number) => {
+    const massing = buildMassing(req, inset, facadeInset, floorHeights);
+    const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
+    const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
+    return { massing, streetEdges, facades, balconyBands: buildBalconyBands(req, family, tier, style, facades.floors) };
+  };
+  let plan = planFacades(balconyInset);
+  if (balconyInset > 0 && !plan.balconyBands.some((band) => band.depth > 0) && !req.apertures?.length) plan = planFacades(0);
+  const { massing, streetEdges, facades, balconyBands } = plan;
   const corePlate = inspectCorePlate(
-    facades.floors, facadeInset, facades.floors.filter((floor) => floor.index >= 0).length);
+    facades.floors, facadeInset, facades.floors.filter((floor) => floor.index >= 0).length, massing.rectangular);
   const relief = buildRelief(style, facades.floors, facades.carved);
   const obstacles = faceObstacles(facades.floors, facades.carved, facades.anchors, relief, stack.top);
   const anchors = mountAnchors(facades.anchors, massing.groundOutline, obstacles);
@@ -251,13 +257,12 @@ function checkLights(layout: Layout): void {
  * cannot is named here rather than at assembly.
  */
 function inspectCorePlate(
-  floors: FloorLayout[], facadeInset: number, aboveGround: number,
+  floors: FloorLayout[], facadeInset: number, aboveGround: number, rectangular: boolean,
 ): { axis: P2; error: ExteriorError | null } {
   const ground = floors.find((f) => f.index === 0)!.outline;
-  const principalAxis = coreAxis(ground);
   const rects = coreRects(floors.map((floor) => floor.height), aboveGround, area(ground));
-  const { fits, reached, axis } = bestCoreFit(
-    floors.map((floor) => floor.outline), principalAxis, facadeInset, rects);
+  const outlines = floors.map((floor) => floor.outline);
+  const { fits, reached, axis } = fitPlateCore(outlines, facadeInset, rects, rectangular);
   if (fits) return { axis, error: null };
   return {
     axis,

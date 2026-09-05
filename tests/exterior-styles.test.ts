@@ -36,14 +36,13 @@ it('exports all nine coordinated style bindings and their matching geometry thro
     expect(windows.length).toBeGreaterThan(0);
     expect(windows.every((window) => window.material === `cyberpunk/${style.surfaces.glass.kind}/${request.building.tier}`)).toBe(true);
     if (style.surfaces.curtain.variant === 'slat') expect(windows.every((window) => window.curtain?.style === 'venetian-blind')).toBe(true);
-    if (style.id === 'premium-mineral') expect(blueprint.floors[0]!.outline.length).toBeGreaterThanOrEqual(36);
-    if (style.id === 'premium-obsidian') expect(blueprint.floors[0]!.outline).toHaveLength(4);
+    for (const floor of blueprint.floors) expect(floor.outline).toHaveLength(4);
     signatures.add(JSON.stringify([blueprint.facade.style, blueprint.facade.materialPlan, selected]));
   }
   expect(signatures.size).toBe(9);
 }, 15000);
 
-it('validates explicit style IDs and preserves explicit sharp shapes within rounded styles', async () => {
+it('validates explicit style IDs and keeps material selection independent of shape', async () => {
   await expect(generate({ ...source, options: { exteriorStyle: 'unlisted' } }, keys)).rejects.toMatchObject({ code: 'E_SCHEMA' });
   const { blueprint } = await generate({ ...source, options: { exteriorStyle: 'premium-mineral', shape: 'box' } }, keys);
   expect(blueprint.facade.exteriorStyle).toBe('premium-mineral');

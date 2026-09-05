@@ -7,6 +7,14 @@ import type { FacadeServicesOutput, WindowDamage } from './facade-services/index
 export type P2 = [number, number];
 export type P3 = [number, number, number];
 
+export interface BuildingGrid {
+  origin: P2;
+  /** Rotation in radians. */
+  angle: number;
+  /** Construction cell size in metres. */
+  spacing: number;
+}
+
 export type ExteriorStyleId =
   | 'residential-salvaged' | 'residential-weathered' | 'residential-modest'
   | 'premium-obsidian' | 'premium-office' | 'premium-mineral'
@@ -44,7 +52,7 @@ export interface CurtainOverride {
 export interface BuildingRequest {
   seed: string;
   buildingId: string;
-  parcel: { footprint: P2[]; accessPoint: P2; maxHeight: number };
+  parcel: { footprint: P2[]; accessPoint: P2; maxHeight: number; buildingGrid?: BuildingGrid };
   building: {
     type: AtlasType;
     tier: Tier;

@@ -1410,6 +1410,7 @@ describe('core plate', () => {
     }, KEYS);
 
     for (const floor of blueprint.floors) {
+      expect(floor.outline).toHaveLength(4);
       for (let edge = 0; edge < floor.outline.length; edge++) {
         const a = floor.outline[edge]!;
         const b = floor.outline[(edge + 1) % floor.outline.length]!;
@@ -1455,16 +1456,13 @@ describe('core plate', () => {
       await generate(thin, KEYS);
     } catch (err) {
       const e = err as { message: string };
-      expect(e.message).toMatch(/reaches [\d.]+ m of plate/);
-      expect(e.message).toMatch(/x 8 m a .* core needs/);
+      expect(e.message).toMatch(/construction-grid rectangle/);
+      expect(e.message).toMatch(/x 8 m .*core/);
     }
   });
 
-  it('accepts the skewed p34 plate using the shared rotated-frame recipe', async () => {
-    const { blueprint } = await generate(rotatedCore, KEYS);
-    expect(blueprint.floors).toHaveLength(1);
-    expect(blueprint.floors[0]!.height).toBe(4.5);
-    expect(blueprint.floors[0]!.outline).toEqual((rotatedCore.parcel as { footprint: number[][] }).footprint);
+  it('requires a complete rectangular core plate in an aperture-free skewed parcel', async () => {
+    await expect(generate(rotatedCore, KEYS)).rejects.toMatchObject({ code: 'E_CORE_PLATE' });
   });
 });
 
@@ -1615,7 +1613,10 @@ describe('facade panels', () => {
       parcel: { footprint: [[0, 0], [32, 0], [32, 20], [0, 20]], accessPoint: [16, -2], maxHeight: 9 },
     };
     const poor = { ...tallResidential, seed: 'panel:poor', buildingId: 'panel-poor', building: { type: 'residential', tier: 'poor', floors: 16 } };
-    for (const req of [rotatedCore, stepped, tallResidential, office, storage, factory, poor]) {
+    const rotated = { ...tallResidential, parcel: { ...tallResidential.parcel,
+      footprint: tallResidential.parcel.footprint.map(([x, z]) => [x! * Math.cos(0.3) - z! * Math.sin(0.3), x! * Math.sin(0.3) + z! * Math.cos(0.3)]),
+    } };
+    for (const req of [rotated, stepped, tallResidential, office, storage, factory, poor]) {
       const { blueprint } = await generate(req, KEYS);
       expect(blueprint.facade.panelPattern.width).toBe(2);
       expect(blueprint.facade.panelPattern.height).toBe(1);
@@ -2376,7 +2377,7 @@ describe('errors', () => {
     })).toBe('E_APERTURE_OVERLAP');
     expect(await code({
       seed: 'tiny-shop', buildingId: 'p999',
-      parcel: { footprint: [[0, 0], [6, 0], [6, 8], [0, 8]], accessPoint: [3, -1], maxHeight: 6 },
+      parcel: { footprint: [[0, 0], [12, 0], [12, 12], [0, 12]], accessPoint: [6, -1], maxHeight: 6 },
       building: { type: 'coffee_shop', tier: 'mid', floors: 1 },
       theme: 'cyberpunk',
       options: { signage: { mode: 'marquee', text: 'AN ABSURDLY LONG COFFEE MARQUEE TEXT!!!' } },

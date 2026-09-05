@@ -28,7 +28,7 @@ export function facadeDepth(style: string): number {
  * standard, compact, then a stair-only walkup where its floor cap permits it.
  */
 export function coreRects(
-  floorHeights: readonly number[], aboveGroundFloors: number, groundArea: number, aim = false,
+  floorHeights: readonly number[], aboveGroundFloors: number, groundArea: number,
 ): CoreRect[] {
   const stairDepth = stairShaftDepth(floorHeights);
   const two = groundArea > CONSTANTS.twoStairsAreaOver || aboveGroundFloors > CONSTANTS.twoStairsFloorsOver;
@@ -36,20 +36,19 @@ export function coreRects(
     + (two ? stairDepth : 0) + CONSTANTS.margin;
   const compactFixed = CONSTANTS.stairColumnWidth * (two ? 2 : 1)
     + CONSTANTS.riserShaft + CONSTANTS.serviceStub + CONSTANTS.margin;
-  const slack = aim ? CONSTANTS.snap : 0;
   const crossDepth = CONSTANTS.minStripDepth + CONSTANTS.corridorWidth + CONSTANTS.elevatorShaft;
   const walkupMode = two ? 'walkup with two stairs' : 'walkup';
   const out: CoreRect[] = [
-    { length: rowFixed + CONSTANTS.elevatorShaft + slack, depth: crossDepth + slack, mode: 'standard lift core' },
+    { length: rowFixed + CONSTANTS.elevatorShaft, depth: crossDepth, mode: 'standard lift core' },
     {
-      length: compactFixed + CONSTANTS.elevatorShaft + slack,
-      depth: CONSTANTS.minStripDepth + CONSTANTS.corridorWidth + stairDepth + slack,
-      columnDepth: stairDepth + slack,
+      length: compactFixed + CONSTANTS.elevatorShaft,
+      depth: CONSTANTS.minStripDepth + CONSTANTS.corridorWidth + stairDepth,
+      columnDepth: stairDepth,
       mode: 'compact lift core',
     },
   ];
   if (aboveGroundFloors <= CONSTANTS.walkupMaxFloors) {
-    out.push({ length: rowFixed + slack, depth: crossDepth + slack, mode: walkupMode });
+    out.push({ length: rowFixed, depth: crossDepth, mode: walkupMode });
   }
   return out;
 }

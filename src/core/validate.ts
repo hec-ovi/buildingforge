@@ -5,7 +5,7 @@ import { ExteriorError } from './errors.ts';
 import { FAMILY, type AtlasType, type Tier } from '../rules/families.ts';
 import { RULES, SIGNAGE } from '../rules/tables.ts';
 import { area, selfIntersects, edgeDir, edgeNormal } from './polygon.ts';
-import type { Aperture, BuildingRequest, P2 } from '../types.ts';
+import type { Aperture, BuildingGrid, BuildingRequest, P2 } from '../types.ts';
 import { EXTERIOR_STYLE_IDS } from '../layout/exteriorStyle.ts';
 
 const TYPES: AtlasType[] = ['residential', 'hotel', 'offices', 'corpo', 'hospital', 'clinic', 'police', 'military', 'factory', 'commerce', 'mall', 'restaurant', 'coffee_shop'];
@@ -48,6 +48,22 @@ export function validateRequest(raw: unknown): BuildingRequest {
   const accessPoint = p2(parcelRaw.accessPoint, 'parcel.accessPoint');
   const maxHeight = num(parcelRaw.maxHeight, 'parcel.maxHeight');
   if (maxHeight <= 0) fail('parcel.maxHeight', 'must be positive');
+  let buildingGrid: BuildingGrid | undefined;
+  if (parcelRaw.buildingGrid !== undefined) {
+    const rawGrid = parcelRaw.buildingGrid;
+    if (typeof rawGrid !== 'object' || rawGrid === null || Array.isArray(rawGrid)) {
+      fail('parcel.buildingGrid', 'expected object');
+    }
+    const grid = rawGrid as Record<string, unknown>;
+    const origin = p2(grid.origin, 'parcel.buildingGrid.origin');
+    const angle = num(grid.angle, 'parcel.buildingGrid.angle');
+    const spacing = num(grid.spacing, 'parcel.buildingGrid.spacing');
+    if (spacing <= 0) fail('parcel.buildingGrid.spacing', 'must be positive');
+    for (const key of Object.keys(grid)) {
+      if (!['origin', 'angle', 'spacing'].includes(key)) fail(`parcel.buildingGrid.${key}`, 'unknown property');
+    }
+    buildingGrid = { origin, angle, spacing };
+  }
 
   const bRaw = (r.building ?? fail('building', 'required')) as Record<string, unknown>;
   const type = str(bRaw.type, 'building.type') as AtlasType;
@@ -92,7 +108,7 @@ export function validateRequest(raw: unknown): BuildingRequest {
 
   return {
     seed, buildingId,
-    parcel: { footprint, accessPoint, maxHeight },
+    parcel: { footprint, accessPoint, maxHeight, ...(buildingGrid ? { buildingGrid } : {}) },
     building: { type, tier, floors, basements, floorKinds },
     theme, apertures, options,
   };

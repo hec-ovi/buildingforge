@@ -3,10 +3,20 @@
 
 import { Rng } from '../core/rng.ts';
 import { edgeDir, edgeLength, edgeNormal, quant, ringInsidePolygon, type P2 } from '../core/polygon.ts';
-import { BALCONY, OPENING } from '../rules/tables.ts';
+import { BALCONY, OPENING, RULES } from '../rules/tables.ts';
 import type { BalconyBand, BuildingRequest, Opening } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { FloorLayout, Style } from './model.ts';
+
+/** Shared eligibility before plate reservation and facade placement. */
+export function balconiesEnabled(req: BuildingRequest, family: Family, tier: Tier): boolean {
+  const option = req.options?.balconies ?? 'auto';
+  const officeAuto = family === 'office' && (tier === 'rich' || tier === 'high_rich')
+    && new Rng(req.seed, 'office-balconies').chance(0.45);
+  return req.building.floors > 1 && req.options?.windows !== 'none'
+    && RULES[family].balconies && option !== 'off'
+    && (option === 'on' || family === 'residential' || family === 'hotel' || officeAuto);
+}
 
 export function buildBalconyBands(
   req: BuildingRequest, family: Family, tier: Tier, style: Style, floors: FloorLayout[],

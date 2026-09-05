@@ -11,7 +11,6 @@ export const EXTERIOR_STYLE_IDS: ExteriorStyleId[] = [
 
 interface Policy {
   facade: Style['facade']['kind'];
-  shape?: 'rounded-box' | 'box';
   covering: 'venetian-blind' | 'roller-shade';
 }
 
@@ -19,12 +18,12 @@ export const EXTERIOR_STYLES: Record<ExteriorStyleId, Policy> = {
   'residential-salvaged': { facade: 'megablock', covering: 'roller-shade' },
   'residential-weathered': { facade: 'panel', covering: 'roller-shade' },
   'residential-modest': { facade: 'panel', covering: 'venetian-blind' },
-  'premium-obsidian': { facade: 'curtain-wall', shape: 'box', covering: 'roller-shade' },
+  'premium-obsidian': { facade: 'curtain-wall', covering: 'roller-shade' },
   'premium-office': { facade: 'curtain-wall', covering: 'venetian-blind' },
-  'premium-mineral': { facade: 'panel', shape: 'rounded-box', covering: 'venetian-blind' },
-  'civic-utility': { facade: 'panel', shape: 'box', covering: 'venetian-blind' },
-  'civic-institutional': { facade: 'panel', shape: 'box', covering: 'venetian-blind' },
-  'civic-industrial': { facade: 'megablock', shape: 'box', covering: 'venetian-blind' },
+  'premium-mineral': { facade: 'panel', covering: 'venetian-blind' },
+  'civic-utility': { facade: 'panel', covering: 'venetian-blind' },
+  'civic-institutional': { facade: 'panel', covering: 'venetian-blind' },
+  'civic-industrial': { facade: 'megablock', covering: 'venetian-blind' },
 };
 
 export function selectExteriorStyle(request: BuildingRequest, family: Family, tier: Tier): ExteriorStyleId {

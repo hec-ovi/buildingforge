@@ -17,6 +17,7 @@ import type { Massing } from './massing.ts';
 import type { Stack } from './floorStack.ts';
 import type { CarvedAperture, FloorLayout, Style } from './model.ts';
 import { EXTERIOR_STYLES } from './exteriorStyle.ts';
+import { balconiesEnabled } from './balconies.ts';
 import { selectedMaterialKey } from './materialPlan.ts';
 import { fitGroundWindows } from './groundFacade.ts';
 import { fitCommercialWindows } from './commercialFacade.ts';
@@ -41,14 +42,9 @@ export function buildFacades(
 ): FacadeResult {
   const streetEdge = streetEdges[0] as number;
   const seed = req.seed;
-  const rules = RULES[family];
   const prop = proportionsOf(family);
   const noWindows = req.options?.windows === 'none';
-  const balconiesOpt = req.options?.balconies ?? 'auto';
-  const officeAuto = family === 'office' && (tier === 'rich' || tier === 'high_rich')
-    && new Rng(seed, 'office-balconies').chance(0.45);
-  const balconiesOn = rules.balconies && balconiesOpt !== 'off'
-    && (balconiesOpt === 'on' || family === 'residential' || family === 'hotel' || officeAuto);
+  const balconiesOn = balconiesEnabled(req, family, tier);
   const profile = req.options?.curtains?.profile ?? 'day';
   const sun = COMPASS[Math.round(((req.options?.curtains?.sunAzimuthDeg ?? 180) % 360) / 45) % 8] as P2;
   const curtainOverrides = new Map(
