@@ -183,6 +183,8 @@ function signOnFace(
         uMin: SIGNAGE.edgeMargin, uMax: L - SIGNAGE.edgeMargin,
         yMin: bladeBottom, yMax: Math.max(bladeBottom + height, top - 0.8),
         margin: SIGNAGE.clearance, minScale: 0.6,
+        sizeAtScale: (scale) => ({ width: SIGNAGE.bladeThickness,
+          height: quant(cells * quant(cell * scale) + 2 * SIGNAGE.framePad) }),
       });
       if (!spot) return false;
       const cellSize = quant(Math.min(cell, (spot.height - 2 * SIGNAGE.framePad) / cells));
@@ -195,7 +197,7 @@ function signOnFace(
         cellSize, letterHeight,
         glyphCase: { size: caseSize, depth: SIGNAGE.glyphCase.depth, inset: SIGNAGE.glyphCase.inset },
         center: facePoint(ground, e, quant(spot.u), quant(spot.y)),
-        width: SIGNAGE.bladeThickness, height: quant(cells * cellSize + 2 * SIGNAGE.framePad),
+        width: spot.width, height: spot.height,
         standoff: quant(spot.standoff), depth: quant(spot.standoff + depth), normal,
       });
       return true;
@@ -209,6 +211,10 @@ function signOnFace(
       uMin: SIGNAGE.edgeMargin, uMax: L - SIGNAGE.edgeMargin,
       yMin: SIGNAGE.minMarqueeSill, yMax: Math.max(SIGNAGE.minMarqueeSill + wantHeight, Math.min(top - 0.5, groundHeight + 4)),
       margin: SIGNAGE.clearance, minScale: SIGNAGE.minCellSize / cell,
+      sizeAtScale: (scale) => {
+        const scaledCell = quant(Math.max(SIGNAGE.minCellSize, cell * scale));
+        return { width: quant(cells * scaledCell), height: quant(scaledCell + 2 * SIGNAGE.framePad) };
+      },
     });
     if (!spot) return false;
     const cellSize = quant(Math.max(SIGNAGE.minCellSize, spot.width / cells));
@@ -222,7 +228,7 @@ function signOnFace(
         inset: SIGNAGE.glyphCase.inset,
       },
       center: facePoint(ground, e, quant(spot.u), quant(spot.y)),
-      width: quant(cells * cellSize), height: quant(cellSize + 2 * SIGNAGE.framePad),
+      width: spot.width, height: spot.height,
       standoff: quant(spot.standoff), depth: quant(spot.standoff + SIGNAGE.marqueeProud), normal,
     });
     return true;

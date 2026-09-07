@@ -38,6 +38,8 @@ export interface ScanRequest {
   margin: number;
   /** how far the width may shrink before the placement is given up, as a fraction */
   minScale: number;
+  /** Complete authored dimensions, including fixed frames, at each scale. */
+  sizeAtScale?: (scale: number) => { width: number; height: number };
 }
 
 export interface Placement {
@@ -144,8 +146,8 @@ export function findClearRect(rects: Rect[] | undefined, req: ScanRequest): Plac
   ];
   for (const forbidden of passes) {
     for (const s of scales) {
-      const width = req.width * s;
-      const height = req.height * s;
+      const { width, height } = req.sizeAtScale?.(s)
+        ?? { width: req.width * s, height: req.height * s };
       if (req.uMax - req.uMin < width || req.yMax - req.yMin < height) continue;
       const uc = clamp(req.u, req.uMin + width / 2, req.uMax - width / 2);
       const yc = clamp(req.y, req.yMin + height / 2, req.yMax - height / 2);
