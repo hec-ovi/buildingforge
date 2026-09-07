@@ -12,7 +12,7 @@ export function coreAdjacency(request: BuildingRequest): CoreAdjacency {
   };
 }
 
-/** Every potential opening must fit before its actual span is known. */
+/** Preferred perimeter allowance while actual opening spans are unknown. */
 export function corePerimeterClearance(request: BuildingRequest): number {
   const policy = coreAdjacency(request);
   const glazingDepth = request.options?.windows === 'none' ? 0 : policy.glazing.clearDepth;

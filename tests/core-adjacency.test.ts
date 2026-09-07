@@ -51,6 +51,23 @@ it('hands the actual opening-aware stair placement to the roof and keeps its con
   expect(Math.min(alignment, Math.abs(alignment - 1))).toBeLessThan(1e-8);
 });
 
+it('fits the default circulation clearance to actual windows on a narrow complete city parcel', async () => {
+  const parcel: BuildingRequest = {
+    seed: 'ddb2d4eb-eeed-48eb-8fc8-b831236fade2:p35', buildingId: 'p35', theme: 'cyberpunk',
+    parcel: { footprint: [[128, 248], [139, 248], [139, 365], [128, 365]],
+      accessPoint: [141.25, 367], maxHeight: 22.2,
+      buildingGrid: { origin: [0, 0], angle: 0, spacing: 0.5 } },
+    building: { type: 'residential', tier: 'high_rich', floors: 6 },
+    apertures: [], options: { glb: 'merged' },
+  };
+  const { blueprint, glb } = await generate(parcel, keys);
+  expect(glb.byteLength).toBeGreaterThan(0);
+  expect(blueprint.bounds.footprint).toEqual(parcel.parcel.footprint);
+  expect(blueprint.facade.coreAdjacency).toEqual(feasibility.constants.coreAdjacency);
+  expect(blueprint.floors.every((floor) => floor.openings.some((opening) => opening.kind === 'window'))).toBe(true);
+  expect(coreFeasibility(JSON.parse(JSON.stringify(blueprint)))).toMatchObject({ fits: true, mode: 'standard' });
+});
+
 it('rejects malformed rules and a requested clearance that has no complete core plate', async () => {
   const glazing = { role: 'circulation', clearDepth: 1.2 };
   const override = { floor: 0, opening: 'entry', ...glazing };

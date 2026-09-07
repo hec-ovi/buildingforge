@@ -51,12 +51,13 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   if (facade === 'curtain-wall' && (family === 'residential' || family === 'hotel')
     && req.options?.balconies === 'on' && req.options.balconyStyle === 'full') facade = 'glass';
   const style = buildStyle(req.seed, family, tier, req.building.floors, facade);
-  const facadeInset = facadeDepth(style.facade.kind) + corePerimeterClearance(req);
+  const facadeInset = facadeDepth(style.facade.kind);
+  const preferredCoreInset = facadeInset + corePerimeterClearance(req);
   const stack = buildFloorStack(req, family, tier, style);
   const balconyInset = balconiesEnabled(req, family, tier) ? style.balconyDepth : 0;
   const floorHeights = stack.levels.map((floor) => floor.height);
   const planFacades = (inset: number) => {
-    const massing = buildMassing(req, inset, facadeInset, floorHeights);
+    const massing = buildMassing(req, inset, facadeInset, preferredCoreInset, floorHeights);
     const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
     const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
     return { massing, streetEdges, facades, balconyBands: buildBalconyBands(req, family, tier, style, facades.floors) };

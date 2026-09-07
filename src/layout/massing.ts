@@ -36,7 +36,7 @@ export interface Massing {
 }
 
 export function buildMassing(
-  req: BuildingRequest, balconyInset: number, facadeInset: number,
+  req: BuildingRequest, balconyInset: number, facadeInset: number, preferredCoreInset: number,
   floorHeights: readonly number[],
 ): Massing {
   const rng = new Rng(req.seed, 'massing');
@@ -47,10 +47,10 @@ export function buildMassing(
   // Every plate has to host the interior's core rectangle; the massing picks a
   // box that does rather than leaving the assembler to find out it cannot.
   const rects = coreRects(floorHeights, floors, area(parcel));
-  const holdsCore = (ring: P2[], axis?: P2) => {
+  const holdsCore = (ring: P2[], axis?: P2, inset = preferredCoreInset) => {
     const choices = coreRects(floorHeights, floors, area(ring));
-    if (area(ring) < Math.min(...choices.map((r) => (r.length + 2 * facadeInset) * (r.depth + 2 * facadeInset)))) return false;
-    return fitPlateCore([ring], facadeInset, choices, rectangular, axis).fits !== null;
+    if (area(ring) < Math.min(...choices.map((r) => (r.length + 2 * inset) * (r.depth + 2 * inset)))) return false;
+    return fitPlateCore([ring], inset, choices, rectangular, axis).fits !== null;
   };
 
   let shape = (req.options?.shape ?? 'auto') as Shape | 'auto';
@@ -64,7 +64,10 @@ export function buildMassing(
   // Balconies protrude beyond the outline but must stay inside the parcel.
   const needInset = balconyInset > 0 && !hasApertures;
   const grid = new PlateGrid(parcel, req.parcel.buildingGrid);
-  const base = baseOutline(shape, parcel, rng, needInset ? balconyInset + 0.1 : 0, hasApertures, holdsCore, grid);
+  // A perimeter allowance is sufficient for adjacency, but exact opening spans
+  // can admit a core on a narrower complete plate. The shared solver checks it.
+  const base = baseOutline(shape, parcel, rng, needInset ? balconyInset + 0.1 : 0, hasApertures, holdsCore, grid)
+    ?? grid.fit(parcel, 0, (ring) => holdsCore(ring, undefined, facadeInset));
   if (!base) {
     const { reached } = bestCoreFit([parcel], coreAxis(parcel), facadeInset, rects);
     throw new ExteriorError('E_CORE_PLATE',
@@ -73,7 +76,7 @@ export function buildMassing(
   }
   const sharedRects = coreRects(floorHeights, floors, area(base));
   const holdsStackCore = (ring: P2[], axis?: P2) =>
-    fitPlateCore([base, ring], facadeInset, sharedRects, rectangular, axis).fits !== null;
+    fitPlateCore([base, ring], preferredCoreInset, sharedRects, rectangular, axis).fits !== null;
 
   if (shape === 'setback' && floors >= 8) {
     const axis = fitPlateCore([base], facadeInset, sharedRects, rectangular).axis;
