@@ -24,6 +24,14 @@
           "$ref": "#/$defs/point2",
           "description": "street access point from atlas; the main entrance lands on the facade nearest it"
         },
+        "streetAccess": {
+          "type": "object", "required": ["edgeId", "path"], "additionalProperties": false,
+          "description": "Named Atlas access street and unchanged centerline. The nearest segment to accessPoint determines the street-facing side; every segment must have positive length and the access point must be off that segment's line.",
+          "properties": {
+            "edgeId": { "type": "string", "minLength": 1 },
+            "path": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/point2" } }
+          }
+        },
         "maxHeight": { "type": "number", "exclusiveMinimum": 0 },
         "buildingGrid": {
           "type": "object",

@@ -8,6 +8,7 @@
 
 ## Root modules
 
+- src/layout/entrance.ts: main facade candidates facing the named source street, with point-based placement for legacy requests.
 - src/layout/buildingGrid.ts: phase-aligned rectangular plate fitting and setbacks on the supplied construction grid. Facade panels fit their own border remainders inside those plates.
 - src/layout/plateCore.ts: shared core fit on rectangular construction axes; aperture-constrained polygons retain their permitted frame search.
 - src/layout/massing.ts: complete structural plates with preferred circulation perimeter space; actual opening spans determine final core clearance.

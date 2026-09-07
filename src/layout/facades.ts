@@ -137,6 +137,8 @@ export function buildFacades(
         : placeOpenFront(req, tier, outline, streetEdges, level.height, openings, takenByEdge);
       if (!portal) {
         const entrance = placeEntrance(req, family, tier, style, outline, streetEdges, level.height, openings, takenByEdge);
+        if (!entrance && req.parcel.streetAccess) throw new ExteriorError('E_DOOR_FIT',
+          `street ${req.parcel.streetAccess.edgeId} has no fitting entrance face`);
         if (entrance && req.options?.entranceLayout === 'repeated') {
           placeRepeatedEntrances(family, outline, entrance, openings, takenByEdge);
         }

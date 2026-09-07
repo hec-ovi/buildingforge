@@ -14,6 +14,7 @@ import { buildMassing } from './layout/massing.ts';
 import { fitPlateCore } from './layout/plateCore.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
 import { buildFacades } from './layout/facades.ts';
+import { entranceCandidates } from './layout/entrance.ts';
 import { balconiesEnabled, buildBalconyBands } from './layout/balconies.ts';
 import { buildRelief } from './layout/relief.ts';
 import { mountAnchors } from './layout/anchors.ts';
@@ -58,7 +59,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   const floorHeights = stack.levels.map((floor) => floor.height);
   const planFacades = (inset: number) => {
     const massing = buildMassing(req, inset, facadeInset, preferredCoreInset, floorHeights);
-    const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint);
+    const streetEdges = entranceCandidates(massing.groundOutline, req.parcel.accessPoint, req.parcel.streetAccess);
     const facades = buildFacades(req, family, tier, style, massing, stack, streetEdges);
     return { massing, streetEdges, facades, balconyBands: buildBalconyBands(req, family, tier, style, facades.floors) };
   };
@@ -103,26 +104,6 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   fitBuildingCore(blueprint);
   const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   return { glb, blueprint, textures };
-}
-
-/**
- * Entrance facades in preference order: edges long enough for a door zone
- * (>= 3 m, then >= 2.2 m, then any), each group sorted by true point-to-segment
- * distance from the access point, longer edge winning near-ties. A sliver edge
- * whose corner touches the access point never outranks the street facade.
- */
-function entranceCandidates(outline: P2[], point: P2): number[] {
-  const edges = outline.map((_, e) => ({
-    e,
-    len: edgeLength(outline, e),
-    d: pointSegmentDistance(point, outline[e] as P2, outline[(e + 1) % outline.length] as P2),
-  }));
-  const rank = (a: typeof edges[0], b: typeof edges[0]) =>
-    Math.abs(a.d - b.d) < 0.5 ? b.len - a.len : a.d - b.d;
-  const long = edges.filter((x) => x.len >= 3).sort(rank);
-  const mid = edges.filter((x) => x.len >= 2.2 && x.len < 3).sort(rank);
-  const rest = edges.filter((x) => x.len < 2.2).sort(rank);
-  return [...long, ...mid, ...rest].map((x) => x.e);
 }
 
 /**

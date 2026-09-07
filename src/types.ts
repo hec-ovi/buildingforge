@@ -7,6 +7,12 @@ import type { FacadeServicesOutput, WindowDamage } from './facade-services/index
 export type P2 = [number, number];
 export type P3 = [number, number, number];
 
+export interface StreetAccess {
+  edgeId: string;
+  /** Exact source street centerline, in the footprint coordinate frame. */
+  path: P2[];
+}
+
 export interface BuildingGrid {
   origin: P2;
   /** Rotation in radians. */
@@ -63,7 +69,7 @@ export interface CoreAdjacency {
 export interface BuildingRequest {
   seed: string;
   buildingId: string;
-  parcel: { footprint: P2[]; accessPoint: P2; maxHeight: number; buildingGrid?: BuildingGrid };
+  parcel: { footprint: P2[]; accessPoint: P2; maxHeight: number; buildingGrid?: BuildingGrid; streetAccess?: StreetAccess };
   building: {
     type: AtlasType;
     tier: Tier;

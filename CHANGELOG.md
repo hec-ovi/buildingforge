@@ -1,5 +1,7 @@
 # Changelog
 
+Street frontage: named source streets determine public entrance orientation while retaining the original access point.
+
 Commercial core fit: upper display pairs fit toward their cell ends at whole-metre widths, preserving every opening and the requested core clearance.
 
 Facade signage: placement scans retain quantized letter cells and complete frame dimensions at every size.

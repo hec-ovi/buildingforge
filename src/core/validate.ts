@@ -5,7 +5,7 @@ import { ExteriorError } from './errors.ts';
 import { FAMILY, type AtlasType, type Tier } from '../rules/families.ts';
 import { RULES, SIGNAGE } from '../rules/tables.ts';
 import { area, selfIntersects, edgeDir, edgeNormal } from './polygon.ts';
-import type { Aperture, BuildingGrid, BuildingRequest, P2 } from '../types.ts';
+import type { Aperture, BuildingGrid, BuildingRequest, P2, StreetAccess } from '../types.ts';
 import { EXTERIOR_STYLE_IDS } from '../layout/exteriorStyle.ts';
 import { validateCoreAdjacency } from './validateCoreAdjacency.ts';
 
@@ -66,6 +66,25 @@ export function validateRequest(raw: unknown): BuildingRequest {
     buildingGrid = { origin, angle, spacing };
   }
 
+  let streetAccess: StreetAccess | undefined;
+  if (parcelRaw.streetAccess !== undefined) {
+    const raw = parcelRaw.streetAccess;
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) fail('parcel.streetAccess', 'expected object');
+    const street = raw as Record<string, unknown>;
+    const edgeId = str(street.edgeId, 'parcel.streetAccess.edgeId');
+    if (!Array.isArray(street.path) || street.path.length < 2) fail('parcel.streetAccess.path', 'expected at least two points');
+    const path = street.path.map((point, i) => p2(point, `parcel.streetAccess.path[${i}]`));
+    for (let i = 1; i < path.length; i++) {
+      if (Math.hypot(path[i]![0] - path[i - 1]![0], path[i]![1] - path[i - 1]![1]) <= 1e-9) {
+        fail(`parcel.streetAccess.path[${i}]`, 'street segments must have positive length');
+      }
+    }
+    for (const key of Object.keys(street)) {
+      if (!['edgeId', 'path'].includes(key)) fail(`parcel.streetAccess.${key}`, 'unknown property');
+    }
+    streetAccess = { edgeId, path };
+  }
+
   const bRaw = (r.building ?? fail('building', 'required')) as Record<string, unknown>;
   const type = str(bRaw.type, 'building.type') as AtlasType;
   if (!TYPES.includes(type)) fail('building.type', `unknown type ${type}`);
@@ -109,7 +128,7 @@ export function validateRequest(raw: unknown): BuildingRequest {
 
   return {
     seed, buildingId,
-    parcel: { footprint, accessPoint, maxHeight, ...(buildingGrid ? { buildingGrid } : {}) },
+    parcel: { footprint, accessPoint, maxHeight, ...(buildingGrid ? { buildingGrid } : {}), ...(streetAccess ? { streetAccess } : {}) },
     building: { type, tier, floors, basements, floorKinds },
     theme, apertures, options,
   };
