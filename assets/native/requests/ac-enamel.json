@@ -1,0 +1,29 @@
+{
+  "key": "cyberpunk/exterior-ac-enamel/mid",
+  "path": "assets/native/sources/ac-enamel.png",
+  "description": "ac enamel from native image generation",
+  "alignment": "tile",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 0,
+    "roughnessFactor": 0.62
+  },
+  "finish": {
+    "roughness": [
+      0.54,
+      0.7
+    ],
+    "grain": 0.025,
+    "relief": 0.08
+  },
+  "tiling": {
+    "worldSize": [
+      1,
+      1
+    ]
+  }
+}

@@ -3,6 +3,7 @@
 
 import { MeshBuilder, type PartSink, type V3, add, scale } from './primitives.ts';
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
+import { meshPanelField, PANEL_JOINT_DEPTH } from './panelField.ts';
 import { capUp, capDown, capFrame, type CapFrame } from './caps.ts';
 import { meshAnchorMount } from './anchorMount.ts';
 import { meshRoofArtifacts } from './mastAssembly.ts';
@@ -121,11 +122,18 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
       const vertical = panel ? fixedPanelAxis(f.height, panel.height) : undefined;
       const uOrigin = horizontal?.borders[0] ?? 0;
       const yOrigin = f.elevation + (vertical?.borders[0] ?? 0);
-      for (const piece of cutWall(fr.len, f.elevation, f.elevation + f.height, holes)) {
+      const pieces = cutWall(fr.len, f.elevation, f.elevation + f.height, holes);
+      const depth = panel ? -PANEL_JOINT_DEPTH : 0;
+      for (const piece of pieces) {
         const uvs = [piece.bl, piece.br, piece.tr, piece.tl]
           .map(([u, y]) => [u - uOrigin, yOrigin - y] as [number, number]);
-        sink.quadFacing(mat(f.index === 0 ? 'ground' : 'wall'), at(fr, piece.bl), at(fr, piece.br), at(fr, piece.tr), at(fr, piece.tl), n3(fr), uvs);
+        sink.quadFacing(mat(f.index === 0 ? 'ground' : 'wall'), at(fr, piece.bl, depth), at(fr, piece.br, depth), at(fr, piece.tr, depth), at(fr, piece.tl, depth), n3(fr), uvs);
       }
+      if (panel) meshPanelField(sink, {
+        outline: f.outline, edge: e, elevation: f.elevation, height: f.height,
+        width: panel.width, panelHeight: panel.height, jointWidth: panel.jointWidth,
+        pieces, material: mat('wall'),
+      });
       if (horizontal && vertical) meshPanelBorders(panelBorders, fr, f, holes,
         horizontal.borders, vertical.borders, mat('column'));
     }

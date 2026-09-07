@@ -32,7 +32,8 @@ describe('cli', () => {
     expect(bp.buildingId).toBe('p101');
     expect(out).toContain('textures: external');
     for (const image of glbJson(join(dir, 'p101.glb')).images) {
-      expect(image.uri).toContain('themes/cyberpunk/assets/');
+      if (image.uri) expect(image.uri).toContain('themes/cyberpunk/assets/');
+      else expect(image.bufferView).toBeGreaterThanOrEqual(0);
     }
   });
 

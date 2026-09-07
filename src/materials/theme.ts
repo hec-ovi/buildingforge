@@ -5,7 +5,7 @@
 export interface MaterialVariant {
   id: string;
   resolution: [number, number];
-  maps: Partial<Record<'basecolor' | 'normal' | 'roughness' | 'metallic' | 'height' | 'ao' | 'emission', string>>;
+  maps: Partial<Record<'basecolor' | 'normal' | 'roughness' | 'metallic' | 'metallicRoughness' | 'height' | 'ao' | 'emission', string>>;
 }
 
 export interface MaterialPhysical {
@@ -37,6 +37,8 @@ export interface ThemeIndex {
 /** Where map bytes and the index come from: a directory on disk, a fetch, a test double. */
 export interface MaterialSource {
   index: ThemeIndex;
+  /** Built-in sources opt into Exterior's bundled image-derived finishes. */
+  nativeFinishes?: boolean;
   /** Bytes of a map path (relative to the theme folder), or null when unreadable. */
   readMap(path: string): Uint8Array | null;
 }

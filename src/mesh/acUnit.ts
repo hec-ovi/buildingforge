@@ -3,6 +3,7 @@ import type { Layout } from '../layout/model.ts';
 import { AC_UNITS } from '../rules/tables.ts';
 import type { MeshBuilder, PartSink, V3 } from './primitives.ts';
 import { tubeSegment } from './tube.ts';
+import { materialSlot } from '../materials/slot.ts';
 
 interface Frame {
   v: P2;
@@ -38,12 +39,16 @@ export function meshAcUnits(
     const across = (half: number): V3 => [fr.dir[0] * half, 0, fr.dir[1] * half];
     const outward = (half: number): V3 => [fr.n[0] * half, 0, fr.n[1] * half];
 
-    sink.box(metal, at(fr, centerU, base + height / 2, back + depth / 2),
+    sink.box(materialSlot(metal, undefined, 'ac-enamel'), at(fr, centerU, base + height / 2, back + depth / 2),
       across(width / 2), [0, height / 2, 0], outward(depth / 2));
     const grilleFront = back + depth + grille.proud;
-    sink.box(mat('ac-unit'), at(fr, centerU, base + height / 2, grilleFront - grille.proud / 2),
-      across(width / 2 - grille.inset), [0, height / 2 - grille.inset, 0],
-      outward(grille.proud / 2), 'exact');
+    const u0 = artifact.offset + grille.inset, u1 = artifact.offset + width - grille.inset;
+    const y0 = base + grille.inset, y1 = base + height - grille.inset;
+    sink.box(metal, at(fr, centerU, base + height / 2, grilleFront - grille.proud / 2),
+      across(width / 2 - grille.inset), [0, height / 2 - grille.inset, 0], outward(grille.proud / 2));
+    sink.quadFacing(mat('ac-unit'), at(fr, u0, y0, grilleFront + 0.001),
+      at(fr, u1, y0, grilleFront + 0.001), at(fr, u1, y1, grilleFront + 0.001),
+      at(fr, u0, y1, grilleFront + 0.001), [fr.n[0], 0, fr.n[1]], [[0, 1], [1, 1], [1, 0], [0, 0]]);
     meshFan(sink, metal, fr, centerU, base + height / 2, grilleFront + 0.012,
       Math.min(width, height) * 0.31);
 

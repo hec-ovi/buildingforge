@@ -44,3 +44,6 @@
 - src/mesh/doorHardware.ts: fitted leaf-owned pull handles and levers; shares the door frame material.
 - src/mesh/spandrel.ts: closed opaque infill fitted from frame front to glass back, with matte column material.
 - src/mesh/venetianBlind.ts: fitted office slats and supports at the published closure percentage.
+
+- src/materials/native: bundled image-derived finish selection and map loading. Depends on Materials from-image contract and [binding schema](../schemas/native-finishes.schema.json); publishes native material metadata in GLB extras. Sources, prompts and CLI requests: [assets/native/INDEX.md](../assets/native/INDEX.md).
+- src/mesh/panelField.ts: fitted concrete panel faces, bevels and recessed joints, cut around published openings.

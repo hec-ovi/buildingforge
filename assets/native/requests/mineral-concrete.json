@@ -1,0 +1,29 @@
+{
+  "key": "cyberpunk/exterior-mineral-concrete/mid",
+  "path": "assets/native/sources/mineral-concrete.png",
+  "description": "mineral concrete from native image generation",
+  "alignment": "tile",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 0,
+    "roughnessFactor": 0.78
+  },
+  "finish": {
+    "roughness": [
+      0.7,
+      0.86
+    ],
+    "grain": 0.09,
+    "relief": 0.35
+  },
+  "tiling": {
+    "worldSize": [
+      2,
+      2
+    ]
+  }
+}

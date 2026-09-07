@@ -1486,7 +1486,9 @@ describe('material resolution', () => {
     for (const [kind, variant] of Object.entries(expected)) {
       const material = json.materials.find((candidate: { name: string }) => candidate.name === `cyberpunk/${kind}/mid`);
       if (!material) continue;
-      expect(uriOf(material), `${kind} carries the named ${variant} variant`).toContain(`/${kind}/mid/${variant}/`);
+      expect(material.extras.materialVariant).toBe(variant);
+      expect(material.extras.nativeMaterial.key).toMatch(/^cyberpunk\/exterior-/);
+      expect(uriOf(material)).toBeUndefined();
       expect(blueprint.materialVariants[`cyberpunk/${kind}/mid`]).toBe(variant);
     }
     const lenses = json.materials.filter((material: any) => material.name === 'cyberpunk/light-fixture/mid');
@@ -2011,10 +2013,12 @@ describe('facade condenser units', () => {
     const doc = await new NodeIO().readBinary(glb);
     const node = doc.getRoot().listNodes().find((n) => n.getName() === 'facade-ac');
     expect(node, 'the GLB carries the units as their own node').toBeTruthy();
-    const primitives = new Map(node!.getMesh()!.listPrimitives().map((primitive) => [
-      primitive.getMaterial()!.getName(), primitive.getAttribute('POSITION')!.getCount(),
-    ]));
-    expect(primitives.get('cyberpunk/ac-unit/mid')).toBe(units.length * 24);
+    const primitives = new Map<string, number>();
+    for (const primitive of node!.getMesh()!.listPrimitives()) {
+      const key = primitive.getMaterial()!.getName();
+      primitives.set(key, (primitives.get(key) ?? 0) + primitive.getAttribute('POSITION')!.getCount());
+    }
+    expect(primitives.get('cyberpunk/ac-unit/mid')).toBe(units.length * 4);
     expect(primitives.get('cyberpunk/metal/mid'), 'each condenser has a modeled fan and guard')
       .toBeGreaterThanOrEqual(units.length * 800);
     const parcel = (residential as any).parcel.footprint as [number, number][];
@@ -2286,14 +2290,18 @@ describe('roof access', () => {
 });
 
 describe('textured export', () => {
-  it('defaults to a textured GLB with external map URIs against the materials base path', async () => {
+  it('embeds native finishes and retains shared external map URIs against the materials base path', async () => {
     const { glb, textures } = await generate(residential, { textures: { baseUrl: '../materials/' } });
     expect(textures.mode).toBe('external');
     const json = glbJson(glb);
     expect(json.images.length).toBeGreaterThan(0);
+    expect(json.images.some((image: any) => image.bufferView !== undefined)).toBe(true);
+    expect(json.images.some((image: any) => image.uri !== undefined)).toBe(true);
     for (const image of json.images) {
-      expect(image.uri).toMatch(/^\.\.\/materials\/themes\/cyberpunk\/assets\/.+\.png$/);
-      expect(image.bufferView).toBeUndefined();
+      if (image.uri) {
+        expect(image.uri).toMatch(/^\.\.\/materials\/themes\/cyberpunk\/assets\/.+\.png$/);
+        expect(image.bufferView).toBeUndefined();
+      } else expect(image.bufferView).toBeGreaterThanOrEqual(0);
     }
     // Every material the building uses carries maps, not just a name.
     for (const material of json.materials) {

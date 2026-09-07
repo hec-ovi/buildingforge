@@ -1,0 +1,29 @@
+{
+  "key": "cyberpunk/exterior-weathered-concrete/mid",
+  "path": "assets/native/sources/weathered-concrete.png",
+  "description": "weathered concrete from native image generation",
+  "alignment": "tile",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 0,
+    "roughnessFactor": 0.88
+  },
+  "finish": {
+    "roughness": [
+      0.81,
+      0.95
+    ],
+    "grain": 0.16,
+    "relief": 0.65
+  },
+  "tiling": {
+    "worldSize": [
+      2,
+      2
+    ]
+  }
+}

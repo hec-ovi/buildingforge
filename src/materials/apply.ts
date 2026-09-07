@@ -6,10 +6,12 @@ import { Document, type Material, type Texture, TextureInfo } from '@gltf-transf
 import {
   KHRMaterialsEmissiveStrength, KHRMaterialsIOR, KHRMaterialsTransmission, KHRTextureTransform,
 } from '@gltf-transform/extensions';
-import { Rng } from '../core/rng.ts';
 import { ExteriorError } from '../core/errors.ts';
 import { buildResolver, type MaterialEntry, type MaterialSource } from './theme.ts';
 import { splitMaterialSlot } from './slot.ts';
+import { MAP_SLOTS, type MapSlot } from './maps.ts';
+import { selectMaterialVariant } from './variant.ts';
+import type { NativeFinishes } from './native/NativeFinishes.ts';
 
 export type TextureMode = 'external' | 'embed' | 'keys';
 
@@ -22,6 +24,10 @@ export interface TextureOptions {
   baseUrl?: string;
   /** preloaded source (browser preview, tests); null forces the keys fallback */
   source?: MaterialSource | null;
+  /** Bundled native-image finishes; defaults to the built-in source's choice. */
+  nativeFinishes?: boolean;
+  /** Browser asset prefix before themes/, default native-materials/ beside the page. */
+  nativeBaseUrl?: string;
 }
 
 export interface MaterialPlan {
@@ -31,32 +37,6 @@ export interface MaterialPlan {
   bySlot: Map<string, Material>;
   /** external mode: the URI each image keeps instead of embedded bytes */
   imageUris: Map<Texture, string>;
-}
-
-const MAP_SLOTS = ['basecolor', 'normal', 'ao', 'emission'] as const;
-type MapSlot = typeof MAP_SLOTS[number];
-
-/**
- * Kinds that always take the canonical variant (variant 0), never a seeded one:
- * a frame section has to read as flat painted steel on every building, a deck as
- * a solid surface so a plate that is not a whole number of tiles shows no cut
- * joint, and an exterior lantern as the lamp its housing is shaped for, not a
- * ceiling strip or panel. Everything else varies from building to building.
- */
-const NAMED_VARIANTS: Readonly<Record<string, string>> = {
-  concrete: 'panel',
-  column: 'plain',
-  'wall-trim': 'paint',
-  'window-frame': 'paint',
-  door: 'paint',
-  roof: 'plain',
-  'floor-slab': 'plain',
-  'light-fixture': 'lamp',
-};
-
-/** Stable named variant requested by the exterior contract for this key. */
-export function preferredVariantForKey(key: string): string | undefined {
-  return NAMED_VARIANTS[key.split('/')[1] ?? ''];
 }
 
 /** Fabric shades are one fitted plane that must read from both sides of the glazing. */
@@ -81,6 +61,7 @@ function keysOnly(doc: Document, slots: string[], selected: Record<string, strin
 export function createMaterials(
   doc: Document, slots: string[], theme: string, seed: string, opts: TextureOptions, source: MaterialSource | null,
   selected: Record<string, string> = {},
+  native?: NativeFinishes,
 ): MaterialPlan {
   const mode = opts.mode ?? 'external';
   if (mode === 'keys') return keysOnly(doc, slots, selected);
@@ -101,18 +82,16 @@ export function createMaterials(
   const bySlot = new Map<string, Material>();
 
   for (const slot of slots) {
-    const [key, authoredVariant] = splitMaterialSlot(slot);
-    const entry = resolve(key);
+    const [key, authoredVariant, finish] = splitMaterialSlot(slot);
+    let entry = resolve(key);
     if (!entry) {
       throw new ExteriorError('E_MATERIAL_UNRESOLVED', `theme "${theme}" has no entry for material key ${key}`, { key });
     }
-    const preferred = authoredVariant ?? selected[key] ?? preferredVariantForKey(key);
-    const variant = preferred
-      ? entry.variants.find((candidate) => candidate.id === preferred)
-      : entry.variants[new Rng(seed, `material:${key}`).int(0, entry.variants.length - 1)];
-    if (!variant) {
-      throw new ExteriorError('E_MATERIAL_UNRESOLVED',
-        `material key ${key} has no required variant "${preferred}"`, { key, variant: preferred });
+    let variant = selectMaterialVariant(entry, key, seed, authoredVariant ?? selected[key]);
+    const nativeEntry = native?.resolve(key, variant.id, finish);
+    if (nativeEntry) {
+      entry = nativeEntry;
+      variant = nativeEntry.variants[0]!;
     }
     const p = entry.physical;
     const material = doc.createMaterial(key)
@@ -121,15 +100,18 @@ export function createMaterials(
       .setRoughnessFactor(p.roughnessFactor ?? 1)
       .setAlphaMode(p.alphaMode ?? 'OPAQUE');
     if (authoredVariant ?? selected[key]) material.setExtras({ materialVariant: authoredVariant ?? selected[key] });
+    if (nativeEntry) material.setExtras({ ...material.getExtras(), nativeMaterial: { key: entry.key, variantId: variant.id } });
 
     const infos: TextureInfo[] = [];
     for (const slot of MAP_SLOTS) {
-      const path = variant.maps[slot === 'basecolor' ? 'basecolor' : slot];
+      const path = variant.maps[slot];
       if (!path) continue;
-      const texture = textureFor(doc, textures, imageUris, source, entry, variant.id, slot, path, theme, mode, opts.baseUrl ?? '');
+      const texture = textureFor(doc, textures, imageUris, nativeEntry ? native! : source,
+        entry, variant.id, slot, path, theme, nativeEntry ? 'embed' : mode, opts.baseUrl ?? '');
       const info = attach(material, slot, texture);
       if (info) infos.push(info);
     }
+    if (variant.maps.metallicRoughness) material.setMetallicFactor(1).setRoughnessFactor(1);
 
     if (entry.alignment === 'tile' && entry.tiling) {
       // 1 UV unit = 1 tile: world-meter UVs scaled by the tile's world size.
@@ -159,7 +141,7 @@ export function createMaterials(
 }
 
 function textureFor(
-  doc: Document, cache: Map<string, Texture>, uris: Map<Texture, string>, source: MaterialSource,
+  doc: Document, cache: Map<string, Texture>, uris: Map<Texture, string>, source: Pick<MaterialSource, 'readMap'>,
   entry: MaterialEntry, variantId: string, slot: MapSlot, path: string,
   theme: string, mode: TextureMode, baseUrl: string,
 ): Texture {
@@ -187,5 +169,6 @@ function attach(material: Material, slot: MapSlot, texture: Texture): TextureInf
   if (slot === 'basecolor') return material.setBaseColorTexture(texture).getBaseColorTextureInfo();
   if (slot === 'normal') return material.setNormalTexture(texture).getNormalTextureInfo();
   if (slot === 'ao') return material.setOcclusionTexture(texture).getOcclusionTextureInfo();
+  if (slot === 'metallicRoughness') return material.setMetallicRoughnessTexture(texture).getMetallicRoughnessTextureInfo();
   return material.setEmissiveTexture(texture).getEmissiveTextureInfo();
 }

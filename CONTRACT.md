@@ -2,12 +2,12 @@
 
 Purpose: deterministically generates one building exterior as a GLB shell (empty inside, one separator plane per floor) plus a JSON blueprint of every exterior opening per floor.
 
-Status: v0.46.12, implemented. Schemas are stable to build against; additive fields preserve compatibility and breaking changes go through the orchestrator.
+Status: v0.46.13, implemented. Schemas are stable to build against; additive fields preserve compatibility and breaking changes go through the orchestrator.
 
 ## Conventions
 - Units: meters. Ground plane XZ, +Y up, right-handed. 2D points `[x, z]`, CCW rings, first point not repeated (same as atlas).
 - Outputs share the request footprint's coordinate frame; ground floor walking surface at Y = 0.
-- Determinism: same request, same materials database and same texture options give a byte-identical GLB and blueprint JSON. No LLM, no wall clock, no ambient randomness.
+- Determinism: same request, same materials databases and same texture options give a byte-identical GLB and blueprint JSON. No LLM, no wall clock, no ambient randomness.
 - Environment: Node reads `URBE_MATERIALS_DIR` only as the default materials box path. An explicit `options.textures.dir` takes precedence. The browser preview uses its supplied HTTP source.
 
 ## In
@@ -21,7 +21,7 @@ Request: [schemas/building-request.schema.json](schemas/building-request.schema.
 
 `options.doorMotion` selects `swing` (default) or `pocket` for ground public entrances. Pocket entrances require a fitted opaque wall cassette, suppress automatic open frontage, and conflict with explicit `openFront: "on"` (`E_SCHEMA`). Loading shutters retain roller motion; balcony doors and roof doors retain swing motion. A required main pocket entrance with no complete face, width and chamber fit fails with `E_DOOR_FIT`. Repeated entrances fit the same accepted passage and finish with their own one- or two-leaf chamber arrangement.
 
-`options.textures`: `{ mode?: "external" | "embed" | "keys", dir?, baseUrl?, source? }`. `dir` is the materials box root (defaults to `URBE_MATERIALS_DIR`, else the sibling `materials` box), `baseUrl` is the URI prefix written into the GLB before `themes/<theme>/assets/...`, and `source` is a preloaded materials source for callers with no filesystem (the browser preview) or `null` to force the keys fallback.
+`options.textures`: `{ mode?: "external" | "embed" | "keys", dir?, baseUrl?, source?, nativeFinishes?, nativeBaseUrl? }`. `dir` is the materials box root (defaults to `URBE_MATERIALS_DIR`, else the sibling `materials` box), `baseUrl` is the URI prefix written into the GLB before `themes/<theme>/assets/...`, and `source` is a preloaded materials source for callers with no filesystem (the browser preview) or `null` to force the keys fallback. Built-in disk and HTTP sources enable the bundled cyberpunk image finishes; custom sources opt in with `nativeFinishes: true`. `nativeFinishes: false` uses the supplied catalog alone. `nativeBaseUrl` is the browser prefix before `themes/`, defaulting to `native-materials/` beside the page. Node reads the bundled maps from the package.
 
 CLI: `npm run generate -- <request.json> <outDir> [--seed S] [--embed | --keys-only] [--materials DIR] [--materials-base URI]` writes `<buildingId>.glb` and `<buildingId>.blueprint.json`; external map URIs are written relative to the output directory by default.
 
@@ -90,11 +90,18 @@ GLB shell:
 - Curtain-wall bays are the one opening whose height is the floor height exactly, not a 0.05 m quantum: quantizing there would leave a wall sliver under every slab.
 - Tiled materials get world-scale UVs (1 UV unit = 1 meter, planar per face, U along the face's horizontal edge) so textures never stretch. The facade panel field starts at the inner edge of its centered solid border, and each storey restarts V at the inner edge of its lower border. Every horizontal surface of one building (roof, floor slabs, terraces and the housing's own slab) shares one grid: origin at the ground plate's corner, U along the core's axis, with roof joints parallel to the parapet and slabs aligned with the roof through the glazing. Opening and style dimensions are quantized to 0.05 m, positions to millimeters. A panel field may place its two equal border edges on half-millimeter coordinates when an odd millimeter remainder must be divided evenly; the field between them remains an exact whole count of fixed panels. Exact-placement materials (ad-screen, signage, letter-atlas and window glass) get exact 0..1 UVs over their quad (a sub-rect of it for a glyph cell), never a partial tile. V follows the glTF convention: v = 0 is the top row of the map, so an atlas cell's top edge is its smaller v.
 
-Textures. The default export is a finished exterior: every key resolves through ../materials into real maps (basecolor, normal, occlusion, emission where the entry has one, plus its metallic and roughness factors, transmission and IOR for glass). Tiled entries carry a `KHR_texture_transform` scale of 1 / tiling worldSize over the world-meter UVs; exact entries get clamped 0..1 UVs and no transform. Concrete, structural piers, trim, frames, doors, decks and exterior lights use the named variants published in `materialVariants`; missing required variants fail with `E_MATERIAL_UNRESOLVED`. Other surfaces keep deterministic seeded variation. Emissive strength is the entry's own; nothing is damped here. `textures.mode` on the result says which mode the GLB carries:
-- `external` (default): map URIs written against `baseUrl`, nothing embedded.
+Textures. The default export is a finished exterior: every key resolves through ../materials into real maps (basecolor, normal, occlusion, packed metallic-roughness, emission where the entry has one, plus its metallic and roughness factors, transmission and IOR for glass). Tiled entries carry a `KHR_texture_transform` scale of 1 / tiling worldSize over the world-meter UVs; exact entries get clamped 0..1 UVs and no transform. Concrete, structural piers, trim, frames, doors, decks and exterior lights use the named variants published in `materialVariants`; missing required variants fail with `E_MATERIAL_UNRESOLVED`. Other surfaces keep deterministic seeded variation. Emissive strength is the entry's own; nothing is damped here. `textures.mode` on the result says which mode the GLB carries:
+- `external` (default): shared map URIs against `baseUrl`, bundled native finish maps embedded.
 - `embed`: the maps packed into one self-contained GLB.
 - `keys`: material names only, for a consumer that resolves them itself (the engine runtime).
 With no materials database at the configured path, output falls back to `keys` and `textures.reason` says so, so the box still runs standalone.
+
+Bundled native finishes use eight image-derived PBR sets for concrete, panels, decks, galvanized services, coatings, AC cases and radiator faces. [Bindings](assets/native/bindings.json) follow [schemas/native-finishes.schema.json](schemas/native-finishes.schema.json). Canonical material names and `extras.materialVariant` remain the shared catalog selection. `extras.nativeMaterial` follows that schema's `glbFinish` and identifies the embedded finish. Keys-only exports carry the shared selection; a consumer that replaces GLB materials must adopt this native finish catalog explicitly. Authoring inputs and commands: [assets/native/INDEX.md](assets/native/INDEX.md).
+
+Packed metallic-roughness maps use G for absolute roughness and B for absolute metalness; both scalar factors are 1 while bound. All maps share the material's physical UV scale or exact clamp. Concrete relief is shallow and coatings remain dielectric. AC cases use tiled enamel; only the outward radiator face uses an exact coil image. Missing selected native maps fail with `E_MATERIAL_UNRESOLVED`.
+
+Large-panel fields have complete 7 x 3.5 m modules, 20 mm joints recessed 12 mm and 4 mm edge bevels. Solid borders close face and storey remainders. Every face and bevel is clipped around the same opening cuts as its backing; the face stays on the original facade plane.
+
 
 ## Errors
 Thrown as `ExteriorError { code, message, details? }`:

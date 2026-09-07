@@ -1,0 +1,331 @@
+{
+  "theme": "cyberpunk",
+  "entries": {
+    "cyberpunk/exterior-cast-concrete/mid": {
+      "key": "cyberpunk/exterior-cast-concrete/mid",
+      "alignment": "tile",
+      "tiling": {
+        "worldSize": [
+          2,
+          2
+        ]
+      },
+      "physical": {
+        "metallicFactor": 0,
+        "roughnessFactor": 0.84
+      },
+      "finish": {
+        "roughness": [
+          0.77,
+          0.91
+        ],
+        "grain": 0.13,
+        "relief": 0.5
+      },
+      "variants": [
+        {
+          "id": "native",
+          "class": "image",
+          "resolution": [
+            1024,
+            1024
+          ],
+          "maps": {
+            "basecolor": "assets/exterior-cast-concrete/mid/native/basecolor.png",
+            "normal": "assets/exterior-cast-concrete/mid/native/normal.png",
+            "roughness": "assets/exterior-cast-concrete/mid/native/roughness.png",
+            "height": "assets/exterior-cast-concrete/mid/native/height.png",
+            "ao": "assets/exterior-cast-concrete/mid/native/ao.png",
+            "metallic": "assets/exterior-cast-concrete/mid/native/metallic.png",
+            "metallicRoughness": "assets/metallic-roughness/e2fac22573ed4503a1d362ba47f02be4892ef45c8051aeb389a94c9f0396fae7.png"
+          }
+        }
+      ]
+    },
+    "cyberpunk/exterior-weathered-concrete/mid": {
+      "key": "cyberpunk/exterior-weathered-concrete/mid",
+      "alignment": "tile",
+      "tiling": {
+        "worldSize": [
+          2,
+          2
+        ]
+      },
+      "physical": {
+        "metallicFactor": 0,
+        "roughnessFactor": 0.88
+      },
+      "finish": {
+        "roughness": [
+          0.81,
+          0.95
+        ],
+        "grain": 0.16,
+        "relief": 0.65
+      },
+      "variants": [
+        {
+          "id": "native",
+          "class": "image",
+          "resolution": [
+            1024,
+            1024
+          ],
+          "maps": {
+            "basecolor": "assets/exterior-weathered-concrete/mid/native/basecolor.png",
+            "normal": "assets/exterior-weathered-concrete/mid/native/normal.png",
+            "roughness": "assets/exterior-weathered-concrete/mid/native/roughness.png",
+            "height": "assets/exterior-weathered-concrete/mid/native/height.png",
+            "ao": "assets/exterior-weathered-concrete/mid/native/ao.png",
+            "metallic": "assets/exterior-weathered-concrete/mid/native/metallic.png",
+            "metallicRoughness": "assets/metallic-roughness/7935a970ffec78d3162c63088a421e0f24c2ef0238bf743ecf736ccb00bff588.png"
+          }
+        }
+      ]
+    },
+    "cyberpunk/exterior-mineral-concrete/mid": {
+      "key": "cyberpunk/exterior-mineral-concrete/mid",
+      "alignment": "tile",
+      "tiling": {
+        "worldSize": [
+          2,
+          2
+        ]
+      },
+      "physical": {
+        "metallicFactor": 0,
+        "roughnessFactor": 0.78
+      },
+      "finish": {
+        "roughness": [
+          0.7,
+          0.86
+        ],
+        "grain": 0.09,
+        "relief": 0.35
+      },
+      "variants": [
+        {
+          "id": "native",
+          "class": "image",
+          "resolution": [
+            1024,
+            1024
+          ],
+          "maps": {
+            "basecolor": "assets/exterior-mineral-concrete/mid/native/basecolor.png",
+            "normal": "assets/exterior-mineral-concrete/mid/native/normal.png",
+            "roughness": "assets/exterior-mineral-concrete/mid/native/roughness.png",
+            "height": "assets/exterior-mineral-concrete/mid/native/height.png",
+            "ao": "assets/exterior-mineral-concrete/mid/native/ao.png",
+            "metallic": "assets/exterior-mineral-concrete/mid/native/metallic.png",
+            "metallicRoughness": "assets/metallic-roughness/6b66bab496493bd6ea27cf514c0dcfad5a4db049b6ee37b701deb7ea66933f1b.png"
+          }
+        }
+      ]
+    },
+    "cyberpunk/exterior-graphite-concrete/mid": {
+      "key": "cyberpunk/exterior-graphite-concrete/mid",
+      "alignment": "tile",
+      "tiling": {
+        "worldSize": [
+          2,
+          2
+        ]
+      },
+      "physical": {
+        "metallicFactor": 0,
+        "roughnessFactor": 0.82
+      },
+      "finish": {
+        "roughness": [
+          0.74,
+          0.9
+        ],
+        "grain": 0.11,
+        "relief": 0.4
+      },
+      "variants": [
+        {
+          "id": "native",
+          "class": "image",
+          "resolution": [
+            1024,
+            1024
+          ],
+          "maps": {
+            "basecolor": "assets/exterior-graphite-concrete/mid/native/basecolor.png",
+            "normal": "assets/exterior-graphite-concrete/mid/native/normal.png",
+            "roughness": "assets/exterior-graphite-concrete/mid/native/roughness.png",
+            "height": "assets/exterior-graphite-concrete/mid/native/height.png",
+            "ao": "assets/exterior-graphite-concrete/mid/native/ao.png",
+            "metallic": "assets/exterior-graphite-concrete/mid/native/metallic.png",
+            "metallicRoughness": "assets/metallic-roughness/d56781324702de0472ec1407b1fa2f37b517acb9df439e55c83a1f690653d44f.png"
+          }
+        }
+      ]
+    },
+    "cyberpunk/exterior-galvanized-steel/mid": {
+      "key": "cyberpunk/exterior-galvanized-steel/mid",
+      "alignment": "tile",
+      "tiling": {
+        "worldSize": [
+          0.75,
+          0.75
+        ]
+      },
+      "physical": {
+        "metallicFactor": 1,
+        "roughnessFactor": 0.57
+      },
+      "finish": {
+        "roughness": [
+          0.48,
+          0.66
+        ],
+        "grain": 0.025,
+        "relief": 0.1
+      },
+      "variants": [
+        {
+          "id": "native",
+          "class": "image",
+          "resolution": [
+            1024,
+            1024
+          ],
+          "maps": {
+            "basecolor": "assets/exterior-galvanized-steel/mid/native/basecolor.png",
+            "normal": "assets/exterior-galvanized-steel/mid/native/normal.png",
+            "roughness": "assets/exterior-galvanized-steel/mid/native/roughness.png",
+            "height": "assets/exterior-galvanized-steel/mid/native/height.png",
+            "ao": "assets/exterior-galvanized-steel/mid/native/ao.png",
+            "metallic": "assets/exterior-galvanized-steel/mid/native/metallic.png",
+            "metallicRoughness": "assets/metallic-roughness/0716fd87acafd14fec4f33d3d8562426c2b97d87954d81677916f5d82ea5e2fb.png"
+          }
+        }
+      ]
+    },
+    "cyberpunk/exterior-graphite-coating/mid": {
+      "key": "cyberpunk/exterior-graphite-coating/mid",
+      "alignment": "tile",
+      "tiling": {
+        "worldSize": [
+          0.75,
+          0.75
+        ]
+      },
+      "physical": {
+        "metallicFactor": 0,
+        "roughnessFactor": 0.57
+      },
+      "finish": {
+        "roughness": [
+          0.48,
+          0.66
+        ],
+        "grain": 0.025,
+        "relief": 0.1
+      },
+      "variants": [
+        {
+          "id": "native",
+          "class": "image",
+          "resolution": [
+            1024,
+            1024
+          ],
+          "maps": {
+            "basecolor": "assets/exterior-graphite-coating/mid/native/basecolor.png",
+            "normal": "assets/exterior-graphite-coating/mid/native/normal.png",
+            "roughness": "assets/exterior-graphite-coating/mid/native/roughness.png",
+            "height": "assets/exterior-graphite-coating/mid/native/height.png",
+            "ao": "assets/exterior-graphite-coating/mid/native/ao.png",
+            "metallic": "assets/exterior-graphite-coating/mid/native/metallic.png",
+            "metallicRoughness": "assets/metallic-roughness/3e747a76b7a5ca448ff025316b36790b24040f9ec1de67f04a3cab67b9c062dc.png"
+          }
+        }
+      ]
+    },
+    "cyberpunk/exterior-ac-enamel/mid": {
+      "key": "cyberpunk/exterior-ac-enamel/mid",
+      "alignment": "tile",
+      "tiling": {
+        "worldSize": [
+          1,
+          1
+        ]
+      },
+      "physical": {
+        "metallicFactor": 0,
+        "roughnessFactor": 0.62
+      },
+      "finish": {
+        "roughness": [
+          0.54,
+          0.7
+        ],
+        "grain": 0.025,
+        "relief": 0.08
+      },
+      "variants": [
+        {
+          "id": "native",
+          "class": "image",
+          "resolution": [
+            1024,
+            1024
+          ],
+          "maps": {
+            "basecolor": "assets/exterior-ac-enamel/mid/native/basecolor.png",
+            "normal": "assets/exterior-ac-enamel/mid/native/normal.png",
+            "roughness": "assets/exterior-ac-enamel/mid/native/roughness.png",
+            "height": "assets/exterior-ac-enamel/mid/native/height.png",
+            "ao": "assets/exterior-ac-enamel/mid/native/ao.png",
+            "metallic": "assets/exterior-ac-enamel/mid/native/metallic.png",
+            "metallicRoughness": "assets/metallic-roughness/f49c726af7a0df8df818277912b5f18b7fa1b1ae579103b20af51429bca267b4.png"
+          }
+        }
+      ]
+    },
+    "cyberpunk/exterior-ac-coil/mid": {
+      "key": "cyberpunk/exterior-ac-coil/mid",
+      "alignment": "exact",
+      "aspect": [
+        1,
+        1
+      ],
+      "physical": {
+        "metallicFactor": 1,
+        "roughnessFactor": 0.65
+      },
+      "finish": {
+        "roughness": [
+          0.58,
+          0.75
+        ],
+        "grain": 0.06,
+        "relief": 0.25
+      },
+      "variants": [
+        {
+          "id": "native",
+          "class": "image",
+          "resolution": [
+            1024,
+            1024
+          ],
+          "maps": {
+            "basecolor": "assets/exterior-ac-coil/mid/native/basecolor.png",
+            "normal": "assets/exterior-ac-coil/mid/native/normal.png",
+            "roughness": "assets/exterior-ac-coil/mid/native/roughness.png",
+            "height": "assets/exterior-ac-coil/mid/native/height.png",
+            "ao": "assets/exterior-ac-coil/mid/native/ao.png",
+            "metallic": "assets/exterior-ac-coil/mid/native/metallic.png",
+            "metallicRoughness": "assets/metallic-roughness/e489f3ff15f71854ab380906c710ad7ed72662ffbfc2acc3b10838785d93604f.png"
+          }
+        }
+      ]
+    }
+  }
+}

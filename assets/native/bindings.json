@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "surfaces": {
+    "concrete-monolith#cast": "cast-concrete",
+    "concrete-monolith#weathered": "weathered-concrete",
+    "concrete-monolith#mineral": "mineral-concrete",
+    "concrete-monolith#graphite": "graphite-concrete",
+    "concrete-large-panel#mineral": "mineral-concrete",
+    "concrete-large-panel#cast": "cast-concrete",
+    "concrete": "cast-concrete",
+    "column": "cast-concrete",
+    "ground": "cast-concrete",
+    "roof": "weathered-concrete",
+    "floor-slab": "cast-concrete",
+    "balcony-slab": "cast-concrete",
+    "window-frame": "graphite-coating",
+    "wall-trim": "graphite-coating",
+    "door": "graphite-coating",
+    "balcony-rail": "graphite-coating",
+    "exterior-louvre": "galvanized-steel",
+    "metal#zinc": "galvanized-steel",
+    "metal#paint": "graphite-coating",
+    "metal": "galvanized-steel",
+    "ac-unit": "ac-coil"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:urbe:exterior-native-finishes",
+  "title": "Native exterior finish bindings",
+  "type": "object",
+  "required": [
+    "version",
+    "surfaces"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "surfaces": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9-]+(#[a-z0-9_-]+)?$"
+      },
+      "additionalProperties": {
+        "enum": [
+          "cast-concrete",
+          "weathered-concrete",
+          "mineral-concrete",
+          "graphite-concrete",
+          "galvanized-steel",
+          "graphite-coating",
+          "ac-enamel",
+          "ac-coil"
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "glbFinish": {
+      "type": "object",
+      "required": [
+        "key",
+        "variantId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^cyberpunk/exterior-[a-z-]+/mid$"
+        },
+        "variantId": {
+          "const": "native"
+        }
+      }
+    }
+  }
+}

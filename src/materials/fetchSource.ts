@@ -8,5 +8,5 @@ export async function fetchSource(theme: string, baseUrl: string): Promise<Mater
   const response = await fetch(`${baseUrl}themes/${theme}/theme.json`);
   if (!response.ok) return null;
   const index = await response.json() as ThemeIndex;
-  return { index, readMap: () => null };
+  return { index, nativeFinishes: true, readMap: () => null };
 }

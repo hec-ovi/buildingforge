@@ -1,0 +1,29 @@
+{
+  "key": "cyberpunk/exterior-galvanized-steel/mid",
+  "path": "assets/native/sources/galvanized-steel.png",
+  "description": "galvanized steel from native image generation",
+  "alignment": "tile",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 1,
+    "roughnessFactor": 0.57
+  },
+  "finish": {
+    "roughness": [
+      0.48,
+      0.66
+    ],
+    "grain": 0.025,
+    "relief": 0.1
+  },
+  "tiling": {
+    "worldSize": [
+      0.75,
+      0.75
+    ]
+  }
+}

@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.13: eight native-image PBR finishes for concrete, panels, decks, services, frames and AC surfaces. Packed metallic-roughness maps, embedded finish metadata and recessed bevelled panel joints.
+
 Core admission: complete structural plates use measured opening spans to fit the requested circulation clearance. Massing prefers a generous perimeter for balconies and setbacks.
 
 0.46.12: grouped glazing with broad bevelled structural piers, textured metal door panels and header diffusers. Fitted utility cabinets and recessed wall lights. Windows publish authored glazing bounds for renderer room fitting.

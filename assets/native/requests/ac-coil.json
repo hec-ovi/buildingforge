@@ -1,0 +1,27 @@
+{
+  "key": "cyberpunk/exterior-ac-coil/mid",
+  "path": "assets/native/sources/ac-coil.png",
+  "description": "ac coil from native image generation",
+  "alignment": "exact",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 1,
+    "roughnessFactor": 0.65
+  },
+  "finish": {
+    "roughness": [
+      0.58,
+      0.75
+    ],
+    "grain": 0.06,
+    "relief": 0.25
+  },
+  "aspect": [
+    1,
+    1
+  ]
+}

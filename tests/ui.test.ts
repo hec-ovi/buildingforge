@@ -79,35 +79,65 @@ describe('preview textures', () => {
   it('generates a textured building from the served materials index', async () => {
     // jsdom serves import.meta.url over http, so box-relative paths go through cwd.
     const themeIndex = readFileSync(resolve('../materials/themes/cyberpunk/theme.json'), 'utf8');
+    const nativeIndex = JSON.parse(readFileSync(resolve('public/native-materials/themes/cyberpunk/theme.json'), 'utf8'));
+    const servedMaps = new Map<string, Uint8Array>();
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-      expect(url).toBe('/materials/themes/cyberpunk/theme.json');
-      return { ok: true, json: async () => JSON.parse(themeIndex) };
+      const path = new URL(url, document.baseURI).pathname;
+      if (path === '/materials/themes/cyberpunk/theme.json') return new Response(themeIndex);
+      expect(path).toMatch(/^\/native-materials\/themes\/cyberpunk\/assets\/.+\.png$/);
+      const bytes = new Uint8Array(readFileSync(resolve('public', path.slice(1))));
+      servedMaps.set(path, bytes);
+      return new Response(bytes, { headers: { 'Content-Type': 'image/png' } });
     }));
+    // Exercise HTTP loading and WebIO, as the preview does in a browser.
+    vi.stubGlobal('process', { ...process, versions: { ...process.versions, node: undefined } });
 
-    const source = await fetchSource('cyberpunk', '/materials/');
-    expect(source).not.toBeNull();
-    const request = JSON.parse(readFileSync(resolve('fixtures/residential-mid.request.json'), 'utf8'));
-    const { textures } = await generate(request, {
-      textures: { mode: 'external', baseUrl: '/materials/', source },
-    });
-    expect(textures.mode).toBe('external');
+    const unpack = (glb: Uint8Array) => {
+      const view = new DataView(glb.buffer, glb.byteOffset, glb.byteLength);
+      const jsonLength = view.getUint32(12, true);
+      return {
+        json: JSON.parse(new TextDecoder().decode(glb.subarray(20, 20 + jsonLength))),
+        bin: glb.subarray(28 + jsonLength),
+      };
+    };
+    try {
+      const source = await fetchSource('cyberpunk', '/materials/');
+      expect(source).not.toBeNull();
+      const request = JSON.parse(readFileSync(resolve('fixtures/residential-mid.request.json'), 'utf8'));
+      const { textures, glb } = await generate(request, {
+        textures: { mode: 'external', baseUrl: '/materials/', source },
+      });
+      expect(textures.mode).toBe('external');
 
-    const litRequest = JSON.parse(readFileSync(resolve('fixtures/corpo-tower.request.json'), 'utf8'));
-    litRequest.seed = 'entrance-review-0';
-    const lit = await generate(litRequest, {
-      textures: { mode: 'external', baseUrl: '/materials/', source },
-    });
-    const view = new DataView(lit.glb.buffer, lit.glb.byteOffset, lit.glb.byteLength);
-    const jsonLength = view.getUint32(12, true);
-    const json = JSON.parse(new TextDecoder().decode(lit.glb.slice(20, 20 + jsonLength))) as any;
-    const strip = json.materials.find((material: any) => material.name === 'cyberpunk/light-fixture/high_rich'
-      && material.extras?.materialVariant === 'strip');
-    expect(strip).toBeTruthy();
-    const texture = json.textures[strip.pbrMetallicRoughness.baseColorTexture.index];
-    expect(json.images[texture.source].uri).toContain('/light-fixture/high_rich/strip/');
-    const curtain = json.materials.find((material: any) => material.name === 'cyberpunk/curtain/high_rich');
-    expect(curtain.doubleSided).toBe(true);
-    vi.unstubAllGlobals();
+      const home = unpack(glb);
+      const native = home.json.materials.find((material: any) => material.extras?.nativeMaterial);
+      expect(native).toBeTruthy();
+      const image = home.json.images[home.json.textures[native.pbrMetallicRoughness.baseColorTexture.index].source];
+      expect(image.uri).toBeUndefined();
+      const bufferView = home.json.bufferViews[image.bufferView];
+      const embedded = home.bin.subarray(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
+      const entry = nativeIndex.entries[native.extras.nativeMaterial.key];
+      const path = `/native-materials/themes/cyberpunk/${entry.variants[0].maps.basecolor}`;
+      expect(servedMaps.has(path)).toBe(true);
+      expect(Buffer.from(embedded).equals(servedMaps.get(path)!)).toBe(true);
+      expect(home.json.images.some((image: any) => image.uri?.startsWith('/materials/themes/'))).toBe(true);
+
+      const litRequest = JSON.parse(readFileSync(resolve('fixtures/corpo-tower.request.json'), 'utf8'));
+      litRequest.seed = 'entrance-review-0';
+      const lit = await generate(litRequest, {
+        textures: { mode: 'external', baseUrl: '/materials/', source },
+      });
+      const { json } = unpack(lit.glb);
+      const strip = json.materials.find((material: any) => material.name === 'cyberpunk/light-fixture/high_rich'
+        && material.extras?.materialVariant === 'strip');
+      expect(strip).toBeTruthy();
+      const texture = json.textures[strip.pbrMetallicRoughness.baseColorTexture.index];
+      expect(json.images[texture.source].uri).toContain('/light-fixture/high_rich/strip/');
+      const curtain = json.materials.find((material: any) => material.name === 'cyberpunk/curtain/high_rich');
+      expect(curtain.doubleSided).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('keeps walls opaque in the flat inspection look, glass translucent', () => {

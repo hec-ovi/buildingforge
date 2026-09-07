@@ -1,0 +1,29 @@
+{
+  "key": "cyberpunk/exterior-cast-concrete/mid",
+  "path": "assets/native/sources/cast-concrete.png",
+  "description": "cast concrete from native image generation",
+  "alignment": "tile",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 0,
+    "roughnessFactor": 0.84
+  },
+  "finish": {
+    "roughness": [
+      0.77,
+      0.91
+    ],
+    "grain": 0.13,
+    "relief": 0.5
+  },
+  "tiling": {
+    "worldSize": [
+      2,
+      2
+    ]
+  }
+}

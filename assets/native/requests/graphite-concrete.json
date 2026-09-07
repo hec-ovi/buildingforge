@@ -1,0 +1,29 @@
+{
+  "key": "cyberpunk/exterior-graphite-concrete/mid",
+  "path": "assets/native/sources/graphite-concrete.png",
+  "description": "graphite concrete from native image generation",
+  "alignment": "tile",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 0,
+    "roughnessFactor": 0.82
+  },
+  "finish": {
+    "roughness": [
+      0.74,
+      0.9
+    ],
+    "grain": 0.11,
+    "relief": 0.4
+  },
+  "tiling": {
+    "worldSize": [
+      2,
+      2
+    ]
+  }
+}

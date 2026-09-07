@@ -6,7 +6,7 @@ import { measureWallDepth } from '../mesh/wallDepth.ts';
 import { SLAB_BAND } from '../rules/tables.ts';
 import { buildFacadeGrids } from '../layout/facadeGrid.ts';
 import { facadeMaterialPlan, buildingMaterialVariants, facadeSurfacePattern, styleSurfaces } from '../layout/materialPlan.ts';
-import { preferredVariantForKey } from '../materials/apply.ts';
+import { preferredVariantForKey } from '../materials/variant.ts';
 import type { MeshBuilder } from '../mesh/primitives.ts';
 import { coreAdjacency } from '../layout/coreAdjacency.ts';
 

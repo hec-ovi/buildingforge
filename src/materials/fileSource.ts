@@ -20,6 +20,7 @@ export function fileSource(theme: string, dir: string = defaultMaterialsDir()): 
   const index = JSON.parse(readFileSync(indexPath, 'utf8')) as ThemeIndex;
   return {
     index,
+    nativeFinishes: true,
     readMap(path) {
       const full = join(themeDir, path);
       return existsSync(full) ? new Uint8Array(readFileSync(full)) : null;

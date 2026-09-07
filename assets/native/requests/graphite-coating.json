@@ -1,0 +1,29 @@
+{
+  "key": "cyberpunk/exterior-graphite-coating/mid",
+  "path": "assets/native/sources/graphite-coating.png",
+  "description": "graphite coating from native image generation",
+  "alignment": "tile",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 0,
+    "roughnessFactor": 0.57
+  },
+  "finish": {
+    "roughness": [
+      0.48,
+      0.66
+    ],
+    "grain": 0.025,
+    "relief": 0.1
+  },
+  "tiling": {
+    "worldSize": [
+      0.75,
+      0.75
+    ]
+  }
+}
