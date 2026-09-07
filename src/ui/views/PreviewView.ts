@@ -3,14 +3,15 @@
 // floor inspection, and opening highlight boxes from the blueprint.
 
 import {
-  ACESFilmicToneMapping, AmbientLight, Box3, BoxGeometry, Color, DirectionalLight, EdgesGeometry,
-  GridHelper, Group, HemisphereLight, LineBasicMaterial, LineSegments, Material, Mesh,
+  ACESFilmicToneMapping, Box3, BoxGeometry, Color, EdgesGeometry,
+  GridHelper, Group, LineBasicMaterial, LineSegments, Material, Mesh,
   MeshStandardMaterial, PerspectiveCamera, Plane, Scene, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { flatMaterialFor } from './flatMaterials.ts';
 import { orbitCamera, streetEyeCamera, type ViewMode } from './cameras.ts';
+import { lightPreview } from './lighting.ts';
 import { edgeDir, edgeNormal, type P2 } from '../../core/polygon.ts';
 import type { Blueprint } from '../../types.ts';
 
@@ -55,17 +56,7 @@ export class PreviewView {
 
     container.appendChild(this.renderer.domElement);
 
-    // Facades are vertical, so the key light sits low: an overhead sun lights the
-    // slabs and leaves the walls black.
-    this.scene.add(new AmbientLight(0xffffff, 0.35));
-    this.scene.add(new HemisphereLight(0x9fb8d8, 0x2a2a30, 0.85));
-    const sun = new DirectionalLight(0xffffff, 2.4);
-    sun.position.set(90, 45, 60);
-    this.scene.add(sun);
-    // Fill from the opposite quadrant so shadow-side facades keep readable shading.
-    const fill = new DirectionalLight(0x8090b0, 1.1);
-    fill.position.set(-70, 25, -60);
-    this.scene.add(fill);
+    lightPreview(this.scene, this.renderer);
     // Ground reference, kept just below Y=0 so it never fights the building's bottom cap.
     const grid = new GridHelper(200, 40, 0x232b3a, 0x141822);
     grid.position.y = -0.05;

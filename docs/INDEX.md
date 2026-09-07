@@ -4,6 +4,8 @@
 - src/facade-services: isolated arithmetic for attached service units, connected pipe and duct graphs, wall supports, clotheslines, hanging garments and sparse pane damage. See [CONTRACT.md](../src/facade-services/CONTRACT.md). Depends on nothing; the caller supplies its geometry, reservations and material keys.
 - src/ui: preview app with orbit and street-eye cameras. See [CONTRACT.md](../src/ui/CONTRACT.md). Depends on the root generator entry, Three.js, browser DOM and WebGL, and the read-only materials route.
 
+  Reflection lighting: `src/ui/views/lighting.ts` supplies a neutral environment and low-angle facade lights for material inspection.
+
 ## Root modules
 
 - src/layout/buildingGrid.ts: phase-aligned rectangular plate fitting and setbacks on the supplied construction grid. Facade panels fit their own border remainders inside those plates.
