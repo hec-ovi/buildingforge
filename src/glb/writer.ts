@@ -36,7 +36,7 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
   const slots = mb.materialSlots();
   let native: NativeFinishes | undefined;
   if (source && options.mode !== 'keys' && (options.nativeFinishes ?? source.nativeFinishes)) {
-    native = new NativeFinishes();
+    native = new NativeFinishes(layout.request.seed, layout.request.options!.exteriorStyle!);
     const resolve = buildResolver(source.index);
     const entries = slots.flatMap((slot) => {
       const [key, authored, finish] = splitMaterialSlot(slot);

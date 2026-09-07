@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "surfaces": {
     "concrete-monolith#cast": "cast-concrete",
     "concrete-monolith#weathered": "weathered-concrete",
@@ -22,5 +22,56 @@
     "metal#paint": "graphite-coating",
     "metal": "galvanized-steel",
     "ac-unit": "ac-coil"
+  },
+  "palettes": {
+    "slate": {},
+    "formed": {
+      "concrete-monolith#cast": "board-concrete",
+      "concrete-monolith#weathered": "board-concrete",
+      "metal#zinc": "brushed-steel",
+      "exterior-louvre": "brushed-steel"
+    },
+    "aggregate": {
+      "concrete-monolith#weathered": "aggregate-concrete",
+      "concrete-monolith#mineral": "aggregate-concrete",
+      "concrete-large-panel#mineral": "aggregate-concrete"
+    },
+    "chalk": {
+      "concrete-monolith#mineral": "aggregate-concrete",
+      "concrete-large-panel#mineral": "aggregate-concrete",
+      "window-frame": "chalk-coating",
+      "wall-trim": "chalk-coating",
+      "door": "chalk-coating",
+      "balcony-rail": "chalk-coating",
+      "metal#paint": "chalk-coating"
+    },
+    "bronze": {
+      "concrete-monolith#graphite": "basalt-concrete",
+      "concrete-monolith#mineral": "aggregate-concrete",
+      "window-frame": "brushed-bronze",
+      "wall-trim": "brushed-bronze",
+      "door": "brushed-bronze",
+      "balcony-rail": "brushed-bronze"
+    },
+    "steel": {
+      "concrete-monolith#graphite": "basalt-concrete",
+      "window-frame": "brushed-steel",
+      "wall-trim": "brushed-steel",
+      "door": "brushed-steel",
+      "balcony-rail": "brushed-steel",
+      "metal#zinc": "brushed-steel",
+      "exterior-louvre": "brushed-steel"
+    }
+  },
+  "styles": {
+    "residential-salvaged": ["slate", "formed"],
+    "residential-weathered": ["slate", "aggregate"],
+    "residential-modest": ["slate", "chalk"],
+    "premium-obsidian": ["slate", "bronze"],
+    "premium-office": ["slate", "steel"],
+    "premium-mineral": ["slate", "bronze"],
+    "civic-utility": ["slate", "formed"],
+    "civic-institutional": ["slate", "chalk"],
+    "civic-industrial": ["slate", "steel"]
   }
 }

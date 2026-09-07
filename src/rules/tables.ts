@@ -33,42 +33,42 @@ export interface FamilyRules extends StyleRules, FeasibilityConstants {}
 
 const STYLE_RULES: Record<Family, StyleRules> = {
   residential: {
-    floorHeight: [2.9, 3.2], groundFloorFactor: [1.3, 1.6],
+    floorHeight: [2.9, 3.2], groundFloorFactor: [1.6, 1.9],
     windowToWall: [0.15, 0.4], bayModule: [3.0, 4.5], columnGrid: [3.0, 4.5],
     columnWidth: [0.3, 0.45], balconies: true, entranceGlass: true,
   },
   hotel: {
-    floorHeight: [3.1, 3.4], groundFloorFactor: [1.5, 2.0],
+    floorHeight: [3.1, 3.4], groundFloorFactor: [1.8, 2.2],
     windowToWall: [0.3, 0.5], bayModule: [3.6, 4.5], columnGrid: [3.6, 4.5],
     columnWidth: [0.35, 0.5], balconies: true, entranceGlass: true,
   },
   office: {
-    floorHeight: [3.66, 4.0], groundFloorFactor: [1.3, 1.6],
+    floorHeight: [3.66, 4.0], groundFloorFactor: [1.6, 1.9],
     windowToWall: [0.3, 0.8], bayModule: [1.8, 2.6], columnGrid: [6.0, 9.0],
     columnWidth: [0.3, 0.6], balconies: true, entranceGlass: true,
   },
   corpo: {
-    floorHeight: [3.9, 4.27], groundFloorFactor: [1.5, 2.0],
+    floorHeight: [3.9, 4.27], groundFloorFactor: [1.8, 2.2],
     windowToWall: [0.7, 0.95], bayModule: [1.8, 2.4], columnGrid: [7.5, 9.0],
     columnWidth: [0.4, 0.7], balconies: false, entranceGlass: true,
   },
   hospital: {
-    floorHeight: [4.2, 4.5], groundFloorFactor: [1.2, 1.4],
+    floorHeight: [4.2, 4.5], groundFloorFactor: [1.4, 1.6],
     windowToWall: [0.2, 0.35], bayModule: [3.6, 4.8], columnGrid: [6.0, 7.5],
     columnWidth: [0.4, 0.6], balconies: false, entranceGlass: true,
   },
   security: {
-    floorHeight: [3.2, 3.6], groundFloorFactor: [1.2, 1.5],
+    floorHeight: [3.2, 3.6], groundFloorFactor: [1.6, 1.9],
     windowToWall: [0.1, 0.2], bayModule: [3.0, 4.0], columnGrid: [4.5, 6.0],
     columnWidth: [0.4, 0.6], balconies: false, entranceGlass: false,
   },
   industrial: {
-    floorHeight: [6.0, 9.0], groundFloorFactor: [1.0, 1.0],
+    floorHeight: [6.0, 9.0], groundFloorFactor: [1.2, 1.35],
     windowToWall: [0.05, 0.15], bayModule: [6.0, 9.0], columnGrid: [8.0, 12.0],
     columnWidth: [0.4, 0.6], balconies: false, entranceGlass: false,
   },
   commerce: {
-    floorHeight: [3.4, 4.0], groundFloorFactor: [1.2, 1.5],
+    floorHeight: [3.4, 4.0], groundFloorFactor: [1.5, 1.8],
     windowToWall: [0.4, 0.7], bayModule: [2.4, 3.6], columnGrid: [7.5, 9.0],
     columnWidth: [0.3, 0.5], balconies: false, entranceGlass: true,
   },

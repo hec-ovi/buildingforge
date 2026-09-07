@@ -27,6 +27,7 @@
 - src/layout/commercialFacade.ts: entrance-led shop displays and sparse upper commercial glazing, fitted around reserved openings.
 
 - src/layout/groundFacade.ts: sparse paired street-level windows fitted around reserved access.
+- src/layout/floorStack.ts: ground-volume preference fitted before upper storeys; exact connection bases retain their published height limits. Inputs: building request and proportions; output: blueprint floor elevations.
 - src/mesh/windowTreatments.ts: separate shell-only ground privacy and permanent external metal louvres.
 - src/mesh/windowWeathering.ts: exact sill and jamb stains clipped to solid facade receivers.
 
@@ -47,5 +48,5 @@
 - src/mesh/spandrel.ts: closed opaque infill fitted from frame front to glass back, with matte column material.
 - src/mesh/venetianBlind.ts: fitted office slats and supports at the published closure percentage.
 
-- src/materials/native: bundled image-derived finish selection and map loading. Depends on Materials from-image contract and [binding schema](../schemas/native-finishes.schema.json); publishes native material metadata in GLB extras. Sources, prompts and CLI requests: [assets/native/INDEX.md](../assets/native/INDEX.md).
+- src/materials/native: seeded building palettes and bundled image-derived map loading. Depends on Materials from-image contract and [binding schema](../schemas/native-finishes.schema.json); publishes native material metadata in GLB extras. Sources, prompts and CLI requests: [assets/native/INDEX.md](../assets/native/INDEX.md).
 - src/mesh/panelField.ts: fitted concrete panel faces, bevels and recessed joints, cut around published openings.

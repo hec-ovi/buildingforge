@@ -576,9 +576,8 @@ describe('blueprint invariants', () => {
     }
   });
 
-  it('gives every entrance its family row, 2.4 to 6 m tall by family and at least 2.6 m wide', async () => {
-    // 6 residential floors in 16 m: every storey at the 2.6 m minimum except the
-    // ground, which keeps the room for its row's 2.4 m door.
+  it('sizes entrances from their family row within the available ground clearance', async () => {
+    // The envelope caps the ground entrance after preserving five minimum storeys.
     const squeezed = { ...residential, seed: 'urbe-res-squeezed', parcel: { ...(residential.parcel as object), maxHeight: 16 } };
     const cases: [Record<string, unknown>, keyof typeof PROPORTIONS.families][] = [
       [residential, 'residential'], [corpo, 'corpo'], [factory, 'industrial'], [sliver, 'office'], [squeezed, 'residential'],
@@ -589,9 +588,10 @@ describe('blueprint invariants', () => {
       const door = ground.openings.find((o) => o.id === 'entrance')!;
       const row = PROPORTIONS.families[family];
       const clear = ground.height - PROPORTIONS.clearHeightAllowance;
-      expect(door.height).toBeGreaterThanOrEqual(row.entrance[0] - 1e-6);
+      if (req === squeezed) expect(clear).toBeLessThan(row.entrance[0]);
+      expect(door.height).toBeGreaterThanOrEqual(Math.min(row.entrance[0], clear) - 1e-6);
       expect(door.height).toBeLessThanOrEqual(Math.min(row.entrance[1], clear) + 1e-6);
-      expect(door.height).toBeGreaterThanOrEqual(PROPORTIONS.entranceRange[0] - 1e-6);
+      expect(door.height).toBeGreaterThanOrEqual(Math.min(PROPORTIONS.entranceRange[0], clear) - 1e-6);
       expect(door.height).toBeLessThanOrEqual(PROPORTIONS.entranceRange[1] + 1e-6);
       expect(door.width).toBeGreaterThanOrEqual(PROPORTIONS.entranceWidth.standard[0] - 1e-6);
       expect(door.width).toBeLessThanOrEqual(PROPORTIONS.entranceWidth.grand[1] + 1e-6);
@@ -1521,15 +1521,19 @@ describe('facade panels', () => {
 
     const floor = blueprint.floors.find((candidate) => candidate.index === 1)!;
     const grid = blueprint.facade.grids.find((candidate) => candidate.floor === 1 && candidate.edge === 0)!;
-    expect(floor.height).toBe(3.875);
     expect(grid.length).toBe(7.197);
     expect(grid.horizontalBorders).toEqual([0.5985, 0.5985]);
-    expect(grid.verticalBorders).toEqual([0.4375, 0.4375]);
+    expect(grid.vertical[0]).toBe(0);
+    expect(grid.vertical.at(-1)).toBeCloseTo(floor.height, 9);
 
     for (const candidate of blueprint.facade.grids) {
       const candidateFloor = blueprint.floors.find((item) => item.index === candidate.floor)!;
       const fieldWidth = candidate.length - candidate.horizontalBorders[0] - candidate.horizontalBorders[1];
       const fieldHeight = candidateFloor.height - candidate.verticalBorders[0] - candidate.verticalBorders[1];
+      expect(candidate.horizontalBorders[0]).toBeCloseTo(candidate.horizontalBorders[1], 9);
+      expect(candidate.verticalBorders[0]).toBeCloseTo(candidate.verticalBorders[1], 9);
+      expect(fieldWidth).toBeGreaterThanOrEqual(candidate.panelWidth);
+      expect(fieldHeight).toBeGreaterThanOrEqual(candidate.panelHeight);
       expect(fieldWidth / candidate.panelWidth).toBeCloseTo(Math.round(fieldWidth / candidate.panelWidth), 9);
       expect(fieldHeight / candidate.panelHeight).toBeCloseTo(Math.round(fieldHeight / candidate.panelHeight), 9);
     }
@@ -1885,15 +1889,15 @@ describe('facade styles', () => {
   it('keeps irregular curtain-wall vision glass below the one metre ceiling plenum', async () => {
     const { glb, blueprint } = await generate(bridged, KEYS);
     expect(blueprint.facade.style).toBe('curtain-wall');
-    const irregular = blueprint.floors.filter((floor) => floor.index >= 0
+    const irregular = blueprint.floors.filter((floor) => floor.index > 0
       && Math.abs(floor.height - Math.round(floor.height)) > 1e-6);
-    expect(new Set(irregular.map((floor) => Number(floor.height.toFixed(2)))))
-      .toEqual(new Set([4.1, 3.95, 3.9]));
+    expect(new Set(irregular.map((floor) => Number(floor.height.toFixed(6)))).size).toBeGreaterThan(1);
     const doc = await new NodeIO().readBinary(glb);
     for (const floor of irregular) {
-      if (floor.index === 0) continue; // raised punched windows belong to the podium profile
       const ceiling = floor.elevation + floor.height - 1;
-      for (const opening of floor.openings.filter((item) => item.kind === 'window')) {
+      const windows = floor.openings.filter((item) => item.kind === 'window');
+      expect(windows.length).toBeGreaterThan(0);
+      for (const opening of windows) {
         expect(opening.head).toBeGreaterThanOrEqual(1);
         const node = doc.getRoot().listNodes().find((item) => item.getName() === `window:${opening.id}`)!;
         let glassHead = -Infinity;
@@ -1906,6 +1910,7 @@ describe('facade styles', () => {
             glassHead = Math.max(glassHead, point[1]!);
           }
         }
+        expect(glassHead, `${opening.id} carries vision glass`).toBeGreaterThan(floor.elevation);
         expect(glassHead, `${opening.id} rises above the interior ceiling`).toBeLessThanOrEqual(ceiling + 1e-6);
       }
     }

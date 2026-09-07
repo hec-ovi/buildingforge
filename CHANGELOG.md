@@ -1,5 +1,7 @@
 # Changelog
 
+0.46.14: generous ground volumes and larger public entrances, fitted around exact connection elevations. Fourteen native-image finishes form two seeded palettes per exterior style.
+
 0.46.13: eight native-image PBR finishes for concrete, panels, decks, services, frames and AC surfaces. Packed metallic-roughness maps, embedded finish metadata and recessed bevelled panel joints.
 
 Core admission: complete structural plates use measured opening spans to fit the requested circulation clearance. Massing prefers a generous perimeter for balconies and setbacks.

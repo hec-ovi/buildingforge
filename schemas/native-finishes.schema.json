@@ -5,29 +5,60 @@
   "type": "object",
   "required": [
     "version",
-    "surfaces"
+    "surfaces",
+    "palettes",
+    "styles"
   ],
   "additionalProperties": false,
   "properties": {
     "version": {
-      "const": 1
+      "const": 2
     },
     "surfaces": {
+      "$ref": "#/$defs/surfaceBindings"
+    },
+    "palettes": {
       "type": "object",
       "propertyNames": {
-        "pattern": "^[a-z0-9-]+(#[a-z0-9_-]+)?$"
+        "$ref": "#/$defs/paletteId"
       },
       "additionalProperties": {
+        "$ref": "#/$defs/surfaceBindings"
+      }
+    },
+    "styles": {
+      "type": "object",
+      "required": [
+        "residential-salvaged",
+        "residential-weathered",
+        "residential-modest",
+        "premium-obsidian",
+        "premium-office",
+        "premium-mineral",
+        "civic-utility",
+        "civic-institutional",
+        "civic-industrial"
+      ],
+      "propertyNames": {
         "enum": [
-          "cast-concrete",
-          "weathered-concrete",
-          "mineral-concrete",
-          "graphite-concrete",
-          "galvanized-steel",
-          "graphite-coating",
-          "ac-enamel",
-          "ac-coil"
+          "residential-salvaged",
+          "residential-weathered",
+          "residential-modest",
+          "premium-obsidian",
+          "premium-office",
+          "premium-mineral",
+          "civic-utility",
+          "civic-institutional",
+          "civic-industrial"
         ]
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "$ref": "#/$defs/paletteId"
+        }
       }
     }
   },
@@ -46,8 +77,45 @@
         },
         "variantId": {
           "const": "native"
+        },
+        "paletteId": {
+          "$ref": "#/$defs/paletteId"
         }
       }
+    },
+    "surfaceBindings": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9-]+(#[a-z0-9_-]+)?$"
+      },
+      "additionalProperties": {
+        "enum": [
+          "cast-concrete",
+          "weathered-concrete",
+          "mineral-concrete",
+          "graphite-concrete",
+          "galvanized-steel",
+          "graphite-coating",
+          "ac-enamel",
+          "ac-coil",
+          "board-concrete",
+          "aggregate-concrete",
+          "basalt-concrete",
+          "brushed-bronze",
+          "brushed-steel",
+          "chalk-coating"
+        ]
+      }
+    },
+    "paletteId": {
+      "enum": [
+        "slate",
+        "formed",
+        "aggregate",
+        "chalk",
+        "bronze",
+        "steel"
+      ]
     }
   }
 }

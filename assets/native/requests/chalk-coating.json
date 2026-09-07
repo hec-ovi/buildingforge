@@ -1,0 +1,29 @@
+{
+  "key": "cyberpunk/exterior-chalk-coating/mid",
+  "path": "assets/native/sources/chalk-coating.png",
+  "description": "chalk coating from native image generation",
+  "alignment": "tile",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 0,
+    "roughnessFactor": 0.65
+  },
+  "finish": {
+    "roughness": [
+      0.58,
+      0.72
+    ],
+    "grain": 0.08,
+    "relief": 0.12
+  },
+  "tiling": {
+    "worldSize": [
+      0.75,
+      0.75
+    ]
+  }
+}

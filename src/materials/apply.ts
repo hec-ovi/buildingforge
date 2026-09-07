@@ -100,7 +100,9 @@ export function createMaterials(
       .setRoughnessFactor(p.roughnessFactor ?? 1)
       .setAlphaMode(p.alphaMode ?? 'OPAQUE');
     if (authoredVariant ?? selected[key]) material.setExtras({ materialVariant: authoredVariant ?? selected[key] });
-    if (nativeEntry) material.setExtras({ ...material.getExtras(), nativeMaterial: { key: entry.key, variantId: variant.id } });
+    if (nativeEntry) material.setExtras({ ...material.getExtras(), nativeMaterial: {
+      key: entry.key, variantId: variant.id, paletteId: native!.paletteId,
+    } });
 
     const infos: TextureInfo[] = [];
     for (const slot of MAP_SLOTS) {

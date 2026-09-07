@@ -27,7 +27,7 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
   const basements = req.building.basements ?? 0;
   const maxHeight = req.parcel.maxHeight;
   const basementHeight = quant(Math.min(3.5, Math.max(2.8, style.floorHeight)));
-  const groundNeed = groundFloorNeed(family);
+  const groundNeed = Math.max(groundFloorNeed(family), style.groundFloorHeight);
 
   const walkable = (req.apertures ?? []).filter((a) => a.kind !== 'wire-anchor');
   const basesPos = [...new Set(walkable.map((a) => a.base).filter((b) => b > 1e-9))].sort((a, b) => a - b);
@@ -41,7 +41,8 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
 
   const elevAbove = basesPos.length === 0
     ? nominalStack(floors, style, rules.minFloorHeight, maxHeight, reqH.get(0) ?? 0, groundNeed)
-    : solveSplit(floors, basesPos, rules.minFloorHeight, rules.maxFloorHeight, style.floorHeight, maxHeight, reqH, groundNeed);
+    : solveSplit(floors, basesPos, rules.minFloorHeight, rules.maxFloorHeight, style.floorHeight, maxHeight, reqH,
+      Math.min(groundNeed, rules.maxFloorHeight));
 
   const elevBelow = basementElevations(basements, basesNeg, basementHeight, reqH);
 
@@ -61,9 +62,9 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
 }
 
 /**
- * No pins: nominal heights (taller ground floor), scaled down to the envelope.
- * The ground floor keeps what its family's shortest entrance needs while the
- * envelope leaves that room over the other floors' minimum. Scaling rounds DOWN
+ * No pins: reserve the preferred ground volume, then fit upper storeys.
+ * The ground preference yields only when the other floors' minimums require it.
+ * Scaling rounds DOWN
  * to the 0.05 grid so quantization can never push the total back over
  * maxHeight; a deterministic shave absorbs clamp interactions.
  */
@@ -116,7 +117,7 @@ function nominalStack(floors: number, style: Style, minH: number, maxHeight: num
  * bases, then a tail above the top base. The first floor of each segment starts
  * at a pinned base and must contain the tallest aperture there (height >= reqH),
  * so it goes tall and the rest of the segment splits uniformly; the ground floor
- * also keeps its entrance row's need when its segment has the room. Returns
+ * also keeps its preferred volume when its segment has the room. Returns
  * floors+1 elevations (last = roof top).
  */
 function solveSplit(floors: number, bases: number[], minH: number, maxH: number, nominal: number, maxHeight: number, reqAll: Map<number, number>, groundNeed: number): number[] {
@@ -184,7 +185,7 @@ function solveSplit(floors: number, bases: number[], minH: number, maxH: number,
     const count = m[j] as number;
     const anchor = anchors[j] as number;
     const span = spans[j] as number;
-    // First floor tall enough for its aperture (at ground, for its entrance too), the rest uniform.
+    // First floor holds its aperture and ground preference, the rest uniform.
     const need = j === 0 ? Math.min(groundNeed, span - (count - 1) * minH) : 0;
     const h1 = Math.max(req[j] as number, span / count, need);
     elev.push(anchor);

@@ -3,21 +3,27 @@ import { expect, it } from 'vitest';
 import { generate } from '../src/index.ts';
 import bindings from '../../materials/bindings/exterior-styles.json' with { type: 'json' };
 import catalog from '../public/native-materials/themes/cyberpunk/theme.json' with { type: 'json' };
+import finishes from '../assets/native/bindings.json' with { type: 'json' };
 
 const request = JSON.parse(readFileSync(new URL('../fixtures/residential-mid.request.json', import.meta.url), 'utf8'));
 const jsonOf = (glb: Uint8Array) => JSON.parse(new TextDecoder().decode(glb.subarray(20,
   20 + new DataView(glb.buffer, glb.byteOffset, glb.byteLength).getUint32(12, true))));
 
-it('ships image-derived surfaces in all nine styles with absolute packed PBR maps and canonical keys', async () => {
+it('ships seeded image palettes in all nine styles with packed PBR maps and canonical keys', async () => {
   const used = new Set<string>();
-  for (const style of bindings.styles) {
-    const { glb, blueprint } = await generate({ ...request, options: { ...request.options, exteriorStyle: style.id } });
+  const palettes = new Set<string>();
+  for (const seed of [request.seed, 'native-variety-001']) for (const style of bindings.styles) {
+    const { glb, blueprint } = await generate({ ...request, seed, options: { ...request.options, exteriorStyle: style.id } });
     const json = jsonOf(glb);
+    const buildingPalettes = new Set<string>();
     for (const material of json.materials) {
       expect(blueprint.materials).toContain(material.name);
       const native = material.extras?.nativeMaterial;
       if (!native) continue;
       used.add(native.key);
+      palettes.add(native.paletteId);
+      buildingPalettes.add(native.paletteId);
+      expect(finishes.styles[style.id as keyof typeof finishes.styles]).toContain(native.paletteId);
       const entry = catalog.entries[native.key as keyof typeof catalog.entries];
       expect(entry.variants[0]!.class).toBe('image');
       expect(native.variantId).toBe('native');
@@ -39,6 +45,7 @@ it('ships image-derived surfaces in all nine styles with absolute packed PBR map
         }
       }
     }
+    expect(buildingPalettes.size).toBe(1);
     const ac = json.nodes.find((node: any) => node.name === 'facade-ac');
     if (ac?.mesh !== undefined) {
       const finishes = json.meshes[ac.mesh].primitives.map((p: any) => json.materials[p.material].extras?.nativeMaterial?.key);
@@ -47,7 +54,8 @@ it('ships image-derived surfaces in all nine styles with absolute packed PBR map
     }
   }
   expect([...used].sort()).toEqual(Object.keys(catalog.entries).sort());
-}, 20000);
+  expect([...palettes].sort()).toEqual(Object.keys(finishes.palettes).sort());
+}, 60000);
 
 it('allows callers to resolve shared catalog finishes with nativeFinishes disabled', async () => {
   const { glb } = await generate(request, { textures: { nativeFinishes: false, baseUrl: '/shared/' } });

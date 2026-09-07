@@ -1,20 +1,30 @@
 import catalog from '../../../public/native-materials/themes/cyberpunk/theme.json' with { type: 'json' };
 import bindings from '../../../assets/native/bindings.json' with { type: 'json' };
 import { ExteriorError } from '../../core/errors.ts';
+import { Rng } from '../../core/rng.ts';
+import type { ExteriorStyleId } from '../../types.ts';
 import { MAP_SLOTS } from '../maps.ts';
 import type { MaterialEntry, ThemeIndex } from '../theme.ts';
 
 const entries = (catalog as unknown as ThemeIndex).entries;
-const surfaces: Record<string, string> = bindings.surfaces;
+const palettes: Record<string, Record<string, string>> = bindings.palettes;
 
 /** Selects bundled surface images while retaining the consumer's canonical keys. */
 export class NativeFinishes {
+  readonly paletteId: string;
   private readonly bytes = new Map<string, Uint8Array>();
+  private readonly surfaces: Record<string, string>;
+
+  constructor(seed: string, style: ExteriorStyleId) {
+    const choices = bindings.styles[style];
+    this.paletteId = choices[new Rng(seed, `native-palette:${style}`).int(0, choices.length - 1)]!;
+    this.surfaces = { ...bindings.surfaces, ...palettes[this.paletteId] };
+  }
 
   resolve(key: string, variant?: string, finish?: string): MaterialEntry | undefined {
     const [theme, kind] = key.split('/');
     if (theme !== catalog.theme) return undefined;
-    const id = finish ?? surfaces[`${kind}#${variant}`] ?? surfaces[kind!];
+    const id = finish ?? this.surfaces[`${kind}#${variant}`] ?? this.surfaces[kind!];
     if (!id) return undefined;
     const entry = entries[`${theme}/exterior-${id}/mid`];
     if (!entry) throw new ExteriorError('E_MATERIAL_UNRESOLVED', `native finish ${id} is absent`, { key, finish: id });

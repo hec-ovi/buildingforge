@@ -1,0 +1,29 @@
+{
+  "key": "cyberpunk/exterior-brushed-bronze/mid",
+  "path": "assets/native/sources/brushed-bronze.png",
+  "description": "brushed bronze from native image generation",
+  "alignment": "tile",
+  "resolution": [
+    1024,
+    1024
+  ],
+  "variantId": "native",
+  "physical": {
+    "metallicFactor": 1,
+    "roughnessFactor": 0.55
+  },
+  "finish": {
+    "roughness": [
+      0.48,
+      0.62
+    ],
+    "grain": 0.08,
+    "relief": 0.12
+  },
+  "tiling": {
+    "worldSize": [
+      0.75,
+      0.75
+    ]
+  }
+}
