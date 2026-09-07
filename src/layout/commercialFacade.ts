@@ -5,8 +5,12 @@ import type { FloorLayout, Style } from './model.ts';
 import { modulePanes } from './glazing.ts';
 import { openingEnvelope } from './openingEnvelope.ts';
 
+interface UpperDisplayFit { edge: number; maxWidth: number }
+
 /** Shop glazing follows the entrance and leaves broad uninterrupted wall fields. */
-export function fitCommercialWindows(request: BuildingRequest, floors: FloorLayout[], style: Style): void {
+export function fitCommercialWindows(
+  request: BuildingRequest, floors: FloorLayout[], style: Style, upperFit?: UpperDisplayFit,
+): void {
   const commercial = ['commerce', 'mall'].includes(request.building.type);
   const ground = floors.find((floor) => floor.index === 0);
   const entrance = ground?.openings.find((opening) => opening.doorRole === 'main' || opening.kind === 'openFront');
@@ -29,15 +33,38 @@ export function fitCommercialWindows(request: BuildingRequest, floors: FloorLayo
         const available = freeSpans(cell[0], cell[1], reserved).sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]));
         const span = available[0];
         if (!span) continue;
-        const fitted = Math.min(width, Math.floor(span[1] - span[0]));
+        const fittingCore = floor.index > 0 && edge === upperFit?.edge;
+        const fitted = Math.min(width, Math.floor(span[1] - span[0]), fittingCore ? upperFit!.maxWidth : Infinity);
         if (fitted < 2) continue;
-        const offset = Math.round(((span[0] + span[1] - fitted) / 2) * 1000) / 1000;
+        const seat = fittingCore ? (index === 0 ? span[0] : span[1] - fitted)
+          : (span[0] + span[1] - fitted) / 2;
+        const offset = Math.round(seat * 1000) / 1000;
+        const id = `w:${floor.index}:${edge}:display:${index}`;
+        const appearance = source.find((opening) => opening.id === id) ?? template;
         floor.openings.push({
-          ...template, id: `w:${floor.index}:${edge}:display:${index}`, offset, width: fitted,
-          panes: modulePanes(fitted, template.height - (template.head ?? 0) - (template.spandrel ?? 0), style.glazing),
-          ...(template.curtain ? { curtain: { ...template.curtain } } : {}),
+          ...appearance, id, offset, width: fitted,
+          panes: modulePanes(fitted, appearance.height - (appearance.head ?? 0) - (appearance.spandrel ?? 0), style.glazing),
+          ...(appearance.curtain ? { curtain: { ...appearance.curtain } } : {}),
         });
       }
+    }
+  }
+}
+
+/** Retain each display pair and its piers while giving the core more central wall. */
+export function* commercialCoreCandidates(
+  request: BuildingRequest, floors: FloorLayout[], style: Style,
+): Generator<FloorLayout[]> {
+  if (!['commerce', 'mall'].includes(request.building.type)) return;
+  const windows = floors.filter((floor) => floor.index > 0)
+    .flatMap((floor) => floor.openings.filter((opening) => opening.kind === 'window'));
+  const edges = [...new Set(windows.map((window) => window.edge))].sort((a, b) => a - b);
+  for (const edge of edges) {
+    const widest = Math.max(...windows.filter((window) => window.edge === edge).map((window) => window.width));
+    for (let maxWidth = widest; maxWidth >= 2; maxWidth--) {
+      const candidate = floors.map((floor) => ({ ...floor, openings: structuredClone(floor.openings) }));
+      fitCommercialWindows(request, candidate, style, { edge, maxWidth });
+      yield candidate;
     }
   }
 }

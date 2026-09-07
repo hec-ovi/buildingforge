@@ -1,5 +1,7 @@
 # Changelog
 
+Commercial core fit: upper display pairs fit toward their cell ends at whole-metre widths, preserving every opening and the requested core clearance.
+
 Facade signage: placement scans retain quantized letter cells and complete frame dimensions at every size.
 
 0.46.14: generous ground volumes and larger public entrances, fitted around exact connection elevations. Fourteen native-image finishes form two seeded palettes per exterior style.

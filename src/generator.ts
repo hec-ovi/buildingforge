@@ -21,13 +21,13 @@ import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.
 import { coreRects, facadeDepth } from './layout/core.ts';
 import { coreAdjacency, corePerimeterClearance, validateAdjacencyOpenings } from './layout/coreAdjacency.ts';
 import { constructionCoreFrame, fitBuildingCore } from './layout/corePreflight.ts';
+import { planCoreOpenings } from './layout/coreOpeningPlan.ts';
 import { acClusterName } from './layout/acUnits.ts';
 import { buildFacadeFeatures } from './layout/features.ts';
 import { buildRoof } from './layout/roof.ts';
 import { validateMastAssemblies } from './layout/mastAssembly.ts';
 import { buildFacadeServiceDetails } from './layout/facadeServiceAdapter.ts';
 import { buildMesh, buildOpeningMesh } from './mesh/mesher.ts';
-import { measureWallDepth } from './mesh/wallDepth.ts';
 import { openingEnvelope } from './layout/openingEnvelope.ts';
 import { checkPocketDoor } from './layout/pocketInvariants.ts';
 import { writeGlb } from './glb/writer.ts';
@@ -70,6 +70,10 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
     facades.floors, facadeInset, facades.floors.filter((floor) => floor.index >= 0).length, massing.rectangular);
   if (corePlate.error) throw corePlate.error;
   const coreFrame = constructionCoreFrame(corePlate.axis, massing.rectangular);
+  const { floors, mesh: measuredOpenings, stair: coreStair } = planCoreOpenings({
+    request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved,
+  }, coreFrame);
+  facades.floors = floors;
   const relief = buildRelief(style, facades.floors, facades.carved);
   const obstacles = faceObstacles(facades.floors, facades.carved, facades.anchors, relief, stack.top);
   const anchors = mountAnchors(facades.anchors, massing.groundOutline, obstacles);
@@ -80,12 +84,9 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
     facadeArtifacts: features.facadeArtifacts, signage: features.signage, screens: features.screens,
     lights: features.lights, fireEscape: features.fireEscape,
   });
-  const openingLayout = { request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved };
-  const openingMesh = buildOpeningMesh(openingLayout);
-  const coreStair = fitBuildingCore({
-    buildingId: req.buildingId, floors: facades.floors, ...(coreFrame ? { coreFrame } : {}),
-    facade: { style: style.facade.kind, wallDepth: measureWallDepth(openingLayout, openingMesh), coreAdjacency: coreAdjacency(req) },
-  });
+  const openingMesh = facadeServices.damagedWindows.length > 0
+    ? buildOpeningMesh({ request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved })
+    : measuredOpenings;
   const roof = buildRoof(req, family, stack.top, style, facades.floors, coreStair);
 
   const layout: Layout = {

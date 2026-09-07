@@ -53,7 +53,7 @@ const DEFAULT_DOOR: DoorAssembly = {
 
 interface Frame { v: P2; dir: P2; n: P2; len: number }
 
-type OpeningLayout = Pick<Layout, 'floors' | 'style' | 'carved' | 'theme' | 'tier' | 'request'>;
+export type OpeningLayout = Pick<Layout, 'floors' | 'style' | 'carved' | 'theme' | 'tier' | 'request'>;
 
 /** Opening parts establish the exact glazing fields and inward shell depth. */
 export function buildOpeningMesh(layout: OpeningLayout): MeshBuilder {
