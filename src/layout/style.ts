@@ -21,7 +21,7 @@ export function buildStyle(seed: string, family: Family, tier: Tier, floors: num
 
   const facade = buildFacade(seed, family, tier, facadeKind);
 
-  // Concrete shows fat perimeter columns; steel or curtain wall reads thin (docs/RESEARCH.md structure rules).
+  // Concrete shows fat perimeter columns; steel or curtain wall reads thin.
   const concrete = floors <= STRUCTURE.concreteMaxFloors && facade.kind !== 'curtain-wall';
   const columnWidth = quant(concrete ? rng.range(...r.columnWidth) : r.columnWidth[0] * 0.8);
 

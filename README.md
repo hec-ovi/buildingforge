@@ -1,68 +1,22 @@
-# buildingforge
+# Exterior
 
-Deterministic building generator. Give it a footprint polygon, a building type and a floor count; get back a finished, textured glTF binary of the exterior: split grammar facades, real window units, carved openings, balconies, fitted facade services, signage and roof artifacts, plus a JSON blueprint of every floor and every opening on it.
+Version 0.47.0. Generates a building exterior GLB and its floor/opening blueprint from a seeded request. Each floor includes a contained rectangular room envelope. The shell carries windows, doors, curtains, balconies, facade services and materials, with replaceable floor slabs.
 
-The same request, materials database and texture options produce byte-identical GLB and JSON. Node reads `URBE_MATERIALS_DIR` only to locate the default materials box. No LLM, wall clock or service is involved.
-
-The shell is empty inside except one separator plane per floor, which a floor-filling tool can replace with real slabs ([interiorforge](https://github.com/hec-ovi/interiorforge) does exactly that).
+See [SKILL.md](SKILL.md) for a copyable call, [CONTRACT.md](CONTRACT.md) for the interface, and [docs/INDEX.md](docs/INDEX.md) for the box map.
 
 ## Run
 
-```
-npm install
-npm --prefix ../interior run build:feasibility         # shared browser and Node core solver
-npm test                                              # contract tests
-npm run preview                                       # 3D viewer: orbit or street eye, height clipping, opening highlight
-npm run generate -- fixtures/corpo-tower.request.json out   # textured GLB + blueprint
+Requires Node with TypeScript stripping, npm dependencies, and Interior's published `dist/feasibility.js` build beside this checkout. The orchestrator supplies that build. Textured output reads `URBE_MATERIALS_DIR` or the sibling Materials catalog.
+
+```sh
+npm ci
+npm run generate -- fixtures/residential-mid.request.json out --keys-only
+npm run preview
 npm run typecheck
+npm test
+npm run preview:build
 ```
 
-`fixtures/` contains corpo, residential, factory, bridged, pinned and shallow towers, a sliver parcel, a rotated core, and city integration cases. The preview loads any fixture, generates it in the browser and shows the finished textured building.
+The preview selects a fixture, seed, style and shape, with orbit/street-eye cameras and clipping. Production assets are generated into ignored `dist/`. Geometry, openings and materials come from the same generation call.
 
-A run with no seed rolls one and prints it, so the building can be regenerated exactly:
-
-```
-npm run generate -- request.json out --seed 9f3c1a20b7e4
-npm run generate -- request.json out --embed            # one self-contained file
-npm run generate -- request.json out --keys-only        # material keys, no maps
-```
-
-## In
-
-`generate(request)` in TypeScript, or the CLI above. A request (`schemas/building-request.schema.json`) carries:
-
-- **seed** and **parcel**: footprint polygon, street access point, max height, optional shared `buildingGrid` (origin, angle in radians, cell spacing)
-- **building**: type (residential, hotel, offices, corpo, hospital, clinic, police, military, factory, commerce, mall, restaurant, coffee shop), wealth tier (poor, mid, rich, high rich), floor count, basements, optional per-floor kind labels
-- **theme** slug for material keys
-- **apertures**: required openings for bridges, AC tubes, tunnels and wire anchors, each with a face index, an absolute base height and a world space cut polygon
-- **options**: one of nine coordinated exterior sets, shape including rounded-box, balconies and balcony style, open business frontage, fire escape, window style and sparse damage, facade services, hanging clothes, signage marquee or logo, ad screens, roof artifacts, curtain profile and per-opening open percentage
-- **textures**: `external` map URIs against a base path (default), `embed` for one self-contained file, or `keys` for a consumer that resolves the material keys itself
-
-`schemas/floor-constants.json` publishes per-type floor heights, minimum footprint areas and the aperture-compatible floor-count recipe. The shared core solver checks actual opening clearance before output. `options.coreAdjacency` selects usable depth behind glazing, defaulting to 1.2 m after the full lining. `schemas/proportions.json` publishes entrance, window and storefront sizes.
-
-## Out
-
-- **GLB**: glTF 2.0, one scene, named nodes (`floor:<i>/slab`, `wall:<floor>/<edge>`, `window:`, `door:` with a frame and one subtree per swinging leaf, `open-front:`, `balcony:`, `balcony-band:`, `aperture:`, `anchor:`, `roof`, `parapet`, `terrace:`, `facade-relief`, `facade-artifacts`, `facade-ac`, `facade-services`, `bulkhead`, `signage:`, `screen:`, `light:`, `fire-escape`). Every mesh carries positions, normals and UVs. `options.glb: "merged"` swaps to one mesh per material key and authored variant for runtime scale, keeping door leaves, anchors, floor slabs and conditional ground-privacy nodes as named nodes, with an identical blueprint. Each material is named by the canonical `theme/kind/tier` key and resolved through a texture library like [pbrforge](https://github.com/hec-ovi/pbrforge) into basecolor, normal, packed metallic-roughness, occlusion and emission maps with its physical factors; an authored non-default variant travels in `extras.materialVariant`. Tiled maps carry a texture transform over world-meter UVs so nothing stretches, and ad screens, signage and window glass get exact 0..1 UVs over their quad (a letter cell gets its sub-rect of the glyph atlas). With no texture library present the output falls back to keys and says so, so the tool still runs alone.
-- **Blueprint JSON** (`schemas/blueprint.schema.json`): per floor, basements included, the index, kind, elevation, height, outline and every opening positioned by outline edge, offset and sill, with exact two-sided curtain coverage, pane grid, optional damaged pane, fitted door set, door role and movement clearance, open-portal clearance, balcony band link and material key. Balcony bands publish shared slab and rail dimensions plus every access door. Each face publishes its fixed 2 x 1 m placement guide, opening-free wall runs and safe partition anchors. The facade also publishes connected service graphs, their attached endpoint units and supports, optional supported clotheslines, its concrete, border, ground and trim keys with stable named variants and the physical surface pattern. Roof antennas and crossarm masts publish exact supports, arms, internal cable paths and stable external cable attachments. The rest covers lights, signage, screens, facade style, measured wall depth, opaque slab bands, facade equipment, fire escape and roof bulkhead.
-
-The generator checks itself before returning: openings fit their edge and their floor, no two openings on a floor overlap, a 0.3 m minimum pier between them, floor elevations contiguous from ground zero, every requested aperture carved exactly where asked with a floor tall enough to contain it, every floor plate large enough to host the core rectangle an interior needs, no glass crossing the band that hides a slab, nothing hung on a facade covering an opening, the structure inside the parcel footprint, and GLB geometry matching the blueprint exactly. `CONTRACT.md` has the closed error set, each error naming the numbers that made the request infeasible.
-
-## How it works
-
-Nine sets coordinate geometry and material roles: three worn residential, three corporate, and three civic/industrial. `options.exteriorStyle` selects one explicitly; omission selects by seed and use. `facade.exteriorStyle` records the result. Corporate sets include opaque graphite glazing, transparent office rows, and mineral concrete. Default plates are rectangular on the construction grid. Explicit rounded shapes share their circular returns across walls, slabs, roof and attached geometry. Style bindings live in the sibling pbrforge box at `bindings/exterior-styles.json`. Fourteen bundled native-image finishes form two seeded palettes per style, covering concrete, metals, coated frames and AC surfaces. Their PBR maps are embedded in textured exports; [sources and prompts](assets/native/INDEX.md) record the authoring workflow. Keys-only consumers resolve the shared catalog unless they adopt the bundled finishes.
-
-Facades use a split grammar for bay rhythm, column material, window proportion, balcony rules and curtain states. The floor solver places real walking surfaces at aperture bases. Rectangular plates and explicit setbacks retain one construction-grid phase and one core placement behind the facade. Core size follows actual storey heights and Interior's published stair arithmetic. Aperture-bound parcels retain their exact faces and permitted core frame search. Concrete uses continuous surfaces or complete 7 x 3.5 m panels with bevelled edges, recessed 20 mm joints and fitted solid borders. Every opening is grid-cut into the wall, watertight and free of T-junctions, and lined back to its fitted unit.
-
-A window is a real unit: a closed frame profile with reveal depth, a mullion grid splitting it into panes no larger than the tier's structural limit, neutral glass recessed behind the profile and a fitted roller shade or modeled venetian blind. The shade publishes exact closure from 0 to 100 percent and supports per-opening open-percentage overrides. Sparse damage targets one explicit pane and leaves the rest of the unit intact. The coordinated set picks the facade construction: a curtain wall on selected premium buildings (grouped glazing between broad structural piers, thin internal mullions, a head spandrel over each ceiling plenum and slab edge, transom lights over the doors), clean mullioned glazing on flush panels, broad bevelled panel relief, or a ribbed megablock with small deep-set windows scattered inside the panel grid and utility boxes bolted to it. On a punched facade the glass fills its hole and the frame ring straddles the edge, half over the glass and half over the wall. Condenser clusters use modeled fan guards, blades, hubs and wall brackets and connect to supported dimensioned pipe routes. Industrial faces can add fitted duct runs, a selected solid span may carry a supported 12- or 15-strand cable bundle with slack and a wall entry, and residential clotheslines hang from paired wall mounts. Compact commerce, restaurant and coffee-shop buildings can use a framed 4 to 12 m open frontage with published navigation clearance. Shared balcony bands cover bay, Juliet and full-frontage variants; office curtain walls add fitted access on alternating floors while retaining the glazing beside it. Public frontages have one entrance by default; explicit repeated layouts publish each secondary connection. Signs are modular: one letter per cell, each luminous glyph recessed inside its own metal case, running as a marquee band over the entrance or stacking into a blade sign that protrudes edge-on from the facade and reads from both sides. Signs and ad screens scan for clear facade space, then fit by size and face. The roof carries a stair-head cutout with its housing, a room with four walls and a door onto the roof. Fitted rooftop equipment includes guarded HVAC and cooling-tower fans, tanks, vents, stacks, solar panels, dishes and use-specific assemblies. Whip antennas and crossarm masts publish their internal cables and stable external fittings for a downstream span generator. Every artifact stays clear of the roof access. Eligible buildings may carry a fire escape whose platforms serve a real window on every floor they pass.
-
-Ground floors reserve a taller lobby or workshop volume within the envelope and exact connection constraints. Their facades use larger entrances, continuous concrete, sparse symmetric windows and broad solid fields. Repeated ribs start above ground. Shell-only closed privacy assemblies have independent `ground-privacy:` nodes, so callers omit them for real interiors while retaining authored indoor curtains. Industrial and security windows carry separate exterior metallic louvres. Seeded sill and jamb weathering stays clipped to solid wall receivers.
-
-The research behind the dimensional rules is in `docs/RESEARCH.md`.
-
-## Using it from an agent or a pipeline
-
-The whole surface is a JSON request in and files out, offline and deterministic, so it drops into a batch script, a build step or an agent tool loop without a server. `CONTRACT.md` plus `schemas/` describe the request, the result and the closed error set well enough to call it without reading the code, and the feasibility constants let a caller compose valid requests up front.
-
-## Consumers
-
-[urbe](https://github.com/hec-ovi/urbe) is a deterministic city sandbox that generates thousands of these buildings from one seed: it feeds parcels from its city plan and aperture requests from its bridge and tube layer, then fills the shells with [interiorforge](https://github.com/hec-ovi/interiorforge) and textures them with [pbrforge](https://github.com/hec-ovi/pbrforge).
+Generation is deterministic for a fixed request, catalog and texture options. External textures can fall back to material keys with a reported reason; `--embed` requires maps. [Interface proposals](docs/ISSUES.md) record the coordinated work and remaining visual review.

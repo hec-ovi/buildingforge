@@ -10,7 +10,7 @@ export function meshRoofArtifacts(
   if (layout.roof.artifacts.length === 0) return;
   const sink = mb.part('roof-artifacts');
   for (const artifact of layout.roof.artifacts) {
-    const [width, depth, height] = artifact.size;
+    const [width, depth] = artifact.size;
     const placedWidth = artifact.rotationDeg === 90 ? depth : width;
     const placedDepth = artifact.rotationDeg === 90 ? width : depth;
     const assembly = artifact.mastAssembly;

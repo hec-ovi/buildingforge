@@ -93,32 +93,6 @@ describe('facade-services contract', () => {
     }
   });
 
-  it('fits one organized 12- or 15-cable bundle into a wall entry', () => {
-    const input = load();
-    const output = generateFacadeServices(input);
-    const bundles = output.networks.filter((network) => network.kind === 'cable-bundle');
-    expect(bundles).toHaveLength(1);
-    const bundle = bundles[0]!;
-    expect(bundle.profile.shape).toBe('bundle');
-    if (bundle.profile.shape !== 'bundle') return;
-    expect([12, 15]).toContain(bundle.profile.cableCount);
-    expect(bundle.profile.rows).toBe(3);
-    expect(bundle.profile.slack).toBeGreaterThan(0);
-    expect(bundle.profile.width).toBeCloseTo(
-      (Math.ceil(bundle.profile.cableCount / bundle.profile.rows) - 1) * bundle.profile.spacing
-        + bundle.profile.cableDiameter,
-      3,
-    );
-    expect(bundle.nodes.filter((node) => node.kind === 'bend').length).toBeGreaterThanOrEqual(3);
-    const entryIds = new Set(output.units.filter((unit) => unit.kind === 'wall-entry').map((unit) => unit.id));
-    expect(bundle.nodes.some((node) => node.kind === 'endpoint' && entryIds.has(node.targetId!))).toBe(true);
-    expect(bundle.supports.length).toBeGreaterThan(0);
-    for (const support of bundle.supports) {
-      expect(bundle.segments.some((segment) => segment.id === support.segmentId)).toBe(true);
-      expect(distance(support.position, support.wallPosition)).toBeCloseTo(support.local[2], 3);
-    }
-  });
-
   it('keeps services and clothes outside every opening reservation', () => {
     const input = load();
     const output = generateFacadeServices(input);

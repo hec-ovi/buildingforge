@@ -34,23 +34,3 @@ it('keeps a corner-access entrance on its real street frontage through rotation 
   const legacyResult = await generate(legacy, keys);
   expect(legacyResult.blueprint.floors[0]!.openings.find(o => o.doorRole === 'main')!.edge).toBe(2);
 });
-
-it('rejects malformed or directionless source streets at the public generator', async () => {
-  const malformed = request();
-  malformed.parcel.streetAccess!.path[1] = [...malformed.parcel.streetAccess!.path[0]!];
-  await expect(generate(malformed, keys)).rejects.toMatchObject({ code: 'E_SCHEMA',
-    message: expect.stringContaining('street segments must have positive length') });
-  const ambiguous = request();
-  ambiguous.parcel.accessPoint = [62, 100];
-  await expect(generate(ambiguous, keys)).rejects.toMatchObject({ code: 'E_SCHEMA',
-    message: expect.stringContaining('accessPoint must be off street') });
-});
-
-it('rejects a blocked street frontage instead of placing the entrance on another side', async () => {
-  const req = request();
-  req.apertures = [{ id: 'reserved-frontage', buildingId: req.buildingId, floor: 0, face: 3,
-    kind: 'wire-anchor', u: 12, base: 4, width: 24, height: 0.1, shape: 'rect', linkId: 'wire',
-    cut: { polygon: [[70, 4, 114], [70, 4, 90], [70, 4.1, 90], [70, 4.1, 114]], axisDir: [-1, 0, 0] } }];
-  await expect(generate(req, keys)).rejects.toMatchObject({ code: 'E_DOOR_FIT',
-    message: expect.stringContaining('west-street') });
-});

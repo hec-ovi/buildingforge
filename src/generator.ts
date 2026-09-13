@@ -3,42 +3,45 @@
 
 import { validateRequest } from './core/validate.ts';
 import { FAMILY } from './rules/families.ts';
-import { FACADE, MODULE, MODULE_U, OPENING, SLAB_BAND } from './rules/tables.ts';
-import { onModule } from './layout/module.ts';
-import {
-  PROPORTIONS, clearHeight, isStorefrontFloor, isPodiumFloor, fitPodiumWindow, minEntranceHeight, minWindowHeight, proportionsOf,
-} from './rules/proportions.ts';
 import { buildStyle } from './layout/style.ts';
 import { selectExteriorStyle, EXTERIOR_STYLES } from './layout/exteriorStyle.ts';
 import { buildMassing } from './layout/massing.ts';
-import { fitPlateCore } from './layout/plateCore.ts';
+import { inspectCorePlate } from './layout/plateCore.ts';
 import { buildFloorStack } from './layout/floorStack.ts';
 import { buildFacades } from './layout/facades.ts';
 import { entranceCandidates } from './layout/entrance.ts';
 import { balconiesEnabled, buildBalconyBands } from './layout/balconies.ts';
 import { buildRelief } from './layout/relief.ts';
 import { mountAnchors } from './layout/anchors.ts';
-import { crossed, edgeU, faceObstacles, type Rect } from './layout/obstructions.ts';
-import { coreRects, facadeDepth } from './layout/core.ts';
+import { faceObstacles } from './layout/obstructions.ts';
+import { facadeDepth } from './layout/core.ts';
 import { coreAdjacency, corePerimeterClearance, validateAdjacencyOpenings } from './layout/coreAdjacency.ts';
 import { constructionCoreFrame, fitBuildingCore } from './layout/corePreflight.ts';
 import { planCoreOpenings } from './layout/coreOpeningPlan.ts';
-import { acClusterName } from './layout/acUnits.ts';
 import { buildFacadeFeatures } from './layout/features.ts';
 import { buildRoof } from './layout/roof.ts';
-import { validateMastAssemblies } from './layout/mastAssembly.ts';
 import { buildFacadeServiceDetails } from './layout/facadeServiceAdapter.ts';
 import { buildMesh, buildOpeningMesh } from './mesh/mesher.ts';
-import { openingEnvelope } from './layout/openingEnvelope.ts';
-import { checkPocketDoor } from './layout/pocketInvariants.ts';
 import { writeGlb } from './glb/writer.ts';
 import { buildBlueprint } from './blueprint/builder.ts';
-import { area, edgeLength, edgeNormal, pointSegmentDistance, type P2 } from './core/polygon.ts';
 import { ExteriorError } from './core/errors.ts';
-import type { FloorLayout, Layout } from './layout/model.ts';
-import type { GenerateOptions, GenerateResult, P3 } from './types.ts';
+import type { Layout } from './layout/model.ts';
+import type { GenerateOptions, GenerateResult } from './types.ts';
+
+import { checkInvariants } from './layout/validateLayout.ts';
 
 export async function generate(raw: unknown, options: GenerateOptions = {}): Promise<GenerateResult> {
+  try {
+    return await generateBuilding(raw, options);
+  } catch (error) {
+    if (error instanceof ExteriorError) throw error;
+    throw new ExteriorError('E_INVARIANT', 'generation failed to produce a valid shell', {
+      cause: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+async function generateBuilding(raw: unknown, options: GenerateOptions): Promise<GenerateResult> {
   let req = validateRequest(raw);
   const family = FAMILY[req.building.type];
   const tier = req.building.tier;
@@ -104,370 +107,4 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   fitBuildingCore(blueprint);
   const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   return { glb, blueprint, textures };
-}
-
-/**
- * Machine-checked coherence: every opening lies entirely inside its edge and its
- * floor, and every opening the proportion table covers is the size that table
- * promises.
- */
-function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>): void {
-  checkProportions(layout);
-  checkSlabBands(layout);
-  checkOverlays(layout, obstacles);
-  checkFacadeArtifacts(layout, obstacles);
-  checkLights(layout);
-  checkBalconyBands(layout);
-  validateMastAssemblies(layout.roof.artifacts, layout.roof.elevation);
-  for (const sign of layout.signage) {
-    if (sign.mode !== 'marquee') continue;
-    const cell = sign.cellSize ?? 0;
-    const letter = sign.letterHeight ?? 0;
-    const casing = sign.glyphCase;
-    if (!casing || cell <= 0 || letter <= 0 || casing.size > cell + 1e-6
-      || casing.size <= letter || casing.depth <= 0 || casing.inset < 0
-      || casing.inset >= casing.depth) {
-      throw new ExteriorError('E_INVARIANT',
-        'marquee glyph casing does not fit its letter cell; exterior bug, report with the request');
-    }
-  }
-  for (const floor of layout.floors) {
-    for (const o of floor.openings) {
-      checkPocketDoor(floor, o);
-      const isDoor = o.kind === 'door' || o.kind === 'balconyDoor';
-      if (isDoor !== (o.door !== undefined)) {
-        throw new ExteriorError('E_INVARIANT',
-          `opening ${o.id} has an inconsistent door assembly on floor ${floor.index}; exterior bug, report with the request`);
-      }
-      if (o.kind === 'door' && o.doorRole === undefined) {
-        throw new ExteriorError('E_INVARIANT',
-          `door ${o.id} has no navigation role on floor ${floor.index}; exterior bug, report with the request`);
-      }
-      if (o.kind !== 'door' && o.doorRole !== undefined) {
-        throw new ExteriorError('E_INVARIANT',
-          `opening ${o.id} publishes a door role but is ${o.kind}; exterior bug, report with the request`);
-      }
-      const isPortal = o.kind === 'openFront';
-      if (isPortal !== (o.portal !== undefined) || isPortal !== (o.accessRole === 'main')) {
-        throw new ExteriorError('E_INVARIANT',
-          `opening ${o.id} has an inconsistent open-front access contract on floor ${floor.index}; exterior bug, report with the request`);
-      }
-      if (o.portal) {
-        const valid = o.portal.frameWidth > 0 && o.portal.frameDepth > 0 && o.portal.recessDepth > 0
-          && o.portal.clearWidth > 0 && o.portal.clearWidth < o.width
-          && o.portal.clearHeight > 0 && o.portal.clearHeight < o.height
-          && o.portal.clearDepth === o.portal.recessDepth;
-        if (!valid) {
-          throw new ExteriorError('E_INVARIANT',
-            `open frontage ${o.id} has a surround or clearance inconsistent with its opening; exterior bug, report with the request`);
-        }
-      }
-      if (o.door) {
-        const expectedClear = o.door.motion.kind === 'swing' ? o.width / Math.max(1, o.leaves ?? 1) : 0;
-        const valid = o.door.frameWidth > 0 && o.door.frameDepth > 0 && o.door.recessDepth >= 0
-          && o.door.thresholdHeight === o.sill
-          && Math.abs(o.door.motion.clearDepth - expectedClear) <= 0.051;
-        if (!valid) {
-          throw new ExteriorError('E_INVARIANT',
-            `door ${o.id} has a frame or movement envelope inconsistent with its opening; exterior bug, report with the request`);
-        }
-      }
-      const ok = o.edge < floor.outline.length
-        && o.offset >= -1e-6
-        && o.offset + o.width <= edgeLength(floor.outline, o.edge) + 1e-6;
-      if (!ok) {
-        throw new ExteriorError('E_INVARIANT',
-          `opening ${o.id} exceeds edge ${o.edge} on floor ${floor.index} (offset ${o.offset}, width ${o.width}, edge ${edgeLength(floor.outline, Math.min(o.edge, floor.outline.length - 1)).toFixed(2)} m); exterior bug, report with the request`);
-      }
-      const top = o.sill + o.height + (o.transom ? FACADE.curtainWall.transomGap + o.transom : 0);
-      if (top > floor.height + 1e-6) {
-        throw new ExteriorError('E_INVARIANT',
-          `opening ${o.id} spans ${top.toFixed(2)} m in a ${floor.height.toFixed(2)} m floor ${floor.index}; exterior bug, report with the request`);
-      }
-    }
-    checkEdgeRuns(floor);
-  }
-}
-
-/** Every balcony access resolves to one shared, dimensionally matching band. */
-function checkBalconyBands(layout: Layout): void {
-  const ids = new Set<string>();
-  const doors = new Map<string, { floor: FloorLayout; opening: FloorLayout['openings'][number] }>();
-  for (const floor of layout.floors) {
-    for (const opening of floor.openings) {
-      if (opening.kind === 'balconyDoor') doors.set(opening.id, { floor, opening });
-    }
-  }
-  const served = new Set<string>();
-  for (const band of layout.balconyBands) {
-    const floor = layout.floors.find((candidate) => candidate.index === band.floor);
-    const length = floor && band.edge < floor.outline.length ? edgeLength(floor.outline, band.edge) : 0;
-    const dimensions = band.offset >= 0 && band.width > 0 && band.offset + band.width <= length + 1e-6
-      && band.railHeight > 0 && band.depth >= 0
-      && (band.depth > 0 ? band.slabThickness > 0 : band.slabThickness === 0);
-    if (ids.has(band.id) || !floor || !dimensions || band.doors.length === 0) {
-      throw new ExteriorError('E_INVARIANT',
-        `balcony band ${band.id} has an invalid id, floor, edge or dimensions; exterior bug, report with the request`);
-    }
-    ids.add(band.id);
-    for (const doorId of band.doors) {
-      const found = doors.get(doorId);
-      const door = found?.opening;
-      const matched = found?.floor.index === band.floor && door?.edge === band.edge
-        && door.balcony?.bandId === band.id
-        && Math.abs((door.balcony?.width ?? 0) - band.width) < 1e-6
-        && Math.abs((door.balcony?.depth ?? -1) - band.depth) < 1e-6
-        && door.offset >= band.offset - 1e-6
-        && door.offset + door.width <= band.offset + band.width + 1e-6;
-      if (!matched || served.has(doorId)) {
-        throw new ExteriorError('E_INVARIANT',
-          `balcony band ${band.id} does not uniquely fit door ${doorId}; exterior bug, report with the request`);
-      }
-      served.add(doorId);
-    }
-  }
-  if (served.size !== doors.size) {
-    throw new ExteriorError('E_INVARIANT',
-      `balcony bands serve ${served.size} of ${doors.size} balcony doors; exterior bug, report with the request`);
-  }
-}
-
-/** Fixture anchors and outward axes remain tied to the carrying facade. */
-function checkLights(layout: Layout): void {
-  const ground = layout.floors.find((floor) => floor.index === 0)!;
-  for (const light of layout.lights) {
-    const edge = light.edge;
-    const normal = edge < ground.outline.length ? edgeNormal(ground.outline, edge) : null;
-    const onFace = edge < ground.outline.length
-      && pointSegmentDistance([light.position[0], light.position[2]],
-        ground.outline[edge]!, ground.outline[(edge + 1) % ground.outline.length]!) < 1e-6;
-    const oriented = normal !== null
-      && Math.abs(light.normal[0] - normal[0]) < 1e-9
-      && Math.abs(light.normal[1] - normal[1]) < 1e-9;
-    if (!onFace || !oriented || light.size.some((value) => value <= 0) || light.standoff < 0) {
-      throw new ExteriorError('E_INVARIANT',
-        `light on edge ${edge} has an invalid mount anchor, size or outward axis; exterior bug, report with the request`);
-    }
-  }
-}
-
-/**
- * Every plate holds a core: the interior lays its stairs, lifts and risers in
- * one rectangle behind the facade, so every floor, ground and setbacks alike,
- * has to host the rectangle its type and floor count call for. A lot that
- * cannot is named here rather than at assembly.
- */
-function inspectCorePlate(
-  floors: FloorLayout[], facadeInset: number, aboveGround: number, rectangular: boolean,
-): { axis: P2; error: ExteriorError | null } {
-  const ground = floors.find((f) => f.index === 0)!.outline;
-  const rects = coreRects(floors.map((floor) => floor.height), aboveGround, area(ground));
-  const outlines = floors.map((floor) => floor.outline);
-  const { fits, reached, axis } = fitPlateCore(outlines, facadeInset, rects, rectangular);
-  if (fits) return { axis, error: null };
-  return {
-    axis,
-    error: new ExteriorError('E_CORE_PLATE',
-      `the shared core reaches ${reached.band.toFixed(2)} m of plate, under the ${reached.rect.length} x ${reached.rect.depth} m a ${reached.rect.mode} needs`,
-      { band: reached.band, needs: [reached.rect.length, reached.rect.depth], mode: reached.rect.mode }),
-  };
-}
-
-/**
- * One opening owns one stretch of an edge: two openings on the same floor and
- * edge never share any of it, whatever their heights, and consumers can read the
- * facade as a run of exclusive intervals.
- */
-function checkEdgeRuns(floor: Layout['floors'][number]): void {
-  const byEdge = new Map<number, Layout['floors'][number]['openings']>();
-  for (const o of floor.openings) {
-    const list = byEdge.get(o.edge) ?? [];
-    list.push(o);
-    byEdge.set(o.edge, list);
-  }
-  for (const [edge, list] of byEdge) {
-    const sorted = [...list].sort((a, b) => openingEnvelope(a).offset - openingEnvelope(b).offset);
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1]!, cur = sorted[i]!;
-      const prevField = openingEnvelope(prev), curField = openingEnvelope(cur);
-      if (curField.offset < prevField.offset + prevField.width - 1e-6) {
-        throw new ExteriorError('E_INVARIANT',
-          `openings ${prev.id} and ${cur.id} overlap on edge ${edge} of floor ${floor.index}; exterior bug, report with the request`);
-      }
-    }
-  }
-}
-
-/**
- * Nothing overlaid on a facade sits on its structure: every sign and every ad
- * screen keeps clear of the structural piers, floor bands and openings already on
- * that face.
- */
-function checkOverlays(layout: Layout, obstacles: Map<number, Rect[]>): void {
-  const ground = layout.floors.find((f) => f.index === 0);
-  if (!ground) return;
-  const check = (what: string, edge: number, center: P3, width: number, height: number, standoff: number) => {
-    const u = edgeU(ground.outline, edge, center[0], center[2]);
-    const rect: Rect = {
-      u0: u - width / 2, u1: u + width / 2, y0: center[1] - height / 2, y1: center[1] + height / 2,
-      what, kind: 'relief', depth: standoff,
-    };
-    for (const o of crossed(obstacles.get(edge), rect)) {
-      if (o.kind === 'opening') {
-        throw new ExteriorError('E_INVARIANT',
-          `${what} on edge ${edge} covers ${o.what}; exterior bug, report with the request`);
-      }
-      if (standoff < o.depth - 1e-6) {
-        throw new ExteriorError('E_INVARIANT',
-          `${what} on edge ${edge} stands ${standoff.toFixed(2)} m off the wall and runs into ${o.what} at ${o.depth.toFixed(2)} m; exterior bug, report with the request`);
-      }
-    }
-  };
-  layout.signage.forEach((s, i) => check(`signage:${i}`, s.edge, s.center, s.width, s.height, s.standoff));
-  layout.screens.forEach((s, i) => check(`screen:${i}`, s.edge, s.center, s.width, s.height, s.standoff));
-}
-
-/**
- * The slab line reads solid: every pane of glass starts above the band the
- * facade keeps over its own floor line and stops below the band it keeps under
- * the next one, so an interior slab seen through the glazing sits inside opaque
- * facade instead of floating between two window rows.
- */
-function checkSlabBands(layout: Layout): void {
-  for (const floor of layout.floors) {
-    if (floor.index < 0) continue;
-    for (const o of floor.openings) {
-      if (o.kind !== 'window') continue;
-      const glassLow = o.sill + (o.spandrel ?? 0);
-      const glassHigh = o.sill + o.height - (o.head ?? 0);
-      if (glassLow < -1e-6) {
-        throw new ExteriorError('E_INVARIANT',
-          `window ${o.id} on floor ${floor.index} starts ${glassLow.toFixed(2)} m below its floor line; exterior bug, report with the request`);
-      }
-      const below = layout.style.facade.kind === 'curtain-wall' ? (o.head ?? 0) : SLAB_BAND.below;
-      if (glassHigh > floor.height - below + 1e-6) {
-        throw new ExteriorError('E_INVARIANT',
-          `window ${o.id} on floor ${floor.index} reaches ${glassHigh.toFixed(2)} m of a ${floor.height.toFixed(2)} m floor, into the ${below} m head spandrel under the slab above; exterior bug, report with the request`);
-      }
-    }
-  }
-}
-
-/**
- * Nothing hung on a facade covers an opening or a window: every condenser unit
- * and every utility box lies inside its edge and its floor and sits on wall,
- * standing proud of any relief it crosses.
- */
-function checkFacadeArtifacts(layout: Layout, obstacles: Map<number, Rect[]>): void {
-  const byFloor = new Map(layout.floors.map((f) => [f.index, f]));
-  for (const a of layout.facadeArtifacts) {
-    const floor = byFloor.get(a.floor);
-    if (!floor) continue;
-    const [w, h] = a.size;
-    const L = edgeLength(floor.outline, a.edge);
-    const what = `${a.kind} on edge ${a.edge} of floor ${a.floor}`;
-    if (a.offset < -1e-6 || a.offset + w > L + 1e-6 || a.sill < -1e-6 || a.sill + h > floor.height + 1e-6) {
-      throw new ExteriorError('E_INVARIANT',
-        `${what} (offset ${a.offset}, sill ${a.sill}) leaves its ${L.toFixed(2)} x ${floor.height.toFixed(2)} m face; exterior bug, report with the request`);
-    }
-    const standoff = a.standoff ?? 0;
-    const rect: Rect = {
-      u0: a.offset, u1: a.offset + w,
-      y0: floor.elevation + a.sill, y1: floor.elevation + a.sill + h,
-      what, kind: 'relief', depth: standoff,
-    };
-    const own = acClusterName(a.floor, a.edge);
-    for (const o of crossed(obstacles.get(a.edge), rect)) {
-      if (o.what === own) continue; // the unit's own cluster, registered when it landed
-      if (o.kind !== 'relief') {
-        throw new ExteriorError('E_INVARIANT',
-          `${what} covers ${o.what}; exterior bug, report with the request`);
-      }
-      if (standoff < o.depth - 1e-6) {
-        throw new ExteriorError('E_INVARIANT',
-          `${what} stands ${standoff.toFixed(2)} m off the wall and runs into ${o.what} at ${o.depth.toFixed(2)} m; exterior bug, report with the request`);
-      }
-    }
-  }
-}
-
-/**
- * The proportion table is a promise: entrance doors stand in their family's
- * height range at the standard width, punched windows reach their share of the
- * floor's clear height on a sill inside the range, a storefront reaches the
- * head band on a low sill, and the small deep megablock window is the poor
- * tier's alone.
- */
-function checkProportions(layout: Layout): void {
-  const prop = proportionsOf(layout.family);
-  const megablock = layout.style.facade.kind === 'megablock';
-  const curtainWall = layout.style.facade.kind === 'curtain-wall';
-  if (megablock && layout.tier !== PROPORTIONS.megablock.tier) {
-    throw new ExteriorError('E_INVARIANT',
-      `megablock windows on tier ${layout.tier}; the small deep window is the ${PROPORTIONS.megablock.tier} tier's alone`);
-  }
-  const fail = (why: string): never => {
-    throw new ExteriorError('E_INVARIANT', `${why}; exterior bug, report with the request`);
-  };
-
-  for (const floor of layout.floors) {
-    if (floor.index < 0) continue;
-    const clear = clearHeight(floor.height);
-    const storefront = floor.index === 0 && isStorefrontFloor(layout.family, floor.kind);
-    for (const o of floor.openings) {
-      if (o.id === 'entrance') {
-        const want = minEntranceHeight(prop, clear);
-        if (o.height < want - 1e-6 || o.height > prop.entrance[1] + 1e-6) {
-          fail(`entrance is ${o.height.toFixed(2)} m tall, outside ${want.toFixed(2)}..${prop.entrance[1]} m for ${layout.family}`);
-        }
-        // an entrance is whole metres wide: the least its edge allows, on the module
-        const minWidth = onModule(Math.min(PROPORTIONS.entranceWidth.standard[0], edgeLength(floor.outline, o.edge) - 2 * OPENING.cornerMargin), 'down', MODULE_U);
-        if (o.width < minWidth - 0.051) {
-          fail(`entrance is ${o.width.toFixed(2)} m wide, under the ${minWidth.toFixed(2)} m its edge allows`);
-        }
-        continue;
-      }
-      if (o.kind !== 'window') continue;
-      if (floor.index === 0 && isPodiumFloor(layout.family, floor.kind)) {
-        const fit = fitPodiumWindow(clear);
-        if (!fit || Math.abs(o.sill - fit.sill) > 1e-6 || Math.abs(o.height - fit.height) > MODULE / 2 + 1e-6
-          || o.width > PROPORTIONS.podium.width + 1e-6 || o.head !== undefined) {
-          fail(`podium window ${o.id} exceeds its punched opening profile`);
-        }
-        continue;
-      }
-      if (curtainWall) {
-        // A curtain-wall bay hangs slab to slab with its opaque spandrel at the
-        // head, covering the ceiling plenum and slab above.
-        if ((o.spandrel ?? 0) !== 0 || (o.head ?? 0) < FACADE.curtainWall.spandrelHeight[0] - 1e-6) {
-          fail(`curtain-wall bay ${o.id} does not keep its full spandrel at the storey head`);
-        }
-        if (Math.abs(o.sill + o.height - floor.height) > 1e-6) {
-          fail(`curtain-wall bay ${o.id} spans ${(o.sill + o.height).toFixed(2)} m of a ${floor.height.toFixed(2)} m floor instead of reaching the slab above`);
-        }
-        const glass = o.height - (o.spandrel ?? 0) - (o.head ?? 0);
-        if (glass < FACADE.curtainWall.minBay - 1e-6) {
-          fail(`curtain-wall bay ${o.id} carries ${glass.toFixed(2)} m of glass, under the ${FACADE.curtainWall.minBay} m minimum`);
-        }
-        continue;
-      }
-      if (storefront) {
-        if (o.sill > PROPORTIONS.storefront.sill[1] + 1e-6) {
-          fail(`storefront window ${o.id} sits on a ${o.sill.toFixed(2)} m sill, over the ${PROPORTIONS.storefront.sill[1]} m limit`);
-        }
-        if (o.sill + o.height < clear - 0.051) {
-          fail(`storefront window ${o.id} stops at ${(o.sill + o.height).toFixed(2)} m in a ${clear.toFixed(2)} m clear floor instead of reaching the head band`);
-        }
-        continue;
-      }
-      if (megablock) continue;
-      // Openings sit on the module grid, so a proportion is met to the nearest half module.
-      if (o.height < minWindowHeight(prop, clear) - MODULE / 2 - 1e-6) {
-        fail(`window ${o.id} is ${o.height.toFixed(2)} m in a ${clear.toFixed(2)} m clear floor, under the ${prop.windowHeight[0]} share`);
-      }
-      if (o.sill > prop.sill[1] + MODULE / 2 + 1e-6) {
-        fail(`window ${o.id} sits on a ${o.sill.toFixed(2)} m sill, over the ${prop.sill[1]} m limit`);
-      }
-    }
-  }
 }

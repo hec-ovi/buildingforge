@@ -1,3 +1,4 @@
+import layout from './views/preview.json' with { type: 'json' };
 import './components/styles.css';
 import { el } from './components/dom.ts';
 import { ToastManager, toast } from './components/Toast.ts';
@@ -27,9 +28,7 @@ const panel = el('div', { class: 'panel' });
 const hud = el(
   'div',
   { class: 'viewport-hud' },
-  el('div', { class: 'hud-item' }, el('span', { class: 'hud-key' }, 'LMB'), 'Rotate'),
-  el('div', { class: 'hud-item' }, el('span', { class: 'hud-key' }, 'Wheel'), 'Zoom'),
-  el('div', { class: 'hud-item' }, el('span', { class: 'hud-key' }, 'RMB'), 'Pan'),
+  ...layout.hud.map(item => el('div', { class: 'hud-item' }, el('span', { class: 'hud-key' }, item.key), item.label)),
 );
 viewport.appendChild(hud);
 

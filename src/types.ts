@@ -189,12 +189,25 @@ export interface Opening {
   damage?: Omit<WindowDamage, 'openingId' | 'face' | 'materialKey'>;
 }
 
+export interface RoomEnvelope {
+  corners: P2[];
+  origin: P2;
+  axisU: P2;
+  axisV: P2;
+  width: number;
+  depth: number;
+  vertical: { min: number; max: number };
+  grid: BuildingGrid;
+}
+
 export interface Floor {
   index: number;
   kind: string;
   elevation: number;
   height: number;
   outline: P2[];
+  /** Generated on every floor; optional for stored blueprints from earlier releases. */
+  roomEnvelope?: RoomEnvelope;
   openings: Opening[];
 }
 
@@ -290,6 +303,7 @@ export interface FacadeArtifact {
 }
 
 export interface Blueprint {
+  version?: string;
   coreFrame?: { anglesDeg: number[] };
   buildingId: string;
   seed: string;

@@ -7,6 +7,6 @@ export type {
   BuildingRequest, BuildingGrid, Blueprint, GenerateOptions, GenerateResult, Aperture, Floor, Opening, FacadeArtifact,
   ExternalAttachment, MastAssembly, RoofArtifact,
   CoreAdjacency, CoreAdjacencyRule,
-  DoorAssembly, DoorEnvelope, PocketMotion,
+  DoorAssembly, DoorEnvelope, PocketMotion, RoomEnvelope,
 } from './types.ts';
 export type { FacadeServicesOutput } from './facade-services/index.ts';

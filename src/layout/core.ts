@@ -87,23 +87,6 @@ interface FrameFit {
   axis: P2;
 }
 
-/**
- * Longest shared run in a fixed-depth strip. Kept exported for geometry tests;
- * normal callers use bestCoreFit, which also enforces the room strip and modes.
- */
-export function plateBand(outlines: readonly P2[][], axis: P2, inset: number, depth: number): number {
-  const uv = outlines.map((outline) => project(outline, axis));
-  const ground = bounds(uv[0]!);
-  let best = 0;
-  const lo = snapUp(ground.v0 + inset);
-  const hi = snapDown(ground.v1 - inset - depth);
-  for (let v = lo; v <= hi + 1e-9; v += CONSTANTS.snap) {
-    const band = fullCoverage(uv, v, v + depth, inset);
-    best = Math.max(best, band.u1 - band.u0);
-  }
-  return best;
-}
-
 /** Whether all floors share one core placement, including rotated fallback frames. */
 export function bestCoreFit(
   outlines: readonly P2[][], principalAxis: P2, inset: number, rects: readonly CoreRect[], sweep = true,

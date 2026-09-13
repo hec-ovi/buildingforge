@@ -9,15 +9,20 @@ import { facadeMaterialPlan, buildingMaterialVariants, facadeSurfacePattern, sty
 import { preferredVariantForKey } from '../materials/variant.ts';
 import type { MeshBuilder } from '../mesh/primitives.ts';
 import { coreAdjacency } from '../layout/coreAdjacency.ts';
+import { RoomEnvelopes } from './roomEnvelope.ts';
+import release from '../../package.json' with { type: 'json' };
 
 export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
   const topFloor = layout.floors[layout.floors.length - 1]!;
   const materials = mb.materialKeys();
+  const wallDepth = measureWallDepth(layout, mb);
+  const envelopes = new RoomEnvelopes(layout.request);
   const selected = buildingMaterialVariants(layout.theme, layout.tier, layout.request.options!.exteriorStyle!);
   const materialVariants = Object.fromEntries(materials
     .map((key) => [key, selected[key] ?? preferredVariantForKey(key)] as const)
     .filter((entry): entry is [string, string] => entry[1] !== undefined));
   return {
+    version: release.version,
     buildingId: layout.request.buildingId,
     ...(layout.coreFrame ? { coreFrame: layout.coreFrame } : {}),
     seed: layout.request.seed,
@@ -31,6 +36,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
       elevation: f.elevation,
       height: f.height,
       outline: f.outline,
+      roomEnvelope: envelopes.forFloor(f, wallDepth),
       openings: f.openings,
     })),
     balconyBands: layout.balconyBands,
@@ -55,7 +61,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
         boundary: layout.style.facade.panelBoundary,
       },
       materialPlan: facadeMaterialPlan(layout.theme, layout.tier, layout.request.options!.exteriorStyle!),
-      wallDepth: measureWallDepth(layout, mb),
+      wallDepth,
       coreAdjacency: coreAdjacency(layout.request),
       slabBand: {
         below: slabBandBelow(layout),

@@ -7,6 +7,7 @@
   "required": ["buildingId", "seed", "bounds", "floors", "balconyBands", "facadeServices", "roof", "materials", "materialVariants"],
   "additionalProperties": false,
   "properties": {
+    "version": { "type": "string", "description": "Generator package version; absent on older stored blueprints." },
     "buildingId": { "type": "string" },
     "coreFrame": {
       "type": "object", "required": ["anglesDeg"], "additionalProperties": false,
@@ -48,6 +49,7 @@
             "items": { "$ref": "#/$defs/point2" },
             "description": "CCW simple polygon of the floor plate, [x, z]"
           },
+          "roomEnvelope": { "$ref": "#/$defs/roomEnvelope" },
           "openings": {
             "type": "array",
             "items": {
@@ -545,6 +547,68 @@
     }
   },
   "$defs": {
+    "roomEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "corners",
+        "origin",
+        "axisU",
+        "axisV",
+        "width",
+        "depth",
+        "vertical",
+        "grid"
+      ],
+      "description": "Contained CCW rectangle on the existing construction grid, behind measured opening assemblies and movement depths. Every generated floor has one. Openings remain hard reservations; perimeter room partitions are prohibited. Minimum room dimensions and circulation policy require agreement with Interior.",
+      "properties": {
+        "corners": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/point2"
+          }
+        },
+        "origin": {
+          "$ref": "#/$defs/point2"
+        },
+        "axisU": {
+          "$ref": "#/$defs/point2"
+        },
+        "axisV": {
+          "$ref": "#/$defs/point2"
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "depth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "vertical": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "max"
+          ],
+          "properties": {
+            "min": {
+              "type": "number"
+            },
+            "max": {
+              "type": "number"
+            }
+          },
+          "description": "Walking elevation through the existing clear-height allowance, in metres."
+        },
+        "grid": {
+          "$ref": "building-request.schema.json#/properties/parcel/properties/buildingGrid"
+        }
+      }
+    },
     "doorEnvelope": {
       "type": "object", "required": ["offset", "sill", "width", "height", "backDepth"], "additionalProperties": false,
       "properties": {

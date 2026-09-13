@@ -51,3 +51,14 @@ it('packs original native image bytes beside external maps in one GLB', async ()
   expect(embedded.size).toBeGreaterThan(0);
   expect(embedded.size + external.length).toBe(json.images.length);
 });
+
+it('embeds catalog maps or explicitly reports the keys fallback', async () => {
+  const request = JSON.parse(readFileSync(new URL('../fixtures/residential-mid.request.json', import.meta.url), 'utf8'));
+  const embedded = await generate(request, { textures: { mode: 'embed', nativeFinishes: false } });
+  const view = new DataView(embedded.glb.buffer, embedded.glb.byteOffset, embedded.glb.byteLength);
+  const json = JSON.parse(new TextDecoder().decode(embedded.glb.subarray(20, 20 + view.getUint32(12, true))));
+  expect(embedded.textures.mode).toBe('embed');
+  expect(json.images.every((image: any) => image.uri === undefined && image.bufferView >= 0)).toBe(true);
+  const fallback = await generate(request, { textures: { source: null } });
+  expect(fallback.textures).toMatchObject({ mode: 'keys', reason: expect.stringContaining(request.theme) });
+});

@@ -45,7 +45,6 @@ function cap(sink: PartSink, material: string, f: CapFrame, ring: P2[], y: numbe
     for (const [x, z] of hole) flat.push(x, z);
   }
   const tris = earcut(flat, holeIndices.length ? holeIndices : undefined, 2);
-  const want: V3 = up ? [0, 1, 0] : [0, -1, 0];
   for (let i = 0; i + 2 < tris.length; i += 3) {
     const ia = tris[i] as number, ib = tris[i + 1] as number, ic = tris[i + 2] as number;
     const a: V3 = [flat[ia * 2] as number, y, flat[ia * 2 + 1] as number];

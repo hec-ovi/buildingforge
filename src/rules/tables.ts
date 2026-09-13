@@ -1,4 +1,4 @@
-// Numeric rule tables from docs/RESEARCH.md (sourced real-world ranges).
+// Numeric rule tables from schemas/floor-constants.json and schemas/proportions.json (sourced real-world ranges).
 // Every range is [min, max] in meters unless noted.
 
 import { FEASIBILITY, type FeasibilityConstants, type Family, type Tier } from './families.ts';

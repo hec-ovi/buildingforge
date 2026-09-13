@@ -11,7 +11,7 @@ import {
 import { edgeLength, edgeDir, edgeNormal, ringInsidePolygon, quant, type P2 } from '../core/polygon.ts';
 import { modulePanes } from './glazing.ts';
 import { anchorSeat, type AnchorSeat } from './anchors.ts';
-import type { Aperture, BuildingRequest, CurtainState, DoorAssembly, DoorSet, Opening } from '../types.ts';
+import type { BuildingRequest, CurtainState, DoorAssembly, DoorSet, Opening } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
 import type { Stack } from './floorStack.ts';
@@ -193,7 +193,6 @@ export function buildFacades(
         for (let b = 0; b < n; b++) {
           if (podium && b % PROPORTIONS.podium.bayStride !== podiumPhase) continue;
           const bayStart = OPENING.cornerMargin + b * bayW;
-          const bayCenter = bayStart + bayW / 2;
           const isBalcony = !isGround && stacks?.has(b) === true;
 
           if (isBalcony) {

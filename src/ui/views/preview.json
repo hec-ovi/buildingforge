@@ -1,0 +1,25 @@
+{
+  "hud": [{"key":"LMB","label":"Rotate"},{"key":"Wheel","label":"Zoom"},{"key":"RMB","label":"Pan"}],
+  "request": {
+    "title":"request",
+    "fields":[
+      {"type":"select","id":"fixture","label":"fixture","aria":"Select fixture","source":"fixtures"},
+      {"type":"select","id":"style","label":"style","aria":"Exterior style","source":"styles"},
+      {"type":"select","id":"shape","label":"shape","aria":"Building shape","source":"shapes"},
+      {"type":"text","id":"seed","label":"seed","aria":"Building generation seed","placeholder":"hex seed or string"},
+      {"type":"buttons","id":"actions","buttons":[{"id":"generate","label":"generate","class":"btn-primary"},{"id":"random","label":"random seed"}]},
+      {"type":"slot","id":"error","class":"error"}
+    ]
+  },
+  "inspect": {
+    "title":"inspect",
+    "fields":[
+      {"type":"select","id":"camera","label":"camera","aria":"Camera view preset","options":[{"value":"orbit","label":"orbit"},{"value":"eye","label":"street eye 1.7 m"}]},
+      {"type":"range","id":"clip","label":"clip height","aria":"Clip height fraction","min":0,"max":100,"value":100,"suffix":"%"},
+      {"type":"toggle","id":"flat","label":"flat colors"},
+      {"type":"toggle","id":"wireframe","label":"wireframe"},
+      {"type":"toggle","id":"highlight","label":"highlight openings"},
+      {"type":"slot","id":"stats","class":"stats"}
+    ]
+  }
+}

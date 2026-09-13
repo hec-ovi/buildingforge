@@ -1,7 +1,7 @@
 import type {
   ArtifactInput, ClothesItem, Clothesline, FacadeServiceLimits, FacadeServicesInput,
   FacadeServicesOutput, FacadeServicesStats, FaceInput, FaceRef, NetworkNode, NetworkSegment,
-  P2, P3, ReservationInput, RouteSupport, ServiceNetwork, ServiceUnit, WindowDamage,
+  P2, P3, ReservationInput, RouteSupport, ServiceNetwork, ServiceUnit,
 } from './types.ts';
 
 const EPS = 1e-8;
