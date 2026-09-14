@@ -40,7 +40,7 @@ export class SectionAssembler {
       const outline = local.outline.map(([x, z]): Point => [origin[0] + u[0] * (x + shiftU + insetU) + v[0] * (z + shiftV + insetV),
         origin[1] + u[1] * (x + shiftU + insetU) + v[1] * (z + shiftV + insetV)]);
       const balconySections = architecture === 'terrace-blocks' && floor === groups[0]!.toFloor
-        ? local.sections.filter(s => s.edge === 0 && s.technique === 'deep-bay').map(s => s.id) : [];
+        ? local.sections.filter(s => s.edge === 1 && s.technique === 'deep-bay').map(s => s.id) : [];
       return { floor, group: group.id, outline, sections: local.sections, balconySections };
     });
     return { architecture, grid: 0.5, extent: { width, depth }, corners: [...composition.corners], groups, floors };

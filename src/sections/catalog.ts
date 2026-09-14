@@ -5,8 +5,8 @@ export const CORNER_EXTENT = 3;
 export const BAY_WIDTH = 4;
 export const ARCHITECTURES: Architecture[] = ['rounded-corner', 'chamfered-corners', 'terrace-blocks'];
 export const COMPOSITIONS: Record<Architecture, { corners: CornerTechnique[]; bay: SectionTechnique }> = {
-  'rounded-corner': { corners: ['rounded', 'square', 'square', 'square'], bay: 'deep-bay' },
-  'chamfered-corners': { corners: ['chamfered', 'chamfered', 'square', 'square'], bay: 'ribbon-bay' },
+  'rounded-corner': { corners: ['square', 'square', 'rounded', 'square'], bay: 'deep-bay' },
+  'chamfered-corners': { corners: ['square', 'chamfered', 'chamfered', 'square'], bay: 'ribbon-bay' },
   'terrace-blocks': { corners: ['square', 'square', 'square', 'square'], bay: 'deep-bay' },
 };
 
