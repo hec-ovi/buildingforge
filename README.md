@@ -17,6 +17,6 @@ npm test
 npm run preview:build
 ```
 
-The preview selects a fixture, seed, style and shape, with orbit, street-eye and inside-shell cameras. `?fixture=architecture-01-rounded-corner` opens the rounded specimen; `&view=interior` inspects its inner faces. Production assets are generated into ignored `dist/`. Geometry, openings and materials come from the same generation call.
+The preview selects a fixture, seed, style and shape, with orbit, street-eye and inside-shell cameras. `?fixture=architecture-01-rounded-corner` opens the rounded specimen; `&view=interior` inspects its inner faces. The CLI writes assets to the supplied output directory; the browser build uses ignored `dist/`. Geometry, openings and materials come from the same generation call.
 
 Generation is deterministic for a fixed request, catalog and texture options. External textures can fall back to material keys with a reported reason; `--embed` requires maps. [Interface proposals](docs/ISSUES.md) record the coordinated work and remaining visual review.
