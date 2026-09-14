@@ -35,7 +35,7 @@ viewport.appendChild(hud);
 app.append(viewport, panel, ToastManager.get().root);
 
 const query = new URLSearchParams(location.search);
-const initialView = query.get('view') === 'corner' ? 'corner' : query.get('view') === 'interior' ? 'interior' : query.get('view') === 'eye' ? 'eye' : 'orbit';
+const initialView = query.get('view') === 'reference' ? 'reference' : query.get('view') === 'corner' ? 'corner' : query.get('view') === 'interior' ? 'interior' : query.get('view') === 'eye' ? 'eye' : 'orbit';
 const view = new PreviewView(viewport);
 view.setView(initialView);
 const inspect = new InspectPanel({

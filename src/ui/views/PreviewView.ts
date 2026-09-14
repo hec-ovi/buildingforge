@@ -10,7 +10,7 @@ import {
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { flatMaterialFor } from './flatMaterials.ts';
-import { interiorCamera, orbitCamera, streetEyeCamera, type ViewMode } from './cameras.ts';
+import { referenceCamera, interiorCamera, orbitCamera, streetEyeCamera, type ViewMode } from './cameras.ts';
 import { lightPreview } from './lighting.ts';
 import { edgeDir, edgeNormal, type P2 } from '../../core/polygon.ts';
 import type { Blueprint } from '../../types.ts';
@@ -123,7 +123,8 @@ export class PreviewView {
   }
 
   private applyCamera(): void {
-    const pose = (this.view === 'interior' || this.view === 'corner') && this.blueprint ? interiorCamera(this.blueprint, this.view === 'corner')
+    const pose = this.view === 'reference' && this.blueprint ? referenceCamera(this.blueprint)
+      : (this.view === 'interior' || this.view === 'corner') && this.blueprint ? interiorCamera(this.blueprint, this.view === 'corner')
       : this.view === 'eye' && this.blueprint
       ? streetEyeCamera(this.blueprint)
       : orbitCamera(this.orbitPose.center, this.orbitPose.radius, this.camera.fov);

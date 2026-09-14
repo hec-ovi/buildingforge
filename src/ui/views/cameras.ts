@@ -4,7 +4,7 @@
 import { edgeDir, edgeNormal, type P2 } from '../../core/polygon.ts';
 import type { Blueprint, P3 } from '../../types.ts';
 
-export type ViewMode = 'orbit' | 'eye' | 'interior' | 'corner';
+export type ViewMode = 'orbit' | 'eye' | 'interior' | 'corner' | 'reference';
 
 export interface CameraPose { position: P3; target: P3 }
 
@@ -105,4 +105,14 @@ export function interiorCamera(bp: Blueprint, outside = false): CameraPose {
   }
   return { position: [eye[0], floor.elevation + 1.7, eye[1]],
     target: [target[0], floor.elevation + 1.9, target[1]] };
+}
+
+/** Low street viewpoint for comparing the authored facade against its source view. */
+export function referenceCamera(bp: Blueprint): CameraPose {
+  const close = interiorCamera(bp, true);
+  const ground = bp.floors.find(f => f.index === 0)!;
+  const length = Math.hypot(close.position[0] - close.target[0], close.position[2] - close.target[2]);
+  const nx = (close.position[0] - close.target[0]) / length, nz = (close.position[2] - close.target[2]) / length;
+  return { position: [close.target[0] + nx * 55, ground.elevation + 1.7, close.target[2] + nz * 55],
+    target: [close.target[0], bp.bounds.height * 0.4, close.target[2]] };
 }
