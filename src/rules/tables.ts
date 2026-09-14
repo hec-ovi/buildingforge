@@ -185,7 +185,7 @@ export const FACADE = {
    */
   curtainWall: {
     /** opaque head band covering the ceiling plenum and structural slab above */
-    spandrelHeight: [1.0, 1.5] as [number, number],
+    spandrelHeight: [0.5, 1.0] as [number, number],
     /** the glazing stops short of the corner so two faces never intersect */
     cornerInset: MODULE_U, // a one-panel corner pier: the first mullion stands on a metre line, the rest follow
     /** a strip narrower than this is a pier, not a bay */
@@ -200,7 +200,7 @@ export const FACADE = {
     width: PROPORTIONS.megablock.windowWidth,
     height: PROPORTIONS.megablock.windowHeight,
     minSill: PROPORTIONS.megablock.minSill,
-    density: 0.55,
+    density: 0.85,
   },
   utilityBox: {
     width: [0.35, 0.6] as [number, number],

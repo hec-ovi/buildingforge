@@ -65,6 +65,9 @@ it('keeps connection elevations fixed when explicit clear height changes floor a
   const request = fixture('bridged-tower');
   request.building.floors = 28;
   request.options = { minimumClearHeight: 4 };
+  await expect(generate(request, keys)).rejects.toMatchObject({ code: 'E_APERTURE_UNREACHABLE' });
+  request.building.basements = 0;
+  request.apertures = request.apertures!.filter(a => a.base >= 0);
   const { blueprint } = await generate(request, keys);
   for (const aperture of request.apertures!.filter(a => a.kind !== 'wire-anchor')) {
     const floor = blueprint.floors.find(f => f.openings.some(o => o.id === aperture.id))!;

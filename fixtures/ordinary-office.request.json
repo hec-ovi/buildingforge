@@ -1,0 +1,44 @@
+{
+  "seed": "general-window-policy",
+  "buildingId": "ordinary-office",
+  "parcel": {
+    "footprint": [
+      [
+        0,
+        0
+      ],
+      [
+        32,
+        0
+      ],
+      [
+        32,
+        28
+      ],
+      [
+        0,
+        28
+      ]
+    ],
+    "accessPoint": [
+      16,
+      -2
+    ],
+    "maxHeight": 100
+  },
+  "building": {
+    "type": "offices",
+    "tier": "rich",
+    "floors": 6
+  },
+  "theme": "cyberpunk",
+  "options": {
+    "balconies": "off",
+    "facadeServices": "off",
+    "signage": null,
+    "adScreens": "off",
+    "fireEscape": "off",
+    "roofArtifacts": "off",
+    "exteriorStyle": "premium-mineral"
+  }
+}

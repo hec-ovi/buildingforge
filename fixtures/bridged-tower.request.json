@@ -33,5 +33,6 @@
       "cut": { "polygon": [[30, 30, 15.75], [30, 30, 16.25], [30, 30.5, 16.25], [30, 30.5, 15.75]], "axisDir": [1, 0, 0] },
       "linkId": "L-wire-4"
     }
-  ]
+  ],
+  "options": { "minimumClearHeight": 3 }
 }

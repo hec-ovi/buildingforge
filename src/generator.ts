@@ -1,3 +1,4 @@
+import { applyWindowPolicy } from './layout/windowPolicy.ts';
 // Orchestration: validate -> style -> massing -> floor stack -> facades ->
 // features -> mesh -> GLB + blueprint.
 
@@ -56,6 +57,7 @@ async function generateBuilding(raw: unknown, options: GenerateOptions): Promise
     && req.options?.balconies === 'on' && req.options.balconyStyle === 'full') facade = 'glass';
   if (req.options?.architecture) facade = 'glass';
   const style = buildStyle(req.seed, family, tier, req.building.floors, facade);
+  if (!req.options?.architecture) applyWindowPolicy(style);
   if (req.options?.architecture) {
     style.facade.bandHeight = 0; style.facade.bandProud = 0;
     if (req.options.architecture === 'terrace-blocks') style.balconyDepth = 1.5;

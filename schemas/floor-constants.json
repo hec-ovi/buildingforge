@@ -1,6 +1,20 @@
 {
   "$id": "urbe/exterior/floor-constants",
-  "description": "Feasibility constants, the same values the generator enforces. An assembler pre-computes a legal floor count N for a parcel as: N * minFloorHeight <= parcel maxHeight. With apertures, let reqH(b) = the tallest walkable aperture height at base b; every reqH must be <= maxFloorHeight (else E_APERTURE_UNREACHABLE), because the floor pinned at b must contain the aperture's full vertical extent. Sort the distinct walkable bases 0 < b1 < ... < bk; each gap g from base b (starting at 0) to the next must hold at least max(reqH(b), minFloorHeight) and admits between ceil(g / maxFloorHeight) and (reqH(b) > minFloorHeight ? 1 + floor((g - reqH(b)) / minFloorHeight) : floor(g / minFloorHeight)) floors; the tail above bk needs room >= max(reqH(bk), minFloorHeight) below maxHeight and admits up to 1 + floor((room - max(reqH(bk), minFloorHeight)) / minFloorHeight) floors; N must fall inside the summed range (E_APERTURE_UNREACHABLE names it exactly). Units meters.",
+  "description": "Hard family constraints and canonical generation defaults. In the following allocation formulas, activeFloorHeight = max(constants[family].minFloorHeight, (request.options.minimumClearHeight ?? generationPolicy.defaultClearHeight) + generationPolicy.clearHeightAllowance). The default pitch equals default clear height plus that allowance. Feasibility constants, the same values the generator enforces. An assembler pre-computes a candidate floor count N for a parcel as: N * activeFloorHeight <= parcel maxHeight. With apertures, let reqH(b) = the tallest walkable aperture height at base b; every reqH must be <= maxFloorHeight (else E_APERTURE_UNREACHABLE), because the floor pinned at b must contain the aperture's full vertical extent. Sort the distinct walkable bases 0 < b1 < ... < bk; each gap g from base b (starting at 0) to the next must hold at least max(reqH(b), activeFloorHeight) and admits between ceil(g / maxFloorHeight) and (reqH(b) > activeFloorHeight ? 1 + floor((g - reqH(b)) / activeFloorHeight) : floor(g / activeFloorHeight)) floors; the tail above bk needs room >= max(reqH(bk), activeFloorHeight) below maxHeight and admits up to 1 + floor((room - max(reqH(bk), activeFloorHeight)) / activeFloorHeight) floors; N must fall inside the summed range (E_APERTURE_UNREACHABLE names it exactly). Units meters. Basements use the same active bound; incompatible fixed negative bases are rejected.",
+  "generationPolicy": {
+    "defaultClearHeight": 4,
+    "defaultFloorHeight": 4.5,
+    "clearHeightAllowance": 0.5,
+    "windows": {
+      "minimumBayWidth": 4,
+      "sharedPierWidth": 0.5,
+      "targetHeightFraction": 0.9,
+      "preferredSill": 0.5,
+      "minimumWindowToWall": 0.65,
+      "preferredPaneWidth": 3.5,
+      "preferredPaneHeight": 4
+    }
+  },
   "families": {
     "residential": "residential",
     "hotel": "hotel",

@@ -1,3 +1,4 @@
+import { GENERATION_POLICY } from '../rules/generationPolicy.ts';
 import { sectionOpenings } from './sectionOpenings.ts';
 // Facade layout: split-grammar bays per floor band and edge, entrance on the
 // street face, aperture cuts reserved first, openings never overlapping.
@@ -32,7 +33,7 @@ const COMPASS: P2[] = [
   [0, 1], [-0.7071067811865476, 0.7071067811865476], [-1, 0], [-0.7071067811865476, -0.7071067811865476],
 ];
 
-interface Taken { start: number; end: number; anchor: boolean }
+interface Taken { start: number; end: number; anchor: boolean; window: boolean }
 
 export interface FacadeResult {
   floors: FloorLayout[];
@@ -188,9 +189,10 @@ export function buildFacades(
         const usable = L - 2 * OPENING.cornerMargin;
         if (usable < 0.9) continue;
         // Bays are whole modules wide; what does not divide stays at the far corner as pier.
-        const perBay = Math.max(2, Math.round(style.bayModule / MODULE_U));
-        const n = Math.max(1, Math.floor(usable / (perBay * MODULE_U)));
-        const bayW = n * perBay * MODULE_U <= usable ? perBay * MODULE_U : onModule(usable / n, 'down', MODULE_U);
+        const perBay = Math.max(GENERATION_POLICY.windows.minimumBayWidth, Math.round(style.bayModule / MODULE_U));
+        const n = Math.floor(usable / (perBay * MODULE_U));
+        if (n === 0) continue;
+        const bayW = perBay * MODULE_U;
         const onGroundOutline = outline === massing.groundOutline;
         const stacks = onGroundOutline ? balconyStacks.get(e) : undefined;
         const normal = edgeNormal(outline, e);
@@ -229,16 +231,17 @@ export function buildFacades(
           // family width, rolled by the window-to-wall density.
           if (!fit) continue;
           // a window is whole metres wide, to the nearest, never wider than its bay leaves for a pier
-          const w = Math.min(onModule(podium ? PROPORTIONS.podium.width : storefront ? bayW - OPENING.minPier : style.windowWidth, 'near', MODULE_U), bayW - OPENING.minPier);
+          const sharedPier = GENERATION_POLICY.windows.sharedPierWidth;
+          const w = Math.min(onModule(podium ? PROPORTIONS.podium.width : bayW - sharedPier, 'near'), bayW - sharedPier);
           if (w < MODULE_U) continue;
           if (!storefront && !podium) {
             const p = Math.min(1, Math.max(0.05, (style.wwr * bayW * level.height) / (w * fit.height)));
             if (!new Rng(seed, `win:${level.index}:${e}:${b}`).chance(p)) continue;
           }
           // The window sits on the module grid inside its bay, the spare modules split to its sides.
-          const start = bayStart + onModule((bayW - w) / 2, 'down', MODULE_U);
-          if (!fits(takenByEdge, e, start, start + w)) continue;
-          take(takenByEdge, e, start, start + w);
+          const start = bayStart + onModule((bayW - w) / 2, 'down');
+          if (!fits(takenByEdge, e, start, start + w, true)) continue;
+          take(takenByEdge, e, start, start + w, false, true);
           const width = w;
           const id = `w:${level.index}:${e}:${b}`;
           openings.push({
@@ -372,11 +375,9 @@ function leafCount(width: number): NonNullable<Opening['leaves']> {
 }
 
 /**
- * Megablock facade: the panel grid runs from the face origin in whole modules,
- * the same grid the wall material tiles on. Each cell rolls for a small window,
- * placed with a seeded jitter inside the cell so the field reads scattered
- * rather than a regular office lattice. A storefront ground floor glazes each
- * cell whole instead, rib to rib.
+ * Megablock facade: complete large window cells share the construction grid.
+ * A seeded distribution varies occupied cells; each fitted window keeps its
+ * full dimensions and shared pier. Storefront ground floors glaze each cell.
  */
 function placeMegablockCells(
   seed: string, theme: string, tier: Tier, style: Style, parcel: P2[], outline: P2[], e: number,
@@ -387,7 +388,7 @@ function placeMegablockCells(
   const L = edgeLength(outline, e);
   // cells are whole metres, ribs stand on their seams, and every window edge inside a cell is on the
   // metre grid; a window may start on the seam itself, where the rib then gives way
-  const module = Math.max(2 * MODULE_U, onModule(style.facade.panelModule, 'near', MODULE_U));
+  const module = Math.max(GENERATION_POLICY.windows.minimumBayWidth, onModule(style.facade.panelModule, 'near', MODULE_U));
   const inset = 0;
   const cells = Math.floor(L / module);
   const w = FACADE.megablockWindow.width;
@@ -437,17 +438,16 @@ function placeMegablockCells(
 
     const rng = new Rng(seed, `mega:${level.index}:${e}:${c}`);
     if (!rng.chance(FACADE.megablockWindow.density)) continue;
-    const width = Math.min(onModule(rng.range(...w), 'near', MODULE_U), onModule(end - start, 'down', MODULE_U));
+    const width = Math.min(onModule(rng.range(...w), 'near'), end - start - GENERATION_POLICY.windows.sharedPierWidth);
     const height = onModule(Math.min(rng.range(...h), level.height - 1.0), 'near');
     if (width < MODULE_U || height < MODULE) continue;
     // the seeded scatter picks a whole-metre slot inside the cell and a half-metre sill
-    const slots = Math.floor((end - start - width) / MODULE_U + 1e-9) + 1;
-    const u = quantOff(start + Math.floor(rng.next() * slots) * MODULE_U);
+    const u = quantOff(start + onModule((end - start - width) / 2, 'down'));
     const minSill = onModule(FACADE.megablockWindow.minSill, 'near');
     const room = Math.max(0, level.height - height - minSill - MODULE);
     const sill = quant(minSill + Math.floor(rng.next() * (Math.floor(room / MODULE + 1e-9) + 1)) * MODULE);
-    if (!fits(taken, e, u, u + width)) continue;
-    take(taken, e, u, u + width);
+    if (!fits(taken, e, u, u + width, true)) continue;
+    take(taken, e, u, u + width, false, true);
     const id = `w:${level.index}:${e}:${c}`;
     openings.push({
       id, kind: 'window', edge: e,
@@ -495,7 +495,7 @@ function placeCurtainWallBays(
   const L = edgeLength(outline, e);
   // Keep the whole opaque band at the bay head. Interior ceilings occupy the
   // top of their storey; a bottom spandrel would expose that plenum through glass.
-  const band = Math.max(2 * MODULE, onModule(Math.min(style.facade.spandrelHeight, level.height * 0.35), 'near'));
+  const band = Math.max(MODULE, onModule(Math.min(style.facade.spandrelHeight, level.height * 0.35), 'near'));
   const head = band;
   const spandrel = 0;
   // The bay spans its floor exactly: quantizing here would leave a wall sliver
@@ -603,15 +603,16 @@ function blockedSpans(taken: Taken[], openings: Opening[], e: number): { start: 
   });
 }
 
-function take(map: Map<number, Taken[]>, edge: number, start: number, end: number, anchor = false): void {
+function take(map: Map<number, Taken[]>, edge: number, start: number, end: number, anchor = false, window = false): void {
   const list = map.get(edge) ?? [];
-  list.push({ start, end, anchor });
+  list.push({ start, end, anchor, window });
   map.set(edge, list);
 }
 
-function fits(map: Map<number, Taken[]>, edge: number, start: number, end: number): boolean {
+function fits(map: Map<number, Taken[]>, edge: number, start: number, end: number, window = false): boolean {
   for (const t of map.get(edge) ?? []) {
-    if (start < t.end + OPENING.minPier && end > t.start - OPENING.minPier) return false;
+    const margin = window && t.window ? GENERATION_POLICY.windows.sharedPierWidth : OPENING.minPier;
+    if (start < t.end + margin - 1e-7 && end > t.start - margin + 1e-7) return false;
   }
   return true;
 }

@@ -1,3 +1,4 @@
+import { minimumFloorHeight } from '../rules/generationPolicy.ts';
 // Floor elevations and kinds. Every bridge/ac-tube/tunnel aperture pins the
 // walking surface of one floor to exactly its base. Above ground this is a
 // bounded allocation problem: between consecutive bases, any floor count whose
@@ -7,7 +8,7 @@
 import { ExteriorError } from '../core/errors.ts';
 import { Rng } from '../core/rng.ts';
 import { RULES, MODULE } from '../rules/tables.ts';
-import { groundFloorNeed, PROPORTIONS } from '../rules/proportions.ts';
+import { groundFloorNeed } from '../rules/proportions.ts';
 import { quant } from '../core/polygon.ts';
 import type { BuildingRequest } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
@@ -23,11 +24,11 @@ const quantDown = (v: number): number => Math.floor(v * 20 + 1e-9) / 20;
 
 export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier, style: Style): Stack {
   const rules = RULES[family];
-  const minimum = Math.max(rules.minFloorHeight, (req.options?.minimumClearHeight ?? 0) + PROPORTIONS.clearHeightAllowance);
+  const minimum = minimumFloorHeight(family, req.options?.minimumClearHeight);
   const floors = req.building.floors;
   const basements = req.building.basements ?? 0;
   const maxHeight = req.parcel.maxHeight;
-  const basementHeight = quant(Math.min(3.5, Math.max(2.8, style.floorHeight)));
+  const basementHeight = quant(Math.max(minimum, Math.min(3.5, Math.max(2.8, style.floorHeight))));
   const groundNeed = Math.max(groundFloorNeed(family), style.groundFloorHeight);
 
   const walkable = (req.apertures ?? []).filter((a) => a.kind !== 'wire-anchor');
@@ -45,7 +46,7 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
     : solveSplit(floors, basesPos, minimum, rules.maxFloorHeight, style.floorHeight, maxHeight, reqH,
       Math.min(groundNeed, rules.maxFloorHeight));
 
-  const elevBelow = basementElevations(basements, basesNeg, basementHeight, reqH);
+  const elevBelow = basementElevations(basements, basesNeg, basementHeight, reqH, minimum);
 
   const kinds = floorKinds(req, family, tier, floors);
   const levels: Stack['levels'] = [];
@@ -205,7 +206,7 @@ function solveSplit(floors: number, bases: number[], minH: number, maxH: number,
 }
 
 /** Basements: nominal steps below ground, tunnel bases pinned to the nearest level, monotone. */
-function basementElevations(basements: number, basesNeg: number[], basementHeight: number, reqAll: Map<number, number>): Map<number, number> {
+function basementElevations(basements: number, basesNeg: number[], basementHeight: number, reqAll: Map<number, number>, minimum: number): Map<number, number> {
   const elev = new Map<number, number>();
   for (let b = 1; b <= basements; b++) elev.set(-b, -b * basementHeight);
   if (basesNeg.length === 0) return elev;
@@ -228,7 +229,7 @@ function basementElevations(basements: number, basesNeg: number[], basementHeigh
   for (let b = 1; b <= basements; b++) {
     if (!pinned.has(-b)) elev.set(-b, Math.min(-b * basementHeight, prev - basementHeight));
     const e = elev.get(-b) as number;
-    const need = Math.max(2.2, pinned.has(-b) ? reqAll.get(e) ?? 0 : 0);
+    const need = Math.max(minimum, pinned.has(-b) ? reqAll.get(e) ?? 0 : 0);
     if (prev - e < need - 1e-9) {
       throw new ExteriorError('E_APERTURE_UNREACHABLE', `basement level ${-b} pinned at ${e.toFixed(2)} leaves ${(prev - e).toFixed(2)} m of headroom, its aperture needs ${need.toFixed(2)}`);
     }

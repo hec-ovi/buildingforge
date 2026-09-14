@@ -3,7 +3,7 @@ name: exterior
 description: Generate one seeded building exterior GLB and its floor/opening blueprint through the Exterior library or CLI.
 ---
 
-# Exterior 0.48.0
+# Exterior 0.49.0
 
 Builds one deterministic building shell, empty inside except replaceable floor slabs, with its exact opening blueprint.
 
@@ -19,7 +19,7 @@ Call `generate(request, options?)` from `src/index.ts` in Node with TypeScript s
 | `building.type`, `tier`, `floors` | Required; use schema enums verbatim. |
 | `building.basements`, `floorKinds` | Zero basements; program labels synthesized when absent. |
 | `apertures` | Empty; supplied faces, cuts and absolute base heights are fixed reservations. |
-| `options.minimumClearHeight` | Optional minimum clear space above ground; slab/ceiling allowance is additional. |
+| `options.minimumClearHeight` | 4 m clear by default for all floors; an explicit override uses the same family bounds. Slab/ceiling allowance is an additional 0.5 m. |
 | `options.architecture` | Optional: `rounded-corner`, `chamfered-corners`, `terrace-blocks`. Complete section fits require unbound faces, a 0.5 m grid and a single swing entrance. |
 | `options.shape`, `exteriorStyle`, `glb` | `auto` (rectangular plates), seeded compatible style, `named`. |
 | `balconies`, `balconyStyle`, `openFront`, `fireEscape` | `auto`; detail is fitted where eligible. These and the following rows are inside `request.options`. |

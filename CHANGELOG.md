@@ -1,3 +1,3 @@
 # Changelog
 
-0.48.0: dimensioned facade sections, rounded and chamfered corners, authored floor groups and selected balconies, with closed inward shell surfaces and per-floor room envelopes.
+0.49.0: configurable 4 m clear floors, generous ordinary glazing, reference-authored cut-face ribbons and closed inward shells with per-floor room envelopes.

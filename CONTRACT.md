@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.48.0.
+Version: 0.49.0.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint.
 
@@ -21,7 +21,7 @@ The parcel limits massing. Auto uses construction-grid rectangles. Explicit roun
 
 `options.architecture` selects `rounded-corner`, `chamfered-corners` or `terrace-blocks`. Their fixed corner and complete bay sections choose the actual footprint before opening and core planning. They require unbound parcel faces, the 0.5 m grid, windows, their authored balcony selection and a single swing entrance; incompatible options report `E_SCHEMA`, an unfittable complete assembly reports `E_CORE_PLATE`. `blueprint.assembly` records actual floor groups, outlines, section fields and balcony selections. Each opening carries its `sectionId` and curve-slice `sectionSpan` where applicable. A broad curved bay crosses multiple outline edges while keeping jambs only at its authored ends. Cut-corner compositions use horizontal glazed ribbons, recessed head baffles with housed underside lamps, solid end piers and an opaque top-frame storey. Their 0.85 m frame projection fits inside a reserved 1 m perimeter. Current automatic requests use the ordinary facade rules.
 
-`options.minimumClearHeight` is an explicit minimum for above-ground clear space, with the existing slab/ceiling allowance added to the pitch. Taller ground programs remain taller; fixed connection bases remain fixed. Impossible heights return a checked envelope/aperture error.
+`schemas/floor-constants.json#generationPolicy` publishes 4 m default clear height and 4.5 m default pitch, distinct from hard family minima. `options.minimumClearHeight` overrides the active clear minimum for every floor, including basements; the 0.5 m slab/ceiling allowance is additional. Ordinary window defaults use at least 4 m bays, one shared 0.5 m pier, tall glazing and large panes. Explicit section recipes retain their own dimensions. Taller ground programs remain taller; fixed connection bases remain fixed. Impossible heights return a checked envelope/aperture error.
 
 Every generated floor publishes `roomEnvelope`: four CCW corners, origin, perpendicular unit axes, width/depth, vertical clear interval and the existing construction grid. The rectangle is contained behind measured shell/opening depth and door/portal movement clearance. It follows that floor's actual shape. This is an additive geometric handoff, not a minimum room-size or circulation-width policy. All openings remain hard reservations. Interior may partition inside the rectangle, respecting those reservations; the irregular perimeter remains open. Facade attachments and `partitionAnchors` retain their own published constraints.
 

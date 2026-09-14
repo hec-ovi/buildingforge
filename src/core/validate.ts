@@ -1,4 +1,4 @@
-import { PROPORTIONS } from '../rules/proportions.ts';
+import { minimumFloorHeight } from '../rules/generationPolicy.ts';
 import { ARCHITECTURES } from '../sections/index.ts';
 // Request validation mirroring schemas/building-request.schema.json.
 // Shape violations throw E_SCHEMA naming the path; semantic checks throw their own codes.
@@ -117,9 +117,7 @@ export function validateRequest(raw: unknown): BuildingRequest {
     throw new ExteriorError('E_FOOTPRINT_INVALID', 'footprint self-intersects');
   }
   const family = FAMILY[type];
-  if (options?.minimumClearHeight !== undefined && options.minimumClearHeight + PROPORTIONS.clearHeightAllowance > RULES[family].maxFloorHeight) {
-    fail('options.minimumClearHeight', 'clear height plus the slab/ceiling zone exceeds this building family’s maximum floor height');
-  }
+  minimumFloorHeight(family, options?.minimumClearHeight);
   if (area(footprint) < RULES[family].minFootprintArea) {
     throw new ExteriorError('E_FOOTPRINT_TOO_SMALL', `${type} needs at least ${RULES[family].minFootprintArea} m2, footprint has ${area(footprint).toFixed(1)}`);
   }

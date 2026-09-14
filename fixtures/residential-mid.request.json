@@ -6,7 +6,7 @@
     "accessPoint": [11, -1],
     "maxHeight": 24
   },
-  "building": { "type": "residential", "tier": "mid", "floors": 6 },
+  "building": { "type": "residential", "tier": "mid", "floors": 4 },
   "theme": "cyberpunk",
   "options": { "signage": null }
 }

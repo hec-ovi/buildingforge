@@ -15,7 +15,7 @@ it('returns reproducible versioned floors, materials and a replaceable GLB shell
   const changed = await generate({ ...request, seed: 'another-city' }, keys);
   expect(Buffer.from(first.glb).equals(Buffer.from(changed.glb))).toBe(false);
   const bp = first.blueprint;
-  expect(bp.version).toBe('0.48.0');
+  expect(bp.version).toBe('0.49.0');
   expect(bp).toMatchObject({ buildingId: request.buildingId, seed: request.seed });
   expect(bp.floors).toHaveLength(request.building.floors + (request.building.basements ?? 0));
   expect(bp.floors.find(f => f.index === 0)!.elevation).toBe(0);
@@ -112,7 +112,7 @@ it('fits balcony bands to their doors', async () => {
   const request = fixture('residential-mid');
   request.seed = 'full-balcony-test';
   request.parcel = { footprint: [[0, 0], [36, 0], [36, 28], [0, 28]], accessPoint: [18, -2], maxHeight: 42 };
-  request.building = { type: 'residential', tier: 'rich', floors: 10 };
+  request.building = { type: 'residential', tier: 'rich', floors: 9 };
   request.options = { shape: 'box', balconies: 'on', balconyStyle: 'full', signage: null };
   const { blueprint: bp } = await generate(request, keys);
   expect(bp.balconyBands.length).toBeGreaterThan(0);
@@ -125,6 +125,8 @@ it('fits balcony bands to their doors', async () => {
 
 it('fits fire escapes, service routes, clothes and explicit damage around openings', async () => {
   const request = fixture('residential-mid');
+  request.parcel = { footprint: [[0, 0], [36, 0], [36, 28], [0, 28]], accessPoint: [18, -2], maxHeight: 50 };
+  request.building.floors = 6;
   request.options = { ...request.options, fireEscape: 'on', facadeServices: 'on', hangingClothes: 'on', windowDamage: 'sparse' };
   const { blueprint: bp, glb } = await generate(request, keys);
   expect(bp.fireEscape).toBeTruthy();

@@ -103,7 +103,7 @@
       "additionalProperties": false,
       "not": { "required": ["doorMotion", "openFront"], "properties": { "doorMotion": { "const": "pocket" }, "openFront": { "const": "on" } } },
       "properties": {
-        "minimumClearHeight": { "type": "number", "exclusiveMinimum": 0, "description": "Explicit minimum above-ground clear height. Slab/ceiling allowance is additional; fixed connection elevations remain constraints." },
+        "minimumClearHeight": { "type": "number", "exclusiveMinimum": 0, "default": 4, "description": "Minimum clear height for all floors. Slab/ceiling allowance is additional; fixed connection elevations remain constraints." },
         "architecture": { "enum": ["rounded-corner", "chamfered-corners", "terrace-blocks"], "description": "Dimensioned section composition, with unbound faces and a 0.5 m grid." },
         "shape": { "enum": ["auto", "box", "rounded-box", "octagon", "cylinder", "pyramid", "setback"], "default": "auto", "description": "Omitted and auto produce rectangular plates. Other shapes require explicit selection; aperture-bound parcel faces stay exact." },
         "exteriorStyle": { "enum": ["residential-salvaged", "residential-weathered", "residential-modest", "premium-obsidian", "premium-office", "premium-mineral", "civic-utility", "civic-institutional", "civic-industrial"], "description": "Coordinated facade geometry and material set. Omission selects a compatible set by seed, use and tier." },
