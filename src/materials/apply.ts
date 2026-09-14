@@ -82,7 +82,7 @@ export function createMaterials(
   const bySlot = new Map<string, Material>();
 
   for (const slot of slots) {
-    const [key, authoredVariant, finish] = splitMaterialSlot(slot);
+    const [key, authoredVariant, finish, mapping] = splitMaterialSlot(slot);
     let entry = resolve(key);
     if (!entry) {
       throw new ExteriorError('E_MATERIAL_UNRESOLVED', `theme "${theme}" has no entry for material key ${key}`, { key });
@@ -115,7 +115,8 @@ export function createMaterials(
     }
     if (variant.maps.metallicRoughness) material.setMetallicFactor(1).setRoughnessFactor(1);
 
-    if (entry.alignment === 'tile' && entry.tiling) {
+    if (mapping) material.setExtras({ ...material.getExtras(), textureMapping: mapping });
+    if (mapping !== 'exact' && entry.alignment === 'tile' && entry.tiling) {
       // 1 UV unit = 1 tile: world-meter UVs scaled by the tile's world size.
       const [wx, wy] = entry.tiling.worldSize;
       for (const info of infos) {

@@ -1,3 +1,4 @@
+import { ARCHITECTURES } from '../sections/index.ts';
 // Request validation mirroring schemas/building-request.schema.json.
 // Shape violations throw E_SCHEMA naming the path; semantic checks throw their own codes.
 
@@ -124,6 +125,13 @@ export function validateRequest(raw: unknown): BuildingRequest {
   if (floorKinds && floorKinds.length !== floors) {
     throw new ExteriorError('E_FLOORKINDS_MISMATCH', `floorKinds has ${floorKinds.length} entries for ${floors} floors`);
   }
+  if (options?.architecture && (apertures.length > 0 || options.doorMotion === 'pocket' || options.openFront === 'on'
+    || options.entranceLayout === 'repeated' || options.windows === 'none'
+    || options.architecture === 'terrace-blocks' && (options.balconies === 'off' || options.balconyStyle === 'bay')
+    || options.architecture !== 'terrace-blocks' && options.balconies === 'on' || options.shape && options.shape !== 'auto' && options.shape !== 'box'
+    || buildingGrid && Math.abs(buildingGrid.spacing - 0.5) > 1e-9)) {
+    fail('options.architecture', 'section compositions require unbound faces, a single swing entrance, windows, their authored balcony selection and the 0.5 m construction grid');
+  }
   validateAperturesSemantics(apertures, footprint, maxHeight, basements, RULES[family].maxFloorHeight);
 
   return {
@@ -181,6 +189,7 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   const out: NonNullable<BuildingRequest['options']> = {};
   if (o.coreAdjacency !== undefined) out.coreAdjacency = validateCoreAdjacency(o.coreAdjacency);
   out.exteriorStyle = oneOf(o.exteriorStyle, EXTERIOR_STYLE_IDS, 'options.exteriorStyle') as never;
+  out.architecture = oneOf(o.architecture, ARCHITECTURES, 'options.architecture') as never;
   out.shape = oneOf(o.shape, ['auto', 'box', 'rounded-box', 'octagon', 'cylinder', 'pyramid', 'setback'], 'options.shape') as never;
   out.glb = oneOf(o.glb, ['named', 'merged'], 'options.glb') as never;
   out.balconies = oneOf(o.balconies, ['auto', 'on', 'off'], 'options.balconies') as never;

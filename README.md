@@ -1,6 +1,6 @@
 # Exterior
 
-Version 0.47.0. Generates a building exterior GLB and its floor/opening blueprint from a seeded request. Each floor includes a contained rectangular room envelope. The shell carries windows, doors, curtains, balconies, facade services and materials, with replaceable floor slabs.
+Version 0.48.0. Generates a building exterior GLB and its floor/opening blueprint from a seeded request. Each floor includes a contained rectangular room envelope. Optional section compositions build rounded or chamfered corners and grouped floors with selected balconies. The shell carries windows, doors, curtains, balconies, facade services and materials, with replaceable floor slabs.
 
 See [SKILL.md](SKILL.md) for a copyable call, [CONTRACT.md](CONTRACT.md) for the interface, and [docs/INDEX.md](docs/INDEX.md) for the box map.
 
@@ -17,6 +17,6 @@ npm test
 npm run preview:build
 ```
 
-The preview selects a fixture, seed, style and shape, with orbit/street-eye cameras and clipping. Production assets are generated into ignored `dist/`. Geometry, openings and materials come from the same generation call.
+The preview selects a fixture, seed, style and shape, with orbit, street-eye and inside-shell cameras. `?fixture=architecture-01-rounded-corner` opens the rounded specimen; `&view=interior` inspects its inner faces. Production assets are generated into ignored `dist/`. Geometry, openings and materials come from the same generation call.
 
 Generation is deterministic for a fixed request, catalog and texture options. External textures can fall back to material keys with a reported reason; `--embed` requires maps. [Interface proposals](docs/ISSUES.md) record the coordinated work and remaining visual review.

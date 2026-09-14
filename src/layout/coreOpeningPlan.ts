@@ -33,6 +33,7 @@ export function planCoreOpenings(layout: OpeningLayout, coreFrame: Blueprint['co
     if (!openingFitFailure(error)) throw error;
     failure = error;
   }
+  if (layout.request.options?.architecture) throw failure;
   for (const floors of commercialCoreCandidates(layout.request, layout.floors, layout.style)) {
     try {
       return measure(floors);

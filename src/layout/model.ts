@@ -1,3 +1,4 @@
+import type { Assembly, FloorAssembly } from '../sections/index.ts';
 // Internal layout model: everything the mesher and blueprint builder consume.
 
 import type { P2, P3, Opening, Blueprint, BuildingRequest, Aperture, BalconyBand } from '../types.ts';
@@ -55,6 +56,7 @@ export interface Style {
 }
 
 export interface FloorLayout {
+  assembly?: FloorAssembly;
   index: number;
   kind: string;
   elevation: number;
@@ -70,6 +72,7 @@ export interface CarvedAperture {
 }
 
 export interface Layout {
+  assembly?: Assembly;
   coreFrame?: Blueprint['coreFrame'];
   request: BuildingRequest;
   family: Family;

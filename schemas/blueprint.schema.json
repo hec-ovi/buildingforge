@@ -7,6 +7,7 @@
   "required": ["buildingId", "seed", "bounds", "floors", "balconyBands", "facadeServices", "roof", "materials", "materialVariants"],
   "additionalProperties": false,
   "properties": {
+    "assembly": { "$ref": "../src/sections/schemas/output.schema.json" },
     "version": { "type": "string", "description": "Generator package version; absent on older stored blueprints." },
     "buildingId": { "type": "string" },
     "coreFrame": {
@@ -58,6 +59,8 @@
               "additionalProperties": false,
               "properties": {
                 "id": { "type": "string" },
+                "sectionId": { "type": "string" },
+                "sectionSpan": { "type": "integer", "minimum": 0 },
                 "kind": { "enum": ["door", "window", "balconyDoor", "openFront", "aperture"] },
                 "edge": { "type": "integer", "minimum": 0, "description": "outline edge index (vertex i to i+1)" },
                 "offset": { "type": "number", "minimum": 0, "description": "meters along the edge to the opening's start" },

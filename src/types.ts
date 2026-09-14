@@ -1,3 +1,4 @@
+import type { Architecture, Assembly } from './sections/index.ts';
 // TypeScript mirrors of schemas/building-request.schema.json and schemas/blueprint.schema.json.
 
 import type { AtlasType, Tier } from './rules/families.ts';
@@ -80,6 +81,7 @@ export interface BuildingRequest {
   theme: string;
   apertures?: Aperture[];
   options?: {
+    architecture?: Architecture;
     shape?: 'auto' | 'box' | 'rounded-box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
     exteriorStyle?: ExteriorStyleId;
     glb?: 'named' | 'merged';
@@ -144,6 +146,8 @@ export interface DoorAssembly {
 }
 
 export interface Opening {
+  sectionId?: string;
+  sectionSpan?: number;
   id: string;
   kind: OpeningKind;
   edge: number;
@@ -303,6 +307,7 @@ export interface FacadeArtifact {
 }
 
 export interface Blueprint {
+  assembly?: Assembly;
   version?: string;
   coreFrame?: { anglesDeg: number[] };
   buildingId: string;

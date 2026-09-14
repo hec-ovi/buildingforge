@@ -10,6 +10,7 @@ import type { FloorLayout, Style } from './model.ts';
 
 /** Shared eligibility before plate reservation and facade placement. */
 export function balconiesEnabled(req: BuildingRequest, family: Family, tier: Tier): boolean {
+  if (req.options?.architecture) return req.options.architecture === 'terrace-blocks';
   const option = req.options?.balconies ?? 'auto';
   const officeAuto = family === 'office' && (tier === 'rich' || tier === 'high_rich')
     && new Rng(req.seed, 'office-balconies').chance(0.45);
@@ -24,7 +25,7 @@ export function buildBalconyBands(
   const bands: BalconyBand[] = [];
   const wanted = req.options?.balconyStyle ?? 'auto';
   const eligible = BALCONY.fullFamilies.includes(family) && BALCONY.fullTiers.includes(tier);
-  const full = wanted === 'full' ? eligible
+  const full = req.options?.architecture === 'terrace-blocks' ? true : wanted === 'full' ? eligible
     : wanted === 'bay' ? false
       : eligible && new Rng(req.seed, 'full-balcony').chance(BALCONY.fullChance[tier] ?? 0);
 

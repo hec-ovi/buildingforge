@@ -3,7 +3,7 @@ name: exterior
 description: Generate one seeded building exterior GLB and its floor/opening blueprint through the Exterior library or CLI.
 ---
 
-# Exterior 0.47.0
+# Exterior 0.48.0
 
 Builds one deterministic building shell, empty inside except replaceable floor slabs, with its exact opening blueprint.
 

@@ -1,3 +1,4 @@
+import { checkSectionOpenings } from './sectionOpenings.ts';
 import { ExteriorError } from '../core/errors.ts';
 import { edgeLength, edgeNormal, pointSegmentDistance } from '../core/polygon.ts';
 import { FACADE, MODULE, MODULE_U, OPENING, SLAB_BAND } from '../rules/tables.ts';
@@ -37,6 +38,7 @@ export function checkInvariants(layout: Layout, obstacles: Map<number, Rect[]>):
     }
   }
   for (const floor of layout.floors) {
+    checkSectionOpenings(floor);
     for (const o of floor.openings) {
       checkPocketDoor(floor, o);
       const isDoor = o.kind === 'door' || o.kind === 'balconyDoor';
@@ -310,7 +312,7 @@ function checkProportions(layout: Layout): void {
         }
         continue;
       }
-      if (o.kind !== 'window') continue;
+      if (o.kind !== 'window' || floor.assembly) continue;
       if (floor.index === 0 && isPodiumFloor(layout.family, floor.kind)) {
         const fit = fitPodiumWindow(clear);
         if (!fit || Math.abs(o.sill - fit.sill) > 1e-6 || Math.abs(o.height - fit.height) > MODULE / 2 + 1e-6

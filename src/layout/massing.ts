@@ -1,3 +1,5 @@
+import { buildSectionMassing } from './sectionMassing.ts';
+import type { Assembly } from '../sections/index.ts';
 // Per-floor construction-grid plates. Explicit curved forms occupy fitted grid
 // rectangles; aperture-bound parcels retain exact source faces. Each setback
 // preserves the shared vertical core.
@@ -28,6 +30,7 @@ const RING16: P2[] = [
 export type Shape = 'box' | 'rounded-box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
 
 export interface Massing {
+  assembly?: Assembly;
   /** outline per above-ground floor index (0..floors-1); basements reuse outline 0 */
   outlineOf(floor: number): P2[];
   groundOutline: P2[];
@@ -43,7 +46,7 @@ export function buildMassing(
   const parcel = req.parcel.footprint;
   const floors = req.building.floors;
   const hasApertures = (req.apertures ?? []).length > 0;
-  const rectangular = !hasApertures && (!req.options?.shape || ['auto', 'box', 'setback', 'pyramid'].includes(req.options.shape));
+  const rectangular = !hasApertures && (!!req.options?.architecture || !req.options?.shape || ['auto', 'box', 'setback', 'pyramid'].includes(req.options.shape));
   // Every plate has to host the interior's core rectangle; the massing picks a
   // box that does rather than leaving the assembler to find out it cannot.
   const rects = coreRects(floorHeights, floors, area(parcel));
@@ -52,6 +55,9 @@ export function buildMassing(
     if (area(ring) < Math.min(...choices.map((r) => (r.length + 2 * inset) * (r.depth + 2 * inset)))) return false;
     return fitPlateCore([ring], inset, choices, rectangular, axis).fits !== null;
   };
+
+  if (req.options?.architecture) return buildSectionMassing(req, floorHeights, outlines =>
+    fitPlateCore(outlines, preferredCoreInset, rects, true).fits !== null);
 
   let shape = (req.options?.shape ?? 'auto') as Shape | 'auto';
   if (hasApertures) {

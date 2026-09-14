@@ -1,0 +1,55 @@
+{
+  "seed": "facade-sections-2026",
+  "buildingId": "architecture-02-chamfered-corners",
+  "parcel": {
+    "footprint": [
+      [
+        0,
+        0
+      ],
+      [
+        36,
+        0
+      ],
+      [
+        36,
+        32
+      ],
+      [
+        0,
+        32
+      ]
+    ],
+    "accessPoint": [
+      18,
+      -2
+    ],
+    "maxHeight": 60,
+    "buildingGrid": {
+      "origin": [
+        0,
+        0
+      ],
+      "angle": 0,
+      "spacing": 0.5
+    }
+  },
+  "building": {
+    "type": "offices",
+    "tier": "rich",
+    "floors": 9
+  },
+  "theme": "cyberpunk",
+  "options": {
+    "architecture": "chamfered-corners",
+    "exteriorStyle": "premium-mineral",
+    "glb": "named",
+    "balconies": "off",
+    "balconyStyle": "full",
+    "facadeServices": "off",
+    "signage": null,
+    "adScreens": "off",
+    "fireEscape": "off",
+    "roofArtifacts": "off"
+  }
+}

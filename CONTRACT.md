@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.47.0.
+Version: 0.48.0.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint.
 
@@ -19,6 +19,8 @@ Metres, +Y up, XZ ground, right-handed; CCW rings without a repeated endpoint. O
 
 The parcel limits massing. Auto uses construction-grid rectangles. Explicit rounded-box, octagon, cylinder, pyramid and setback forms fit where possible, with box fallback for core/parcel constraints. Aperture-bound parcels keep their exact faces; traversable cuts pin floor elevations to their absolute bases. Wire anchors are attachments. Building type and supplied floor programs retain their incoming vocabulary.
 
+`options.architecture` selects `rounded-corner`, `chamfered-corners` or `terrace-blocks`. Their fixed corner and complete bay sections choose the actual footprint before opening and core planning. They require unbound parcel faces, the 0.5 m grid, windows, their authored balcony selection and a single swing entrance; incompatible options report `E_SCHEMA`, an unfittable complete assembly reports `E_CORE_PLATE`. `blueprint.assembly` records actual floor groups, outlines, section fields and balcony selections. Each opening carries its `sectionId` and curve-slice `sectionSpan` where applicable. A broad curved bay crosses multiple outline edges while keeping jambs only at its authored ends. Current automatic requests use the ordinary facade rules.
+
 Every generated floor publishes `roomEnvelope`: four CCW corners, origin, perpendicular unit axes, width/depth, vertical clear interval and the existing construction grid. The rectangle is contained behind measured shell/opening depth and door/portal movement clearance. It follows that floor's actual shape. This is an additive geometric handoff, not a minimum room-size or circulation-width policy. All openings remain hard reservations. Interior may partition inside the rectangle, respecting those reservations; the irregular perimeter remains open. Facade attachments and `partitionAnchors` retain their own published constraints.
 
 Windows carry clear glazing dimensions, housing depth and exact curtain coverage (`0` open, `100` closed). Ground `windowTreatment` identifies removable `ground-privacy:<id>` nodes for shells without real interiors. Permanent exterior louvres remain separate. Pocket door `cassette` reserves the full opaque assembly; `clearance` is the usable passage and inward lining plane. Translate each pocket leaf along face U by `travelU * openFraction`; swing and roller motion retain their existing metadata.
@@ -29,7 +31,7 @@ The GLB contains a 0.12 m wall body with mitered inward faces, finished opening 
 
 ## Materials
 
-Keys use `theme/kind/tier`, with named variant requests. `external` writes configurable URIs and embeds selected bundled finishes; absent catalog returns `keys` with a reason. `embed` requires all selected maps; `keys` intentionally leaves resolution to the caller. Built-in sources enable bundled finishes; custom sources opt in. `dir` defaults to `URBE_MATERIALS_DIR`, then sibling `materials`; explicit `source` overrides disk access. World-metre mapping follows catalog tiling dimensions.
+Keys use `theme/kind/tier`, with named variant requests. `external` writes configurable URIs and embeds selected bundled finishes; absent catalog returns `keys` with a reason. `embed` requires all selected maps; `keys` intentionally leaves resolution to the caller. Built-in sources enable bundled finishes; custom sources opt in. `dir` defaults to `URBE_MATERIALS_DIR`, then sibling `materials`; explicit `source` overrides disk access. World-metre mapping follows catalog tiling dimensions. Authored section fields carry full 0..1 maps with `textureMapping: exact` material extras and clamped texture edges.
 
 ## Closed generation errors
 
@@ -59,6 +61,7 @@ Runtime guards protect openings and geometry; tests exercise the public surface.
 - [Connections](../connections/CONTRACT.md): supplied aperture constraints.
 - [Interior](../interior/CONTRACT.md): published `schemas/core-feasibility.json` and browser-safe `dist/feasibility.js`; this build must exist before generation or preview bundling.
 - [Materials](../materials/CONTRACT.md): catalog, named style bindings and maps.
+- [Facade sections](src/sections/CONTRACT.md): [input](src/sections/schemas/input.schema.json), [output](src/sections/schemas/output.schema.json).
 - [Facade services](src/facade-services/CONTRACT.md): [input](src/facade-services/schema/input.schema.json), [output](src/facade-services/schema/output.schema.json).
 - External attachment records: [schema](schemas/external-attachment.schema.json). Dimension tables: [floors](schemas/floor-constants.json), [openings](schemas/proportions.json).
 - Installed npm dependencies: glTF Transform and earcut. No LLM or live city process.

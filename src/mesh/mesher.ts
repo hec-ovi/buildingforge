@@ -1,3 +1,6 @@
+import { sectionSpans } from '../sections/index.ts';
+import { meshCurvedWindow } from './curvedWindow.ts';
+import { meshSectionFinish } from './sectionFinish.ts';
 // Builds shell surfaces with explicit outside and room-facing normals.
 
 import { MeshBuilder, type PartSink, type V3, add, scale } from './primitives.ts';
@@ -89,8 +92,11 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   // Terrace rings where the outline steps inward.
   for (let i = 1; i < above.length; i++) {
     const prev = above[i - 1]!, cur = above[i]!;
-    if (prev.outline !== cur.outline) {
-      capUp(mb.part(`terrace:${cur.index}`), mat('roof'), caps, prev.outline, cur.elevation, cur.outline);
+    if (prev.outline.length !== cur.outline.length || prev.outline.some((p, i) =>
+      Math.hypot(p[0] - cur.outline[i]![0], p[1] - cur.outline[i]![1]) > 1e-8)) {
+      const terrace = mb.part(`terrace:${cur.index}`);
+      capUp(terrace, mat('roof'), caps, prev.outline, cur.elevation, cur.outline);
+      capDown(terrace, mat('floor-slab'), caps, prev.outline, cur.elevation, cur.outline);
     }
   }
 
@@ -117,7 +123,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
       // after the centred solid border, so every visible joint agrees with the
       // fixed panel grid instead of stretching to close the face.
       const pattern = facadeSurfacePattern(layout.request.options!.exteriorStyle!);
-      const panel = f.index !== 0 && pattern.kind === 'panel' ? pattern : undefined;
+      const panel = !f.assembly && f.index !== 0 && pattern.kind === 'panel' ? pattern : undefined;
       const horizontal = panel ? fixedPanelAxis(fr.len, panel.width) : undefined;
       const vertical = panel ? fixedPanelAxis(f.height, panel.height) : undefined;
       const uOrigin = horizontal?.borders[0] ?? 0;
@@ -129,7 +135,8 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
           .map(([u, y]) => [u - uOrigin, yOrigin - y] as [number, number]);
         sink.quadFacing(mat(f.index === 0 ? 'ground' : 'wall'), at(fr, piece.bl, depth), at(fr, piece.br, depth), at(fr, piece.tr, depth), at(fr, piece.tl, depth), n3(fr), uvs);
       }
-      meshWallLining(sink, f.outline, e, pieces, depth, mat('wall'));
+      const glazedCorner = f.assembly?.sections.some(section => section.technique === 'rounded-glass' && sectionSpans(section).some(span => span.edge === e));
+      meshWallLining(sink, f.outline, e, pieces, depth, mat(glazedCorner ? 'window-frame' : 'wall'));
       if (panel) meshPanelField(sink, {
         outline: f.outline, edge: e, elevation: f.elevation, height: f.height,
         width: panel.width, panelHeight: panel.height, jointWidth: panel.jointWidth,
@@ -139,6 +146,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
         horizontal.borders, vertical.borders, mat('column'));
     }
   }
+  meshSectionFinish(mb, layout, mat);
   meshBalconyBands(mb, layout, mat);
 
   // Roof, parapet, bottom cap. The roof is the top floor's ceiling too, cut open
@@ -237,7 +245,14 @@ function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: 
   if (o.kind === 'window') {
     const sink = mb.part(`window:${o.id}`);
     const privacy = o.windowTreatment ? mb.part(o.windowTreatment.nodeId, { keepNode: true }) : undefined;
-    o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, layout.style, mat, privacy);
+    const section = f.assembly?.sections.find(s => s.id === o.sectionId);
+    if (section?.technique === 'rounded-glass') {
+      o.glazing = meshCurvedWindow(sink, f, o, section, mat);
+      return;
+    }
+    const style = section ? { ...layout.style, facade: { ...layout.style.facade, windowRecess: section.border.depth },
+      glazing: { ...layout.style.glazing, frameWidth: Math.min(0.08, section.border.side), frameProud: 0.04, glassInset: 0.02 } } : layout.style;
+    o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, style, mat, privacy);
     return;
   }
   if (o.kind === 'door' || o.kind === 'balconyDoor') {
@@ -470,7 +485,7 @@ function windowUnit(
       o.damage, o.material ?? mat('window-glass'));
   } else {
     meshSpandrel(sink, fr, { u0: g0, u1: g1, y0: gb, y1: gt },
-      glassZ, glassZ - 0.006, o.material ?? mat('window-glass'));
+      glassZ, glassZ - 0.006, o.material ?? mat('window-glass'), 'exact');
   }
 
   if (o.curtain) {

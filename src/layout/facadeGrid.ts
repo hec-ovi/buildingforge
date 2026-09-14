@@ -64,6 +64,7 @@ function merge(input: [number, number][]): [number, number][] {
 }
 
 function complement(length: number, occupied: [number, number][]): [number, number][] {
+  length = mm(length);
   const out: [number, number][] = [];
   let cursor = 0;
   for (const [start, end] of occupied) {

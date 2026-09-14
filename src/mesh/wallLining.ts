@@ -1,4 +1,5 @@
-import { edgeDir, edgeNormal, type P2 } from '../core/polygon.ts';
+import type { P2 } from '../core/polygon.ts';
+import { FacadeField } from './facadeField.ts';
 import type { PartSink, V3 } from './primitives.ts';
 import type { WallPiece } from './wallcut.ts';
 
@@ -11,15 +12,11 @@ export function meshWallLining(
   frontDepth: number, material: string,
 ): void {
   const a = outline[edge]!, b = outline[(edge + 1) % outline.length]!;
-  const dir = edgeDir(outline, edge), n = edgeNormal(outline, edge);
+  const field = new FacadeField(outline, edge);
+  const dir = field.dir, n = field.normal;
   const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  const start = miter(outline, edge), end = miter(outline, (edge + 1) % outline.length);
   const outer = ([u, y]: P2): V3 => [a[0] + dir[0] * u + n[0] * frontDepth, y, a[1] + dir[1] * u + n[1] * frontDepth];
-  const inner = ([u, y]: P2): V3 => {
-    if (Math.abs(u) < 1e-8) return [start[0], y, start[1]];
-    if (Math.abs(u - length) < 1e-8) return [end[0], y, end[1]];
-    return [a[0] + dir[0] * u - n[0] * WALL_THICKNESS, y, a[1] + dir[1] * u - n[1] * WALL_THICKNESS];
-  };
+  const inner = ([u, y]: P2): V3 => field.point(u, y, -WALL_THICKNESS);
   for (const piece of pieces) {
     const points = [piece.bl, piece.br, piece.tr, piece.tl];
     const uv = points.map(([u, y]): P2 => [u, -y]);
@@ -35,13 +32,4 @@ export function meshWallLining(
         [[0, 0], [Math.hypot(du, dy), 0], [Math.hypot(du, dy), WALL_THICKNESS + frontDepth], [0, WALL_THICKNESS + frontDepth]]);
     }
   }
-}
-
-function miter(outline: P2[], vertex: number): P2 {
-  const p = outline[vertex]!;
-  const prev = edgeNormal(outline, (vertex + outline.length - 1) % outline.length);
-  const next = edgeNormal(outline, vertex);
-  const denominator = 1 + prev[0] * next[0] + prev[1] * next[1];
-  return [p[0] - WALL_THICKNESS * (prev[0] + next[0]) / denominator,
-    p[1] - WALL_THICKNESS * (prev[1] + next[1]) / denominator];
 }

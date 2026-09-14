@@ -1,3 +1,3 @@
 # Changelog
 
-0.47.0: seeded exterior shells with versioned blueprints, rectangular room envelopes per floor, protected openings, fitted facade details and named material variants.
+0.48.0: dimensioned facade sections, rounded and chamfered corners, authored floor groups and selected balconies, with closed inward shell surfaces and per-floor room envelopes.

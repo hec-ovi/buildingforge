@@ -1,3 +1,4 @@
+import { sectionOpenings } from './sectionOpenings.ts';
 // Facade layout: split-grammar bays per floor band and edge, entrance on the
 // street face, aperture cuts reserved first, openings never overlapping.
 
@@ -133,7 +134,7 @@ export function buildFacades(
     // 2. Entrance and service doors on the ground floor (doors exist even window-less),
     // reserved before any window fill so the facade always keeps its entrance zone.
     if (isGround) {
-      const portal = req.options?.doorMotion === 'pocket' ? undefined
+      const portal = req.options?.architecture || req.options?.doorMotion === 'pocket' ? undefined
         : placeOpenFront(req, tier, outline, streetEdges, level.height, openings, takenByEdge);
       if (!portal) {
         const entrance = placeEntrance(req, family, tier, style, outline, streetEdges, level.height, openings, takenByEdge);
@@ -144,6 +145,13 @@ export function buildFacades(
         }
       }
       if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
+    }
+
+    if (massing.assembly) {
+      const assembly = massing.assembly.floors[level.index]!;
+      sectionOpenings(req, assembly, level.height, openings);
+      floors.push({ index: level.index, kind: level.kind, elevation: level.elevation, height: level.height, outline, openings, assembly });
+      continue;
     }
 
     // 3. Windows and balcony doors, sized by the proportion table and fitted
@@ -248,8 +256,10 @@ export function buildFacades(
   }
 
   const exteriorStyle = req.options!.exteriorStyle!;
-  for (const floor of floors) fitGroundWindows(family, floor);
-  fitCommercialWindows(req, floors, style);
+  if (!massing.assembly) {
+    for (const floor of floors) fitGroundWindows(family, floor);
+    fitCommercialWindows(req, floors, style);
+  }
   for (const floor of floors) for (const opening of floor.openings) {
     if (opening.curtain) {
       const open = curtainOverrides.get(opening.id);

@@ -54,8 +54,13 @@ async function generateBuilding(raw: unknown, options: GenerateOptions): Promise
   if (facade === 'megablock' && tier !== 'poor') facade = 'panel';
   if (facade === 'curtain-wall' && (family === 'residential' || family === 'hotel')
     && req.options?.balconies === 'on' && req.options.balconyStyle === 'full') facade = 'glass';
+  if (req.options?.architecture) facade = 'glass';
   const style = buildStyle(req.seed, family, tier, req.building.floors, facade);
-  const facadeInset = facadeDepth(style.facade.kind);
+  if (req.options?.architecture) {
+    style.facade.bandHeight = 0; style.facade.bandProud = 0;
+    if (req.options.architecture === 'terrace-blocks') style.balconyDepth = 1.5;
+  }
+  const facadeInset = req.options?.architecture ? Math.max(0.5, facadeDepth(style.facade.kind)) : facadeDepth(style.facade.kind);
   const preferredCoreInset = facadeInset + corePerimeterClearance(req);
   const stack = buildFloorStack(req, family, tier, style);
   const balconyInset = balconiesEnabled(req, family, tier) ? style.balconyDepth : 0;
@@ -79,6 +84,7 @@ async function generateBuilding(raw: unknown, options: GenerateOptions): Promise
   }, coreFrame);
   facades.floors = floors;
   const relief = buildRelief(style, facades.floors, facades.carved);
+  if (massing.assembly) relief.byEdge = [];
   const obstacles = faceObstacles(facades.floors, facades.carved, facades.anchors, relief, stack.top);
   const anchors = mountAnchors(facades.anchors, massing.groundOutline, obstacles);
   const features = buildFacadeFeatures(
@@ -95,6 +101,7 @@ async function generateBuilding(raw: unknown, options: GenerateOptions): Promise
 
   const layout: Layout = {
     ...(coreFrame ? { coreFrame } : {}),
+    ...(massing.assembly ? { assembly: massing.assembly } : {}),
     request: req, family, tier, theme: req.theme, style, relief,
     floors: facades.floors, balconyBands, carved: facades.carved, anchors,
     facadeServices, roof,

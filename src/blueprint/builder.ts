@@ -23,6 +23,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     .filter((entry): entry is [string, string] => entry[1] !== undefined));
   return {
     version: release.version,
+    ...(layout.assembly ? { assembly: layout.assembly } : {}),
     buildingId: layout.request.buildingId,
     ...(layout.coreFrame ? { coreFrame: layout.coreFrame } : {}),
     seed: layout.request.seed,

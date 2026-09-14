@@ -10,7 +10,7 @@
 - [Call guide](../SKILL.md): library and CLI usage.
 - [Issues](ISSUES.md): interface proposals and unresolved constraints.
 - `src/core`, `src/rules`: validation, polygon arithmetic and dimension tables.
-- `src/layout`: floor stacks, massing, openings and fitted attachments.
+- `src/layout`: floor stacks, maximum-volume fitting, section-driven openings and fitted attachments.
 - `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.
 - `src/glb`, `src/materials`: GLB output and material resolution.
