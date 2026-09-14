@@ -91,7 +91,7 @@ async function generateBuilding(raw: unknown, options: GenerateOptions): Promise
   const openingMesh = facadeServices.damagedWindows.length > 0
     ? buildOpeningMesh({ request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved })
     : measuredOpenings;
-  const roof = buildRoof(req, family, stack.top, style, facades.floors, coreStair);
+  const roof = buildRoof(req, family, style, facades.floors, coreStair);
 
   const layout: Layout = {
     ...(coreFrame ? { coreFrame } : {}),

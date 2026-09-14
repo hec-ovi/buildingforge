@@ -62,6 +62,21 @@ it('preserves floor programs and exact link reservations, including anchor ident
   }
 });
 
+it('keeps roof and bounds exactly aligned with storeys pinned to a non-round aperture base', async () => {
+  const request = fixture('bridged-tower');
+  const aperture = request.apertures![0]!;
+  const base = 24.013401388006868;
+  const shift = base - aperture.base;
+  aperture.base = base;
+  aperture.cut.polygon = aperture.cut.polygon.map(([x, y, z]) => [x, y + shift, z]);
+  const { blueprint } = await generate(request, keys);
+  const floors = blueprint.floors.filter(floor => floor.index >= 0);
+  expect(floors.some(floor => floor.elevation === base)).toBe(true);
+  const last = floors.at(-1)!;
+  expect(blueprint.roof.elevation).toBe(last.elevation + last.height);
+  expect(blueprint.bounds.height).toBe(blueprint.roof.elevation + blueprint.roof.parapetHeight);
+});
+
 it('applies the nine explicit styles while preserving their fitted glazing and material keys', async () => {
   for (const style of schema.properties.options.properties.exteriorStyle.enum) {
     const request = fixture('corpo-tower');

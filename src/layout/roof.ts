@@ -12,11 +12,12 @@ interface RoofReservation { cx: number; cz: number; hw: number; hd: number }
 
 /** Roof fittings reserve the final stair enclosure before placing equipment. */
 export function buildRoof(
-  request: BuildingRequest, family: Family, top: number,
+  request: BuildingRequest, family: Family,
   style: Style, floors: FloorLayout[], coreStair: CoreStairPlacement,
 ): Blueprint['roof'] {
-  const outline = floors[floors.length - 1]!.outline;
-  const elevation = quant(top);
+  const topFloor = floors[floors.length - 1]!;
+  const outline = topFloor.outline;
+  const elevation = topFloor.elevation + topFloor.height;
   const artifacts: RoofArtifact[] = [];
   const bulkhead = fitRoofAccess(request.seed, outline, coreStair);
   if ((request.options?.roofArtifacts ?? 'auto') !== 'off') {

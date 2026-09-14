@@ -3,14 +3,17 @@ import { ExteriorError } from '../core/errors.ts';
 
 const q = (value: number): number => Math.round(value * 1000) / 1000;
 const EXTERNAL_CLEARANCE = 0.08;
-const point = (center: P2, y: number, axis: P2, offset = 0): P3 => [
-  q(center[0] + axis[0] * offset), q(y), q(center[1] + axis[1] * offset),
-];
 
 /** Builds an exact roof-mounted antenna or mast assembly inside its fitted footprint. */
 export function buildMastAssembly(
   artifact: RoofArtifact, roof: number, variant: MastVariant,
 ): MastAssembly {
+  // Anchor the millimetre detail grid to the exact authored roof elevation.
+  const roofOffset = roof - q(roof);
+  const quantY = (y: number): number => q(y - roofOffset) + roofOffset;
+  const point = (center: P2, y: number, axis: P2, offset = 0): P3 => [
+    q(center[0] + axis[0] * offset), quantY(y), q(center[1] + axis[1] * offset),
+  ];
   const [width, depth, height] = artifact.size;
   const along: P2 = artifact.rotationDeg === 90 ? [0, 1] : [1, 0];
   const across: P2 = [-along[1], along[0]];
@@ -20,7 +23,7 @@ export function buildMastAssembly(
   const supports = ([-1, 1] as const).flatMap((u) => ([-1, 1] as const).map((v) => ({
     from: [
       q(artifact.center[0] + along[0] * width * 0.35 * u + across[0] * depth * 0.35 * v),
-      q(roof + 0.1),
+      quantY(roof + 0.1),
       q(artifact.center[1] + along[1] * width * 0.35 * u + across[1] * depth * 0.35 * v),
     ] as P3,
     to: braceTop,
