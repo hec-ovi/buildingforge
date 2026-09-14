@@ -7,7 +7,7 @@
 import { ExteriorError } from '../core/errors.ts';
 import { Rng } from '../core/rng.ts';
 import { RULES, MODULE } from '../rules/tables.ts';
-import { groundFloorNeed } from '../rules/proportions.ts';
+import { groundFloorNeed, PROPORTIONS } from '../rules/proportions.ts';
 import { quant } from '../core/polygon.ts';
 import type { BuildingRequest } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
@@ -23,6 +23,7 @@ const quantDown = (v: number): number => Math.floor(v * 20 + 1e-9) / 20;
 
 export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier, style: Style): Stack {
   const rules = RULES[family];
+  const minimum = Math.max(rules.minFloorHeight, (req.options?.minimumClearHeight ?? 0) + PROPORTIONS.clearHeightAllowance);
   const floors = req.building.floors;
   const basements = req.building.basements ?? 0;
   const maxHeight = req.parcel.maxHeight;
@@ -40,8 +41,8 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
   }
 
   const elevAbove = basesPos.length === 0
-    ? nominalStack(floors, style, rules.minFloorHeight, maxHeight, reqH.get(0) ?? 0, groundNeed)
-    : solveSplit(floors, basesPos, rules.minFloorHeight, rules.maxFloorHeight, style.floorHeight, maxHeight, reqH,
+    ? nominalStack(floors, style, minimum, maxHeight, reqH.get(0) ?? 0, groundNeed)
+    : solveSplit(floors, basesPos, minimum, rules.maxFloorHeight, style.floorHeight, maxHeight, reqH,
       Math.min(groundNeed, rules.maxFloorHeight));
 
   const elevBelow = basementElevations(basements, basesNeg, basementHeight, reqH);

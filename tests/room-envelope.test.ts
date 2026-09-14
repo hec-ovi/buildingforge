@@ -47,3 +47,29 @@ it('publishes a contained right-angle rectangle on every actual floor and constr
     expect(blueprint.floors[0]!.index).toBe(-1);
   }
 });
+
+it('honors explicit clear height without reducing the taller ground program', async () => {
+  const request = fixture('architecture-02-chamfered-corners');
+  request.building.floors = 6;
+  const { blueprint } = await generate(request, keys);
+  expect(blueprint.floors[0]!.height).toBe(7);
+  for (const floor of blueprint.floors.filter(f => f.index > 0)) {
+    expect(floor.height).toBe(4.5);
+    expect(floor.roomEnvelope!.vertical.max - floor.roomEnvelope!.vertical.min).toBe(4);
+  }
+  expect(blueprint.floors[1]!.openings.filter(o => o.kind === 'window').every(o => o.height === 3.5)).toBe(true);
+  await expect(generate({ ...request, parcel: { ...request.parcel, maxHeight: 23 } }, keys)).rejects.toMatchObject({ code: 'E_ENVELOPE_TOO_LOW' });
+});
+
+it('keeps connection elevations fixed when explicit clear height changes floor allocation', async () => {
+  const request = fixture('bridged-tower');
+  request.building.floors = 28;
+  request.options = { minimumClearHeight: 4 };
+  const { blueprint } = await generate(request, keys);
+  for (const aperture of request.apertures!.filter(a => a.kind !== 'wire-anchor')) {
+    const floor = blueprint.floors.find(f => f.openings.some(o => o.id === aperture.id))!;
+    const opening = floor.openings.find(o => o.id === aperture.id)!;
+    expect(floor.elevation + opening.sill).toBe(aperture.base);
+  }
+  expect(blueprint.anchors.find(a => a.id === 'ap-wire-4')!.position).toEqual([30, 30.25, 16]);
+});

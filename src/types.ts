@@ -82,6 +82,7 @@ export interface BuildingRequest {
   apertures?: Aperture[];
   options?: {
     architecture?: Architecture;
+    minimumClearHeight?: number;
     shape?: 'auto' | 'box' | 'rounded-box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
     exteriorStyle?: ExteriorStyleId;
     glb?: 'named' | 'merged';
