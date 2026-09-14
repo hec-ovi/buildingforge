@@ -482,10 +482,6 @@ function windowUnit(
   // Glass recessed behind the wall face. An explicit damage state subdivides
   // this one window only; intact windows keep the existing single fitted pane field.
   const glassZ = z - g.glassInset;
-  const insideBorder = fw / 2;
-  meshFrameRing(sink, fr,
-    { u0: g0 - insideBorder, u1: g1 + insideBorder, y0: Math.max(yb - o.sill, gb - insideBorder), y1: gt + insideBorder },
-    { u0: g0, u1: g1, y0: gb, y1: gt }, glassZ - 0.004, 0.02, frameMat);
   if (o.damage) {
     damagedPaneField(sink, fr, g0, g1, gb, gt, glassZ, cols, rows,
       o.damage, o.material ?? mat('window-glass'));
