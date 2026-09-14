@@ -40,7 +40,7 @@ it('builds complete section compositions and publishes their actual floors and o
     expect(parts).toHaveLength(assembly.floors.reduce((count, floor) => count + floor.sections.length, 0));
     for (const node of parts) for (const primitive of node.getMesh()!.listPrimitives()) {
       const uv = primitive.getAttribute('TEXCOORD_0')!;
-      for (const value of uv.getArray()!) { expect(value).toBeGreaterThanOrEqual(-1e-6); expect(value).toBeLessThanOrEqual(1 + 1e-6); }
+      expect(uv.getArray()!.every(value => value >= -1e-6 && value <= 1 + 1e-6)).toBe(true);
     }
     if (request.options!.architecture === 'terrace-blocks') {
       expect(assembly.groups.map(g => [g.width, g.depth])).toEqual([[30, 26], [26, 22], [22, 22]]);
