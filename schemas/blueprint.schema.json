@@ -492,6 +492,10 @@
       "required": ["elevation", "outline", "parapetHeight", "artifacts"],
       "additionalProperties": false,
       "properties": {
+        "material": {
+          "type": "object", "required": ["key", "variantId"], "additionalProperties": false,
+          "properties": { "key": { "type": "string" }, "variantId": { "type": "string" } }
+        },
         "elevation": { "type": "number" },
         "outline": {
           "type": "array",

@@ -73,7 +73,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     facadeArtifacts: layout.facadeArtifacts,
     facadeServices: layout.facadeServices,
     fireEscape: layout.fireEscape,
-    roof: layout.roof,
+    roof: { ...layout.roof, material: { key: `${layout.theme}/roof/${layout.tier}`, variantId: selected[`${layout.theme}/roof/${layout.tier}`]! } },
     materials,
     materialVariants,
   };

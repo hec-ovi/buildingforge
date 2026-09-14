@@ -18,3 +18,5 @@
 - [Preview layout](../src/ui/views/preview.json): control definitions rendered by the shared Form component.
 - [Native finishes](../assets/native/INDEX.md): bundled material assets and recipes.
 - [Requirements](REQUIREMENTS.md): local raw user instructions, excluded from git.
+
+Roof surface identity is published in `Blueprint.roof.material` through the root blueprint schema.

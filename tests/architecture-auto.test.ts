@@ -19,6 +19,9 @@ it('selects the reviewed rounded shell with identical inward/outward geometry an
   const portable = await generate(r, keys);
   expect(automatic.blueprint.architectureSelection).toEqual({ requested: 'auto', selected: 'rounded-corner', reason: 'accepted-reference' });
   expect(portable.blueprint).toEqual(automatic.blueprint);
+  const roof = automatic.blueprint.roof.material!;
+  expect(automatic.blueprint.materials).toContain(roof.key);
+  expect(automatic.blueprint.materialVariants[roof.key]).toBe(roof.variantId);
   const geometricFloors = (floors: unknown) => JSON.parse(JSON.stringify(floors, (key, value) => key === 'material' ? undefined : value));
   expect(geometricFloors(automatic.blueprint.floors)).toEqual(geometricFloors(explicit.blueprint.floors));
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);

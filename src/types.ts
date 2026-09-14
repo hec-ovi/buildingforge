@@ -404,6 +404,7 @@ export interface Blueprint {
   facadeServices: FacadeServicesOutput;
   fireEscape: { edge: number; fromFloor: number; toFloor: number; offset: number; width: number } | null;
   roof: {
+    material?: { key: string; variantId: string };
     elevation: number;
     outline: P2[];
     parapetHeight: number;
