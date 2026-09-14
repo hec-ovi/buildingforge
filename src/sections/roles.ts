@@ -3,7 +3,8 @@ import type { Role, RoleField, Section, SectionSpan } from './types.ts';
 /** Fixed ends and one complete middle field, in the section's own plane. */
 export function sectionRoles(section: Section, height: number): RoleField[] {
   const { side, bottom, top } = section.border;
-  const widths = [side, section.width - 2 * side, side];
+  const left = section.border.left ?? side, right = section.border.right ?? side;
+  const widths = [left, section.width - left - right, right];
   const heights = [bottom, height - bottom - top, top];
   if (widths[1]! <= 0 || heights[1]! <= 0) throw new RangeError('section dimensions cannot hold the fixed ends');
   const rows = ['bottom', 'middle', 'top'];

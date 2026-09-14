@@ -18,7 +18,7 @@ export interface Section {
   offset: number;
   width: number;
   /** Fixed horizontal and vertical end dimensions; the middle is the opening. */
-  border: { side: number; bottom: number; top: number; depth: number };
+  border: { left?: number; right?: number; side: number; bottom: number; top: number; depth: number };
   corner?: number;
 }
 export interface RoleField { role: Role; offset: number; sill: number; width: number; height: number }

@@ -37,6 +37,12 @@ export class SectionAssembler {
       const group = groups.find(g => floor >= g.fromFloor && floor <= g.toFloor)!;
       const local = sectionOutline(group.width, group.depth, composition.corners, composition.bay);
       if (architecture === 'chamfered-corners') for (const section of local.sections) {
+        if (section.technique === 'ribbon-bay') {
+          const a = local.outline[section.edge]!, b = local.outline[(section.edge + 1) % local.outline.length]!;
+          const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          section.border.left = section.offset < 1e-7 ? 0.2 : 0.06;
+          section.border.right = section.offset + section.width > length - 1e-7 ? 0.2 : 0.06;
+        }
         if (section.technique === 'corner-leg' || floor === floorHeights.length - 1) { section.technique = 'frame-pier'; section.border = { ...BORDERS['frame-pier'] }; }
       }
       const insetU = (width - group.width) / 2, insetV = (depth - group.depth) / 2;

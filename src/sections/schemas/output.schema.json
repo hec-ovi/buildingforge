@@ -184,6 +184,14 @@
                     "depth": {
                       "type": "number",
                       "exclusiveMinimum": 0
+                    },
+                    "left": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "right": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
                     }
                   }
                 },
