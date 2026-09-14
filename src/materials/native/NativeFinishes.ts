@@ -22,6 +22,7 @@ export class NativeFinishes {
   }
 
   resolve(key: string, variant?: string, finish?: string): MaterialEntry | undefined {
+    if (finish === 'catalog') return undefined;
     const [theme, kind] = key.split('/');
     if (theme !== catalog.theme) return undefined;
     const id = finish ?? this.surfaces[`${kind}#${variant}`] ?? this.surfaces[kind!];

@@ -20,6 +20,7 @@ export function sectionOpenings(request: BuildingRequest, plan: FloorAssembly, h
     entrance.sectionId = section.id;
   }
   for (const section of plan.sections) {
+    if (section.technique === 'frame-pier') continue;
     if (openings.some(o => o.sectionId === section.id)) continue;
     const whole = sectionRoles(section, height).find(f => f.role === 'middle')!;
     for (const [sectionSpan, span] of sectionSpans(section).entries()) {

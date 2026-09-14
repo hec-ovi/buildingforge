@@ -18,7 +18,7 @@ export function meshSectionFinish(mb: MeshBuilder, layout: Layout, mat: (kind: s
         for (const role of sectionRoles(section, floor.height)) {
           const field = spanField(role, span);
           if (!field) continue;
-          if (field.role === 'middle') continue;
+          if (field.role === 'middle' && section.technique !== 'frame-pier') continue;
           if ((opening?.kind === 'door' || opening?.kind === 'balconyDoor') && field.role === 'bottom-middle') continue;
           // An entrance's head uses its real public passage height.
           let sill = field.sill, height = field.height;
@@ -29,8 +29,12 @@ export function meshSectionFinish(mb: MeshBuilder, layout: Layout, mat: (kind: s
           if (height <= 0) continue;
           const curved = section.technique === 'rounded-glass';
           const groupBand = group.toFloor === floor.index && field.role.startsWith('top');
-          const proud = curved ? 0.04 : groupBand ? 0.42 : section.border.depth;
-          frame.solid(sink, exactMaterialSlot(mat(curved ? 'window-frame' : field.role.includes('left') || field.role.includes('right') ? 'column' : 'wall-trim')),
+          const ribbon = layout.assembly!.architecture === 'chamfered-corners';
+          const pier = section.technique === 'frame-pier';
+          const proud = pier ? 0.85 : ribbon ? (groupBand || floor.index === 0 && field.role.startsWith('bottom') ? 0.85 : 0.5) : curved ? 0.04 : groupBand ? 0.42 : section.border.depth;
+          const material = ribbon ? mat(pier || groupBand ? 'column' : 'wall-trim')
+            : mat(curved ? 'window-frame' : field.role.includes('left') || field.role.includes('right') ? 'column' : 'wall-trim');
+          frame.solid(sink, exactMaterialSlot(material),
             field.offset, field.offset + field.width, floor.elevation + sill, floor.elevation + sill + height, proud, 0,
             [(field.offset - span.offset + span.sectionOffset - role.offset) / role.width,
               (field.offset + field.width - span.offset + span.sectionOffset - role.offset) / role.width],

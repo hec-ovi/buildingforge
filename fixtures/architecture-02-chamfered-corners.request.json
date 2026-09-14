@@ -24,7 +24,7 @@
       18,
       -2
     ],
-    "maxHeight": 60,
+    "maxHeight": 100,
     "buildingGrid": {
       "origin": [
         0,
@@ -37,7 +37,7 @@
   "building": {
     "type": "offices",
     "tier": "rich",
-    "floors": 9
+    "floors": 18
   },
   "theme": "cyberpunk",
   "options": {

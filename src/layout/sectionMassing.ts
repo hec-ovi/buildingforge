@@ -10,7 +10,7 @@ export function buildSectionMassing(request: BuildingRequest, heights: readonly 
   const assembler = new SectionAssembler();
   let assembly: Assembly | undefined;
   let reason = 'no complete facade assembly fits the parcel';
-  const reserve = request.options!.architecture === 'terrace-blocks' ? 1.5 : 0.5;
+  const reserve = request.options!.architecture === 'terrace-blocks' ? 1.5 : request.options!.architecture === 'chamfered-corners' ? 1 : 0.5;
   grid.fit(request.parcel.footprint, reserve, rectangle => {
     try {
       const candidate = assembler.assemble({ architecture: request.options!.architecture!,

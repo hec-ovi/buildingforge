@@ -1,3 +1,4 @@
+import { meshRibbonLouvres } from './ribbonLouvres.ts';
 import { measureWallDepth } from './wallDepth.ts';
 import { sectionSpans } from '../sections/index.ts';
 import { meshCurvedWindow } from './curvedWindow.ts';
@@ -138,7 +139,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
         sink.quadFacing(mat(f.index === 0 ? 'ground' : 'wall'), at(fr, piece.bl, depth), at(fr, piece.br, depth), at(fr, piece.tr, depth), at(fr, piece.tl, depth), n3(fr), uvs);
       }
       const glazedCorner = f.assembly?.sections.some(section => section.technique === 'rounded-glass' && sectionSpans(section).some(span => span.edge === e));
-      meshWallLining(sink, f.outline, e, pieces, depth, mat(glazedCorner ? 'window-frame' : 'wall'), wallThickness);
+      meshWallLining(sink, f.outline, e, pieces, depth, mat(glazedCorner ? 'window-frame' : 'inner-wall'), wallThickness);
       if (panel) meshPanelField(sink, {
         outline: f.outline, edge: e, elevation: f.elevation, height: f.height,
         width: panel.width, panelHeight: panel.height, jointWidth: panel.jointWidth,
@@ -184,7 +185,14 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
 
 function materialResolver(layout: OpeningLayout): (kind: string) => string {
   const { theme, tier } = layout;
-  return (kind: string) => selectedMaterialKey(theme, tier, layout.request.options!.exteriorStyle!, kind === 'wall' ? 'concrete' : kind);
+  return (kind: string) => {
+    const key = selectedMaterialKey(theme, tier, layout.request.options!.exteriorStyle!, kind === 'wall' || kind === 'inner-wall' ? 'concrete' : kind);
+    if (layout.request.options?.architecture !== 'chamfered-corners' || kind === 'inner-wall') return key;
+    const variant = kind === 'wall' || kind === 'ground' ? 'graphite'
+      : kind === 'wall-trim' || kind === 'window-frame' ? 'paint'
+        : kind === 'column' ? 'cast' : undefined;
+    return variant ? materialSlot(key, variant, 'catalog') : key;
+  };
 }
 
 /**
@@ -255,6 +263,7 @@ function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: 
     const style = section ? { ...layout.style, facade: { ...layout.style.facade, windowRecess: section.border.depth },
       glazing: { ...layout.style.glazing, frameWidth: Math.min(0.08, section.border.side), frameProud: 0.04, glassInset: 0.02 } } : layout.style;
     o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, style, mat, privacy);
+    if (layout.request.options?.architecture === 'chamfered-corners') meshRibbonLouvres(sink, f, o, mat);
     return;
   }
   if (o.kind === 'door' || o.kind === 'balconyDoor') {
