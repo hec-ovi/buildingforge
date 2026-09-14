@@ -16,7 +16,7 @@ export interface InspectEvents {
 export class InspectPanel {
   readonly root: HTMLElement;
   private readonly stats: HTMLElement;
-  constructor(events: InspectEvents) {
+  constructor(events: InspectEvents, initialView: ViewMode = 'orbit') {
     const actions: Record<string, () => void> = {
       camera: () => events.onView(form.control<HTMLSelectElement>('camera').value as ViewMode),
       clip: () => events.onClip(Number(form.control<HTMLInputElement>('clip').value) / 100),
@@ -27,6 +27,7 @@ export class InspectPanel {
     const form = new Form(layout.inspect, {}, id => actions[id]?.());
     this.root = form.root;
     this.stats = form.control('stats');
+    form.control<HTMLSelectElement>('camera').value = initialView;
   }
 
   showBlueprint(bp: Blueprint, glbBytes: number, textureMode: string): void {
@@ -36,6 +37,7 @@ export class InspectPanel {
       `seed ${bp.seed}`,
       `floors ${bp.floors.length} (top ${bp.bounds.height.toFixed(1)} m)`,
       `openings ${openings}`,
+      ...(bp.assembly ? [`assembly ${bp.assembly.architecture}`, `footprint ${bp.assembly.extent.width} × ${bp.assembly.extent.depth} m`, `floor groups ${bp.assembly.groups.length}`] : []),
       `anchors ${bp.anchors.length}  lights ${bp.lights.length}`,
       `signage ${bp.signage.length}  screens ${bp.screens.length}`,
       `roof artifacts ${bp.roof.artifacts.map((a) => a.kind).join(', ') || 'none'}`,

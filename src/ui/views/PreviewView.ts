@@ -4,13 +4,13 @@
 
 import {
   ACESFilmicToneMapping, Box3, BoxGeometry, Color, EdgesGeometry,
-  GridHelper, Group, LineBasicMaterial, LineSegments, Material, Mesh,
+  DirectionalLight, GridHelper, Group, LineBasicMaterial, LineSegments, Material, Mesh,
   MeshStandardMaterial, PerspectiveCamera, Plane, Scene, Vector3, WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { flatMaterialFor } from './flatMaterials.ts';
-import { orbitCamera, streetEyeCamera, type ViewMode } from './cameras.ts';
+import { interiorCamera, orbitCamera, streetEyeCamera, type ViewMode } from './cameras.ts';
 import { lightPreview } from './lighting.ts';
 import { edgeDir, edgeNormal, type P2 } from '../../core/polygon.ts';
 import type { Blueprint } from '../../types.ts';
@@ -20,6 +20,7 @@ export class PreviewView {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera: PerspectiveCamera;
+  private readonly sun: DirectionalLight;
   private readonly controls: OrbitControls;
   private readonly clipPlane = new Plane(new Vector3(0, -1, 0), 1000);
   private building: Group | null = null;
@@ -56,7 +57,7 @@ export class PreviewView {
 
     container.appendChild(this.renderer.domElement);
 
-    lightPreview(this.scene, this.renderer);
+    this.sun = lightPreview(this.scene, this.renderer);
     // Ground reference, kept just below Y=0 so it never fights the building's bottom cap.
     const grid = new GridHelper(200, 40, 0x232b3a, 0x141822);
     grid.position.y = -0.05;
@@ -89,6 +90,8 @@ export class PreviewView {
     this.building.traverse((obj) => {
       if (!(obj instanceof Mesh)) return;
       const textured = obj.material as Material;
+      obj.castShadow = !('transmission' in textured && Number(textured.transmission) > 0);
+      obj.receiveShadow = true;
       this.looks.set(obj, { textured, flat: flatMaterialFor(textured.name) });
     });
     this.applyLook();
@@ -104,6 +107,11 @@ export class PreviewView {
     this.buildingTop = box.max.y;
     const center = box.getCenter(new Vector3());
     this.blueprint = blueprint;
+    const radius = box.getSize(new Vector3()).length() / 2;
+    this.sun.target.position.copy(center);
+    this.sun.position.copy(center).add(new Vector3(90, 45, 60).normalize().multiplyScalar(radius * 3));
+    Object.assign(this.sun.shadow.camera, { left: -radius, right: radius, top: radius, bottom: -radius, near: 0.5, far: radius * 6 });
+    this.sun.shadow.camera.updateProjectionMatrix();
     this.orbitPose = { center: [center.x, center.y, center.z], radius: box.getSize(new Vector3()).length() / 2 };
     this.applyCamera();
   }
@@ -115,7 +123,8 @@ export class PreviewView {
   }
 
   private applyCamera(): void {
-    const pose = this.view === 'eye' && this.blueprint
+    const pose = (this.view === 'interior' || this.view === 'corner') && this.blueprint ? interiorCamera(this.blueprint, this.view === 'corner')
+      : this.view === 'eye' && this.blueprint
       ? streetEyeCamera(this.blueprint)
       : orbitCamera(this.orbitPose.center, this.orbitPose.radius, this.camera.fov);
     this.camera.position.set(...pose.position);

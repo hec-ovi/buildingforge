@@ -14,7 +14,7 @@
   "inspect": {
     "title":"inspect",
     "fields":[
-      {"type":"select","id":"camera","label":"camera","aria":"Camera view preset","options":[{"value":"orbit","label":"orbit"},{"value":"eye","label":"street eye 1.7 m"}]},
+      {"type":"select","id":"camera","label":"camera","aria":"Camera view preset","options":[{"value":"orbit","label":"orbit"},{"value":"eye","label":"street eye 1.7 m"},{"value":"interior","label":"inside shell 1.7 m"},{"value":"corner","label":"corner detail"}]},
       {"type":"range","id":"clip","label":"clip height","aria":"Clip height fraction","min":0,"max":100,"value":100,"suffix":"%"},
       {"type":"toggle","id":"flat","label":"flat colors"},
       {"type":"toggle","id":"wireframe","label":"wireframe"},

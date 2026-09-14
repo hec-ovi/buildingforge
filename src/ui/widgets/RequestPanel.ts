@@ -11,7 +11,7 @@ export class RequestPanel {
   private readonly form: Form;
   private readonly fixtures: Record<string, unknown>;
 
-  constructor(fixtures: Record<string, unknown>, events: RequestPanelEvents) {
+  constructor(fixtures: Record<string, unknown>, events: RequestPanelEvents, initialFixture?: string) {
     this.fixtures = fixtures;
     const values = (items: string[]) => items.map(value => ({ value, label: value }));
     const options = requestSchema.properties.options.properties;
@@ -27,6 +27,7 @@ export class RequestPanel {
       catch (error) { this.showError(error instanceof Error ? error.message : String(error)); }
     });
     this.root = this.form.root;
+    if (initialFixture && Object.hasOwn(fixtures, initialFixture)) this.input('fixture').value = initialFixture;
     this.restoreOptions();
   }
 

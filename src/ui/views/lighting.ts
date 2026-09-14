@@ -2,7 +2,8 @@ import { AmbientLight, DirectionalLight, HemisphereLight, PMREMGenerator, type S
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 /** Neutral reflections and low-angle lights for inspecting vertical PBR surfaces. */
-export function lightPreview(scene: Scene, renderer: WebGLRenderer): void {
+export function lightPreview(scene: Scene, renderer: WebGLRenderer): DirectionalLight {
+  renderer.shadowMap.enabled = true;
   const environment = new RoomEnvironment();
   const generator = new PMREMGenerator(renderer);
   scene.environment = generator.fromScene(environment, 0.04).texture;
@@ -14,8 +15,14 @@ export function lightPreview(scene: Scene, renderer: WebGLRenderer): void {
   scene.add(new HemisphereLight(0x9fb8d8, 0x2a2a30, 0.85));
   const sun = new DirectionalLight(0xffffff, 2.4);
   sun.position.set(90, 45, 60);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.normalBias = 0.015;
+  sun.shadow.bias = -0.0001;
   scene.add(sun);
   const fill = new DirectionalLight(0x8090b0, 1.1);
   fill.position.set(-70, 25, -60);
   scene.add(fill);
+  scene.add(sun.target);
+  return sun;
 }

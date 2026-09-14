@@ -4,7 +4,7 @@
 import { edgeDir, edgeNormal, type P2 } from '../../core/polygon.ts';
 import type { Blueprint, P3 } from '../../types.ts';
 
-export type ViewMode = 'orbit' | 'eye';
+export type ViewMode = 'orbit' | 'eye' | 'interior' | 'corner';
 
 export interface CameraPose { position: P3; target: P3 }
 
@@ -65,4 +65,44 @@ function segmentLength(outline: P2[], e: number): number {
   const [ax, az] = outline[e] as P2;
   const [bx, bz] = outline[(e + 1) % outline.length] as P2;
   return Math.hypot(bx - ax, bz - az);
+}
+
+/** A room-contained eye looking toward an authored corner or the nearest facade. */
+export function interiorCamera(bp: Blueprint, outside = false): CameraPose {
+  const floor = bp.floors.find(f => f.index === 1) ?? bp.floors.find(f => f.index === 0)!;
+  const envelope = floor.roomEnvelope;
+  const center: P2 = envelope
+    ? [envelope.origin[0] + envelope.axisU[0] * envelope.width / 2 + envelope.axisV[0] * envelope.depth / 2,
+      envelope.origin[1] + envelope.axisU[1] * envelope.width / 2 + envelope.axisV[1] * envelope.depth / 2]
+    : [floor.outline.reduce((sum, p) => sum + p[0], 0) / floor.outline.length,
+      floor.outline.reduce((sum, p) => sum + p[1], 0) / floor.outline.length];
+  const plan = bp.assembly?.floors.find(f => f.floor === floor.index);
+  const corner = plan?.sections.find(s => s.technique === 'rounded-glass' || s.technique === 'chamfered-glass');
+  const face = corner?.edge ?? 1;
+  const a = floor.outline[face]!, b = floor.outline[(face + 1) % floor.outline.length]!;
+  let target: P2 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  let outward = edgeNormal(floor.outline, face);
+  if (corner) {
+    const spans = plan!.sections.filter(s => s.corner === corner.corner && s.technique === corner.technique)
+      .flatMap(s => s.spans ?? [{ edge: s.edge }]);
+    target = [0, 0]; outward = [0, 0];
+    for (const span of spans) {
+      const p = floor.outline[span.edge]!, q = floor.outline[(span.edge + 1) % floor.outline.length]!;
+      const n = edgeNormal(floor.outline, span.edge);
+      target[0] += (p[0] + q[0]) / (2 * spans.length);
+      target[1] += (p[1] + q[1]) / (2 * spans.length);
+      outward[0] += n[0]; outward[1] += n[1];
+    }
+    const length = Math.hypot(...outward);
+    outward = [outward[0] / length, outward[1] / length];
+  }
+  let eye = center;
+  if (outside) {
+    eye = [target[0] + outward[0] * 8, target[1] + outward[1] * 8];
+  } else if (envelope) {
+    const nearest = [...envelope.corners].sort((p, q) => Math.hypot(p[0] - target[0], p[1] - target[1]) - Math.hypot(q[0] - target[0], q[1] - target[1]))[0]!;
+    eye = [center[0] + (nearest[0] - center[0]) * 0.78, center[1] + (nearest[1] - center[1]) * 0.78];
+  }
+  return { position: [eye[0], floor.elevation + 1.7, eye[1]],
+    target: [target[0], floor.elevation + 1.9, target[1]] };
 }

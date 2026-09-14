@@ -34,14 +34,17 @@ viewport.appendChild(hud);
 
 app.append(viewport, panel, ToastManager.get().root);
 
+const query = new URLSearchParams(location.search);
+const initialView = query.get('view') === 'corner' ? 'corner' : query.get('view') === 'interior' ? 'interior' : query.get('view') === 'eye' ? 'eye' : 'orbit';
 const view = new PreviewView(viewport);
+view.setView(initialView);
 const inspect = new InspectPanel({
   onClip: (f) => view.setClip(f),
   onWireframe: (on) => view.setWireframe(on),
   onHighlight: (on) => view.setHighlight(on),
   onFlat: (on) => view.setFlat(on),
   onView: (mode) => view.setView(mode),
-});
+}, initialView);
 
 const sources = new Map<string, Promise<MaterialSource | null>>();
 function themeSource(theme: string): Promise<MaterialSource | null> {
@@ -71,6 +74,6 @@ async function run(req: unknown): Promise<void> {
   }
 }
 
-const request = new RequestPanel(fixtures, { onGenerate: (req) => void run(req) });
+const request = new RequestPanel(fixtures, { onGenerate: (req) => void run(req) }, query.get('fixture') ?? undefined);
 panel.append(request.root, inspect.root);
 void run(request.currentRequest());
