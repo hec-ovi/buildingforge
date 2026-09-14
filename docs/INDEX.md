@@ -10,7 +10,7 @@
 - [Call guide](../SKILL.md): library and CLI usage.
 - [Issues](ISSUES.md): interface proposals and unresolved constraints.
 - `src/core`, `src/rules`: validation, polygon arithmetic and [canonical floor/window policy](../schemas/floor-constants.json).
-- `src/layout`: floor stacks, maximum-volume fitting, section-driven openings and fitted attachments.
+- `src/layout`: [automatic architecture selection](../schemas/architecture-policy.json), floor stacks, volume fitting and section-driven openings.
 - `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.
 - `src/glb`, `src/materials`: GLB output and material resolution.

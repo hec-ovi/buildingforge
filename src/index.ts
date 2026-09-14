@@ -4,7 +4,7 @@ export { PROPORTIONS } from './rules/proportions.ts';
 export type { TextureMode, TextureOptions } from './materials/apply.ts';
 export type { MaterialSource, ThemeIndex } from './materials/theme.ts';
 export type {
-  BuildingRequest, BuildingGrid, Blueprint, GenerateOptions, GenerateResult, Aperture, Floor, Opening, FacadeArtifact,
+  ArchitectureSelection, BuildingRequest, BuildingGrid, Blueprint, GenerateOptions, GenerateResult, Aperture, Floor, Opening, FacadeArtifact,
   ExternalAttachment, MastAssembly, RoofArtifact,
   CoreAdjacency, CoreAdjacencyRule,
   DoorAssembly, DoorEnvelope, PocketMotion, RoomEnvelope,

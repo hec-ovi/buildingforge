@@ -1,3 +1,5 @@
+import { architectureSelection } from './layout/architectureSelection.ts';
+import { CanonicalNativeMaterials } from './materials/canonicalNative.ts';
 import { applyWindowPolicy } from './layout/windowPolicy.ts';
 // Orchestration: validate -> style -> massing -> floor stack -> facades ->
 // features -> mesh -> GLB + blueprint.
@@ -27,13 +29,14 @@ import { writeGlb } from './glb/writer.ts';
 import { buildBlueprint } from './blueprint/builder.ts';
 import { ExteriorError } from './core/errors.ts';
 import type { Layout } from './layout/model.ts';
-import type { GenerateOptions, GenerateResult } from './types.ts';
+import type { BuildingRequest, GenerateOptions, GenerateResult } from './types.ts';
 
 import { checkInvariants } from './layout/validateLayout.ts';
 
 export async function generate(raw: unknown, options: GenerateOptions = {}): Promise<GenerateResult> {
   try {
-    return await generateBuilding(raw, options);
+    const request = validateRequest(raw);
+    return request.options?.architecture === 'auto' ? await generateAutomatic(request, options) : await generateBuilding(request, options);
   } catch (error) {
     if (error instanceof ExteriorError) throw error;
     throw new ExteriorError('E_INVARIANT', 'generation failed to produce a valid shell', {
@@ -42,7 +45,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   }
 }
 
-async function generateBuilding(raw: unknown, options: GenerateOptions): Promise<GenerateResult> {
+async function generateBuilding(raw: unknown, options: GenerateOptions, canonicalNative = false): Promise<GenerateResult> {
   let req = validateRequest(raw);
   const family = FAMILY[req.building.type];
   const tier = req.building.tier;
@@ -112,8 +115,31 @@ async function generateBuilding(raw: unknown, options: GenerateOptions): Promise
   checkInvariants(layout, obstacles);
 
   const mb = buildMesh(layout, openingMesh);
+  const identity = canonicalNative ? new CanonicalNativeMaterials(req) : undefined;
+  identity?.apply(mb);
   const blueprint = buildBlueprint(layout, mb);
+  identity?.blueprint(blueprint);
   fitBuildingCore(blueprint);
   const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   return { glb, blueprint, textures };
+}
+
+async function generateAutomatic(request: BuildingRequest, options: GenerateOptions): Promise<GenerateResult> {
+  let selection = architectureSelection(request);
+  if (selection.selected === 'rounded-corner') {
+    try {
+      const candidate: BuildingRequest = { ...request, options: { ...request.options, architecture: 'rounded-corner', balconies: 'off', facadeServices: 'off' } };
+      const result = await generateBuilding(candidate, options, true);
+      result.blueprint.architectureSelection = selection;
+      return result;
+    } catch (error) {
+      if (!(error instanceof ExteriorError) || !['E_CORE_PLATE', 'E_DOOR_FIT', 'E_SIGNAGE_TEXT_TOO_LONG'].includes(error.code)) throw error;
+      selection = { requested: 'auto', selected: 'ordinary', reason: 'section-fit', candidateError: { code: error.code, message: error.message } };
+    }
+  }
+  const ordinary: BuildingRequest = { ...request, options: { ...request.options } };
+  delete ordinary.options!.architecture;
+  const result = await generateBuilding(ordinary, options);
+  result.blueprint.architectureSelection = selection;
+  return result;
 }

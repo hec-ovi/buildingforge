@@ -127,7 +127,7 @@ export function validateRequest(raw: unknown): BuildingRequest {
   if (floorKinds && floorKinds.length !== floors) {
     throw new ExteriorError('E_FLOORKINDS_MISMATCH', `floorKinds has ${floorKinds.length} entries for ${floors} floors`);
   }
-  if (options?.architecture && (apertures.length > 0 || options.doorMotion === 'pocket' || options.openFront === 'on'
+  if (options?.architecture && options.architecture !== 'auto' && (apertures.length > 0 || options.doorMotion === 'pocket' || options.openFront === 'on'
     || options.entranceLayout === 'repeated' || options.windows === 'none'
     || options.architecture === 'terrace-blocks' && (options.balconies === 'off' || options.balconyStyle === 'bay')
     || options.architecture !== 'terrace-blocks' && options.balconies === 'on' || options.shape && options.shape !== 'auto' && options.shape !== 'box'
@@ -195,7 +195,7 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   }
   if (o.coreAdjacency !== undefined) out.coreAdjacency = validateCoreAdjacency(o.coreAdjacency);
   out.exteriorStyle = oneOf(o.exteriorStyle, EXTERIOR_STYLE_IDS, 'options.exteriorStyle') as never;
-  out.architecture = oneOf(o.architecture, ARCHITECTURES, 'options.architecture') as never;
+  out.architecture = oneOf(o.architecture, ['auto', ...ARCHITECTURES], 'options.architecture') as never;
   out.shape = oneOf(o.shape, ['auto', 'box', 'rounded-box', 'octagon', 'cylinder', 'pyramid', 'setback'], 'options.shape') as never;
   out.glb = oneOf(o.glb, ['named', 'merged'], 'options.glb') as never;
   out.balconies = oneOf(o.balconies, ['auto', 'on', 'off'], 'options.balconies') as never;

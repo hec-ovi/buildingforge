@@ -1,0 +1,5 @@
+{
+  "roundedCornerChance": 0.5,
+  "minimumFloors": 3,
+  "families": ["residential", "hotel", "office", "corpo"]
+}

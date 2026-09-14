@@ -81,7 +81,7 @@ export interface BuildingRequest {
   theme: string;
   apertures?: Aperture[];
   options?: {
-    architecture?: Architecture;
+    architecture?: Architecture | 'auto';
     minimumClearHeight?: number;
     shape?: 'auto' | 'box' | 'rounded-box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
     exteriorStyle?: ExteriorStyleId;
@@ -307,7 +307,15 @@ export interface FacadeArtifact {
   standoff?: number;
 }
 
+export interface ArchitectureSelection {
+  requested: 'auto';
+  selected: 'rounded-corner' | 'ordinary';
+  reason: 'accepted-reference' | 'seeded-ordinary' | 'fixed-faces' | 'programme' | 'explicit-options' | 'section-fit';
+  candidateError?: { code: string; message: string };
+}
+
 export interface Blueprint {
+  architectureSelection?: ArchitectureSelection;
   assembly?: Assembly;
   version?: string;
   coreFrame?: { anglesDeg: number[] };

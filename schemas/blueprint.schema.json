@@ -7,6 +7,15 @@
   "required": ["buildingId", "seed", "bounds", "floors", "balconyBands", "facadeServices", "roof", "materials", "materialVariants"],
   "additionalProperties": false,
   "properties": {
+    "architectureSelection": {
+      "type": "object", "additionalProperties": false, "required": ["requested", "selected", "reason"],
+      "properties": {
+        "requested": { "const": "auto" },
+        "selected": { "enum": ["rounded-corner", "ordinary"] },
+        "reason": { "enum": ["accepted-reference", "seeded-ordinary", "fixed-faces", "programme", "explicit-options", "section-fit"] },
+        "candidateError": { "type": "object", "additionalProperties": false, "required": ["code", "message"], "properties": { "code": { "type": "string" }, "message": { "type": "string" } } }
+      }
+    },
     "assembly": { "$ref": "../src/sections/schemas/output.schema.json" },
     "version": { "type": "string", "description": "Generator package version; absent on older stored blueprints." },
     "buildingId": { "type": "string" },
