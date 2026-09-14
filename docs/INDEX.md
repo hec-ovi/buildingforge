@@ -3,6 +3,7 @@
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
 | [Exterior](../CONTRACT.md) | Builds one shell and its floor/opening blueprint | Atlas parcel, Connections apertures, Interior feasibility, Materials catalog | [Request](../schemas/building-request.schema.json), [blueprint](../schemas/blueprint.schema.json), [result](../src/types.ts) |
+| [Facade sections](../src/sections/CONTRACT.md) | Fits fixed corners, whole bays and floor groups | Caller maximum rectangle and floor heights | [Input](../src/sections/schemas/input.schema.json), [output](../src/sections/schemas/output.schema.json) |
 | [Facade services](../src/facade-services/CONTRACT.md) | Fits attached services around reservations | Caller geometry and materials | [Input](../src/facade-services/schema/input.schema.json), [output](../src/facade-services/schema/output.schema.json) |
 | [Preview](../src/ui/CONTRACT.md) | Displays a generated building and inspection controls | Exterior, Materials, Three.js | Request controls, GLB and blueprint |
 

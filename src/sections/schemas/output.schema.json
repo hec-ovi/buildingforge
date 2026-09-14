@@ -1,0 +1,250 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "architecture",
+    "grid",
+    "extent",
+    "corners",
+    "groups",
+    "floors"
+  ],
+  "properties": {
+    "architecture": {
+      "enum": [
+        "rounded-corner",
+        "chamfered-corners",
+        "terrace-blocks"
+      ]
+    },
+    "grid": {
+      "const": 0.5
+    },
+    "extent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "depth"
+      ],
+      "properties": {
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "depth": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "corners": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "enum": [
+          "square",
+          "rounded",
+          "chamfered"
+        ]
+      }
+    },
+    "groups": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "fromFloor",
+          "toFloor",
+          "width",
+          "depth"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "fromFloor": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "toFloor": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "width": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "depth": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "floors": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "floor",
+          "group",
+          "outline",
+          "sections",
+          "balconySections"
+        ],
+        "properties": {
+          "floor": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "group": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outline": {
+            "type": "array",
+            "minItems": 4,
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "technique",
+                "edge",
+                "offset",
+                "width",
+                "border"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "technique": {
+                  "enum": [
+                    "deep-bay",
+                    "ribbon-bay",
+                    "corner-leg",
+                    "rounded-glass",
+                    "chamfered-glass"
+                  ]
+                },
+                "edge": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "offset": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "border": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "side",
+                    "bottom",
+                    "top",
+                    "depth"
+                  ],
+                  "properties": {
+                    "side": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "bottom": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "top": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "depth": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  }
+                },
+                "corner": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 3
+                }
+              }
+            }
+          },
+          "balconySections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "roleField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "offset",
+        "sill",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "role": {
+          "enum": [
+            "top-left",
+            "top-middle",
+            "top-right",
+            "middle-left",
+            "middle",
+            "middle-right",
+            "bottom-left",
+            "bottom-middle",
+            "bottom-right"
+          ]
+        },
+        "offset": {
+          "type": "number"
+        },
+        "sill": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}

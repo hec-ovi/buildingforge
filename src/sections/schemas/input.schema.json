@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "architecture",
+    "rectangle",
+    "floorHeights"
+  ],
+  "properties": {
+    "architecture": {
+      "enum": [
+        "rounded-corner",
+        "chamfered-corners",
+        "terrace-blocks"
+      ]
+    },
+    "rectangle": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "floorHeights": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "number",
+        "exclusiveMinimum": 1.5
+      }
+    }
+  }
+}
