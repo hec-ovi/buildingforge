@@ -1,4 +1,4 @@
-import { ARCHITECTURES, BAY_WIDTH, COMPOSITIONS, CONSTRUCTION_GRID, CORNER_EXTENT } from './catalog.ts';
+import { ARCHITECTURES, BAY_WIDTH, BORDERS, COMPOSITIONS, CONSTRUCTION_GRID, CORNER_EXTENT } from './catalog.ts';
 import { sectionOutline } from './outline.ts';
 import type { Assembly, AssemblyInput, Point } from './types.ts';
 
@@ -36,6 +36,9 @@ export class SectionAssembler {
     const floors = floorHeights.map((_, floor) => {
       const group = groups.find(g => floor >= g.fromFloor && floor <= g.toFloor)!;
       const local = sectionOutline(group.width, group.depth, composition.corners, composition.bay);
+      if (architecture === 'chamfered-corners') for (const section of local.sections) {
+        if (section.technique === 'corner-leg') { section.technique = 'frame-pier'; section.border = { ...BORDERS['frame-pier'] }; }
+      }
       const insetU = (width - group.width) / 2, insetV = (depth - group.depth) / 2;
       const outline = local.outline.map(([x, z]): Point => [origin[0] + u[0] * (x + shiftU + insetU) + v[0] * (z + shiftV + insetV),
         origin[1] + u[1] * (x + shiftU + insetU) + v[1] * (z + shiftV + insetV)]);

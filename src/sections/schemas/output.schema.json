@@ -144,7 +144,8 @@
                     "ribbon-bay",
                     "corner-leg",
                     "rounded-glass",
-                    "chamfered-glass"
+                    "chamfered-glass",
+                    "frame-pier"
                   ]
                 },
                 "edge": {

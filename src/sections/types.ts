@@ -1,7 +1,7 @@
 export type Point = [number, number];
 export type Architecture = 'rounded-corner' | 'chamfered-corners' | 'terrace-blocks';
 export type CornerTechnique = 'square' | 'rounded' | 'chamfered';
-export type SectionTechnique = 'deep-bay' | 'ribbon-bay' | 'corner-leg' | 'rounded-glass' | 'chamfered-glass';
+export type SectionTechnique = 'deep-bay' | 'ribbon-bay' | 'corner-leg' | 'rounded-glass' | 'chamfered-glass' | 'frame-pier';
 export type Role = 'top-left' | 'top-middle' | 'top-right' | 'middle-left' | 'middle' | 'middle-right' | 'bottom-left' | 'bottom-middle' | 'bottom-right';
 export interface AssemblyInput {
   architecture: Architecture;
