@@ -37,7 +37,7 @@ it('exports inward wall faces and closed intact glazing through the public gener
     .find(p => p.getMaterial()!.getName().includes('window-glass'))!;
   expect(pane).toBeDefined();
   const normals = pane.getAttribute('NORMAL')!;
-  const unique = new Set(Array.from({ length: normals.getCount() }, (_, i) => normals.getElement(i, []).map(n => n.toFixed(4)).join(',')));
+  const unique = new Set(Array.from({ length: normals.getCount() }, (_, i) => normals.getElement(i, [] as number[]).map(n => n.toFixed(4)).join(',')));
   expect(unique.size).toBe(6);
   expect(blueprint.facade.wallDepth).toBeGreaterThanOrEqual(0.12);
 });
