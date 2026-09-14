@@ -29,7 +29,12 @@ export function sectionOutline(width: number, depth: number, corners: CornerTech
         const endAngle = start + (step + 1) * Math.PI / (2 * segments);
         const p: Point = [center[0] + radius * Math.cos(angle), center[1] + radius * Math.sin(angle)];
         const q: Point = [center[0] + radius * Math.cos(endAngle), center[1] + radius * Math.sin(endAngle)];
-        section(push(p), 0, Math.hypot(q[0] - p[0], q[1] - p[1]), 'rounded-glass', corner);
+        const edge = push(p), chord = Math.hypot(q[0] - p[0], q[1] - p[1]);
+        if (step % 3 === 0) {
+          section(edge, 0, chord * 3, 'rounded-glass', corner);
+          sections.at(-1)!.spans = [];
+        }
+        sections.at(-1)!.spans!.push({ edge, offset: 0, width: chord, sectionOffset: (step % 3) * chord });
       }
     }
     const edge = push(technique === 'square' ? vertex : exit);

@@ -9,7 +9,9 @@ export interface AssemblyInput {
   rectangle: [Point, Point, Point, Point];
   floorHeights: number[];
 }
+export interface SectionSpan { edge: number; offset: number; width: number; sectionOffset: number }
 export interface Section {
+  spans?: SectionSpan[];
   id: string;
   technique: SectionTechnique;
   edge: number;
