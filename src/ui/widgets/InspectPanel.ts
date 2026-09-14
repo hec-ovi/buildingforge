@@ -36,6 +36,7 @@ export class InspectPanel {
       `building ${bp.buildingId}`,
       `seed ${bp.seed}`,
       `floors ${bp.floors.length} (top ${bp.bounds.height.toFixed(1)} m)`,
+      `${layout.inspect.labels.clearHeight} ${[...new Set(bp.floors.filter(f => f.index >= 0 && f.roomEnvelope).map(f => (f.roomEnvelope!.vertical.max - f.roomEnvelope!.vertical.min).toFixed(1)))].join(' / ')} m`,
       `openings ${openings}`,
       ...(bp.assembly ? [`assembly ${bp.assembly.architecture}`, `footprint ${bp.assembly.extent.width} × ${bp.assembly.extent.depth} m`, `floor groups ${bp.assembly.groups.length}`] : []),
       `anchors ${bp.anchors.length}  lights ${bp.lights.length}`,
