@@ -10,7 +10,7 @@
 - [Issues](ISSUES.md): interface proposals and unresolved constraints.
 - `src/core`, `src/rules`: validation, polygon arithmetic and dimension tables.
 - `src/layout`: floor stacks, massing, openings and fitted attachments.
-- `src/mesh`: authored shell and attachment geometry.
+- `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.
 - `src/glb`, `src/materials`: GLB output and material resolution.
 - `src/layout/validateLayout.ts`: final geometry and opening guards.

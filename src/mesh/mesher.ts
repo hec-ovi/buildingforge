@@ -1,5 +1,4 @@
-// Turns a Layout into mesh parts. Every visible face goes through quadFacing or
-// the cap winding check, so nothing can face inward.
+// Builds shell surfaces with explicit outside and room-facing normals.
 
 import { MeshBuilder, type PartSink, type V3, add, scale } from './primitives.ts';
 import { cutWall, rectHole, type Hole } from './wallcut.ts';
@@ -12,6 +11,7 @@ import { meshAcUnits } from './acUnit.ts';
 import { meshLightFixture } from './lightFixture.ts';
 import { meshFacadeServices } from './facadeServices.ts';
 import { meshFrameRing } from './frameRing.ts';
+import { meshWallLining } from './wallLining.ts';
 import { meshSpandrel } from './spandrel.ts';
 import { meshVenetianBlind } from './venetianBlind.ts';
 import { meshCoveringHousing } from './coveringHousing.ts';
@@ -129,6 +129,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
           .map(([u, y]) => [u - uOrigin, yOrigin - y] as [number, number]);
         sink.quadFacing(mat(f.index === 0 ? 'ground' : 'wall'), at(fr, piece.bl, depth), at(fr, piece.br, depth), at(fr, piece.tr, depth), at(fr, piece.tl, depth), n3(fr), uvs);
       }
+      meshWallLining(sink, f.outline, e, pieces, depth, mat('wall'));
       if (panel) meshPanelField(sink, {
         outline: f.outline, edge: e, elevation: f.elevation, height: f.height,
         width: panel.width, panelHeight: panel.height, jointWidth: panel.jointWidth,
@@ -468,9 +469,8 @@ function windowUnit(
     damagedPaneField(sink, fr, g0, g1, gb, gt, glassZ, cols, rows,
       o.damage, o.material ?? mat('window-glass'));
   } else {
-    sink.quadFacing(o.material ?? mat('window-glass'),
-      at(fr, [g0, gb], glassZ), at(fr, [g1, gb], glassZ), at(fr, [g1, gt], glassZ), at(fr, [g0, gt], glassZ),
-      n3(fr), [[0, 1], [1, 1], [1, 0], [0, 0]]);
+    meshSpandrel(sink, fr, { u0: g0, u1: g1, y0: gb, y1: gt },
+      glassZ, glassZ - 0.006, o.material ?? mat('window-glass'));
   }
 
   if (o.curtain) {
@@ -581,6 +581,8 @@ function member(
   if (u1 - u0 < 1e-6 || y1 - y0 < 1e-6) return;
   strip(sink, fr, u0, u1, y0, y1, proud, material, true);
   const back = proud - depth;
+  sink.quadFacing(material, at(fr, [u0, y0], back), at(fr, [u1, y0], back),
+    at(fr, [u1, y1], back), at(fr, [u0, y1], back), scale(n3(fr), -1), faceUv(u1 - u0, y1 - y0, true));
   if (reveals.left) revealU(sink, fr, u0, y0, y1, proud, back, -1, depth, material);
   if (reveals.right) revealU(sink, fr, u1, y0, y1, proud, back, 1, depth, material);
   if (reveals.bottom) revealY(sink, fr, u0, u1, y0, proud, back, -1, depth, material);

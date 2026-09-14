@@ -3,6 +3,7 @@
 // outward normal of the edge it sits on. Published as facade.wallDepth, so a
 // consumer fitting the shell keeps clear of everything built into the openings.
 
+import { WALL_THICKNESS } from './wallLining.ts';
 import { edgeNormal } from '../core/polygon.ts';
 import type { Layout } from '../layout/model.ts';
 import type { MeshBuilder, Part } from './primitives.ts';
@@ -17,7 +18,7 @@ export function measureWallDepth(layout: Pick<Layout, 'floors'>, mb: MeshBuilder
   const children = new Map<string, Part[]>();
   for (const p of mb.parts) if (p.parent) children.set(p.parent, [...(children.get(p.parent) ?? []), p]);
 
-  let deepest = 0;
+  let deepest = WALL_THICKNESS;
   for (const floor of layout.floors) {
     for (const o of floor.openings) {
       const base = `${NODE[o.kind]}${o.id}`;
