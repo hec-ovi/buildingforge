@@ -9,7 +9,7 @@ export const WALL_THICKNESS = 0.12;
 /** Inward surfaces and returns share a miter at each footprint vertex. */
 export function meshWallLining(
   sink: PartSink, outline: P2[], edge: number, pieces: WallPiece[],
-  frontDepth: number, material: string, thickness = WALL_THICKNESS,
+  frontDepth: number, material: string, thickness = WALL_THICKNESS, returnMaterial = material,
 ): void {
   const a = outline[edge]!, b = outline[(edge + 1) % outline.length]!;
   const field = new FacadeField(outline, edge);
@@ -28,7 +28,7 @@ export function meshWallLining(
       const du = q[0] - p[0], dy = q[1] - p[1];
       if (Math.hypot(du, dy) < 1e-8) continue;
       const outward: V3 = [dir[0] * dy, -du, dir[1] * dy];
-      sink.quadFacing(material, outer(p), outer(q), inner(q), inner(p), outward,
+      sink.quadFacing(returnMaterial, outer(p), outer(q), inner(q), inner(p), outward,
         [[0, 0], [Math.hypot(du, dy), 0], [Math.hypot(du, dy), thickness + frontDepth], [0, thickness + frontDepth]]);
     }
   }

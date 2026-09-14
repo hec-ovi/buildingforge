@@ -50,6 +50,7 @@
     "signage": null,
     "adScreens": "off",
     "fireEscape": "off",
-    "roofArtifacts": "off"
+    "roofArtifacts": "off",
+    "minimumClearHeight": 4
   }
 }

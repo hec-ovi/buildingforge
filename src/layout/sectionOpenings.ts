@@ -13,8 +13,9 @@ export function sectionOpenings(request: BuildingRequest, plan: FloorAssembly, h
       .sort((a, b) => Math.abs(a.offset + a.width / 2 - entrance.offset - entrance.width / 2) - Math.abs(b.offset + b.width / 2 - entrance.offset - entrance.width / 2));
     const section = choices[0];
     if (!section) throw new ExteriorError('E_DOOR_FIT', 'the street entrance has no complete straight section');
-    entrance.width = section.width - 2 * section.border.side;
-    entrance.offset = section.offset + section.border.side;
+    const entranceField = sectionRoles(section, height).find(field => field.role === 'middle')!;
+    entrance.width = entranceField.width;
+    entrance.offset = section.offset + entranceField.offset;
     entrance.leaves = 2;
     entrance.door = { ...entrance.door!, motion: { kind: 'swing', maxTravel: 90, clearDepth: entrance.width / 2 } };
     entrance.sectionId = section.id;
@@ -43,7 +44,7 @@ export function sectionOpenings(request: BuildingRequest, plan: FloorAssembly, h
           recessDepth: section.border.depth, thresholdHeight: 0,
           motion: { kind: 'swing', maxTravel: 90, clearDepth: width / 2 } };
       } else {
-        opening.panes = { cols: Math.max(1, Math.ceil(width / 1.5)), rows: 1 };
+        opening.panes = { cols: Math.max(1, Math.ceil(width / (request.options?.architecture === 'chamfered-corners' ? 4 : 1.5))), rows: 1 };
       }
       openings.push(opening);
     }

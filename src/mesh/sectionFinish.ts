@@ -34,11 +34,11 @@ export function meshSectionFinish(mb: MeshBuilder, layout: Layout, mat: (kind: s
           const proud = pier ? 0.85 : ribbon ? (groupBand || floor.index === 0 && field.role.startsWith('bottom') ? 0.85 : 0.5) : curved ? 0.04 : groupBand ? 0.42 : section.border.depth;
           const material = ribbon ? mat(pier || groupBand ? 'column' : 'wall-trim')
             : mat(curved ? 'window-frame' : field.role.includes('left') || field.role.includes('right') ? 'column' : 'wall-trim');
-          frame.solid(sink, exactMaterialSlot(material),
+          frame.solid(sink, ribbon ? material : exactMaterialSlot(material),
             field.offset, field.offset + field.width, floor.elevation + sill, floor.elevation + sill + height, proud, 0,
             [(field.offset - span.offset + span.sectionOffset - role.offset) / role.width,
               (field.offset + field.width - span.offset + span.sectionOffset - role.offset) / role.width],
-            { start: role.offset >= span.sectionOffset - 1e-7, end: role.offset + role.width <= span.sectionOffset + span.width + 1e-7 });
+            { start: role.offset >= span.sectionOffset - 1e-7, end: role.offset + role.width <= span.sectionOffset + span.width + 1e-7 }, ribbon);
         }
       }
     }

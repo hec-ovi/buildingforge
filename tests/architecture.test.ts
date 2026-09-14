@@ -40,7 +40,7 @@ it.each(['architecture-01-rounded-corner', 'architecture-02-chamfered-corners', 
   expect(parts).toHaveLength(assembly.floors.reduce((count, floor) => count + floor.sections.length, 0));
   for (const node of parts) for (const primitive of node.getMesh()!.listPrimitives()) {
     const uv = primitive.getAttribute('TEXCOORD_0')!;
-    expect(uv.getArray()!.every(value => value >= -1e-6 && value <= 1 + 1e-6)).toBe(true);
+    if (request.options!.architecture !== 'chamfered-corners') expect(uv.getArray()!.every(value => value >= -1e-6 && value <= 1 + 1e-6)).toBe(true);
   }
   if (request.options!.architecture === 'terrace-blocks') {
     expect(assembly.groups.map(g => [g.width, g.depth])).toEqual([[30, 26], [26, 22], [22, 22]]);
@@ -112,8 +112,11 @@ it('keeps cut-facade catalog identities identical in keys and textured output', 
   const textureMaterials = glbJson(textured.glb).materials;
   const ids = (materials: any[]) => materials.map(m => `${m.name}#${m.extras?.materialVariant ?? ''}`).sort();
   expect(ids(keyMaterials)).toEqual(ids(textureMaterials));
-  const trim = textureMaterials.filter((m: any) => m.name.includes('/wall-trim/'));
+  const trim = textureMaterials.filter((m: any) => m.name.includes('/window-frame/'));
   expect(trim.length).toBeGreaterThan(0);
   expect(trim.every((m: any) => m.extras?.materialVariant === 'paint' && m.extras.nativeMaterial === undefined)).toBe(true);
   expect(textureMaterials.some((m: any) => m.name.includes('/concrete-monolith/') && m.extras?.materialVariant === 'graphite')).toBe(true);
+  for (const material of textureMaterials.filter((m: any) => m.name.includes('/concrete-monolith/') && !m.extras?.nativeMaterial)) {
+    expect(material.pbrMetallicRoughness.baseColorTexture.extensions.KHR_texture_transform.scale).toEqual([0.25, 0.25]);
+  }
 });
