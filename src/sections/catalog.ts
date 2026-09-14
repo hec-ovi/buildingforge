@@ -15,5 +15,5 @@ export const BORDERS: Record<SectionTechnique, { side: number; bottom: number; t
   'ribbon-bay': { side: 0.5, bottom: 1, top: 0.5, depth: 0.35 },
   'corner-leg': { side: 0.5, bottom: 0.5, top: 0.5, depth: 0.25 },
   'rounded-glass': { side: 0.08, bottom: 0.5, top: 0.5, depth: 0.12 },
-  'chamfered-glass': { side: 0.125, bottom: 0.5, top: 0.5, depth: 0.2 },
+  'chamfered-glass': { side: 0.25, bottom: 0.5, top: 0.5, depth: 0.2 },
 };
