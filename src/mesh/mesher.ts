@@ -1,3 +1,4 @@
+import { measureWallDepth } from './wallDepth.ts';
 import { sectionSpans } from '../sections/index.ts';
 import { meshCurvedWindow } from './curvedWindow.ts';
 import { meshSectionFinish } from './sectionFinish.ts';
@@ -71,6 +72,7 @@ export function buildOpeningMesh(layout: OpeningLayout): MeshBuilder {
 /** Complete the shell around its already fitted opening parts. */
 export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBuilder {
   const mat = materialResolver(layout);
+  const wallThickness = measureWallDepth(layout, mb);
   const floors = layout.floors;
   const above = floors.filter((f) => f.index >= 0);
   const lowest = floors[0]!;
@@ -136,7 +138,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
         sink.quadFacing(mat(f.index === 0 ? 'ground' : 'wall'), at(fr, piece.bl, depth), at(fr, piece.br, depth), at(fr, piece.tr, depth), at(fr, piece.tl, depth), n3(fr), uvs);
       }
       const glazedCorner = f.assembly?.sections.some(section => section.technique === 'rounded-glass' && sectionSpans(section).some(span => span.edge === e));
-      meshWallLining(sink, f.outline, e, pieces, depth, mat(glazedCorner ? 'window-frame' : 'wall'));
+      meshWallLining(sink, f.outline, e, pieces, depth, mat(glazedCorner ? 'window-frame' : 'wall'), wallThickness);
       if (panel) meshPanelField(sink, {
         outline: f.outline, edge: e, elevation: f.elevation, height: f.height,
         width: panel.width, panelHeight: panel.height, jointWidth: panel.jointWidth,
@@ -480,6 +482,10 @@ function windowUnit(
   // Glass recessed behind the wall face. An explicit damage state subdivides
   // this one window only; intact windows keep the existing single fitted pane field.
   const glassZ = z - g.glassInset;
+  const insideBorder = fw / 2;
+  meshFrameRing(sink, fr,
+    { u0: g0 - insideBorder, u1: g1 + insideBorder, y0: Math.max(yb - o.sill, gb - insideBorder), y1: gt + insideBorder },
+    { u0: g0, u1: g1, y0: gb, y1: gt }, glassZ - 0.004, 0.02, frameMat);
   if (o.damage) {
     damagedPaneField(sink, fr, g0, g1, gb, gt, glassZ, cols, rows,
       o.damage, o.material ?? mat('window-glass'));

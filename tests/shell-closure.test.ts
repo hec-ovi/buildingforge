@@ -24,7 +24,7 @@ it('exports inward wall faces and closed intact glazing through the public gener
           if (facing > 0.99) outward = true;
           if (facing < -0.99) {
             inward = true;
-            expect(-((p[0]! - a[0]) * nx + (p[2]! - a[1]) * nz)).toBeCloseTo(0.12, 4);
+            expect(-((p[0]! - a[0]) * nx + (p[2]! - a[1]) * nz)).toBeCloseTo(blueprint.facade.wallDepth, 4);
           }
         }
       }
