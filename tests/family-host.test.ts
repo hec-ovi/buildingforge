@@ -31,10 +31,20 @@ it.each(FAMILY_IDS)('generates %s with authored skins, rooms and exact bridge fa
     expect(blueprint.facade.groundMaterial).toEqual(bind(family.materials!.ground!));
     expect(blueprint.facade.materialPlan.field).toEqual(bind(family.materials!.wall!));
     expect(blueprint.roof.material).toEqual(bind(family.materials!.roof!));
+    for (const role of ['field', 'border', 'trim'] as const) expect(blueprint.facade.materialPlan[role].variantId).toEqual(expect.stringMatching(/\S/));
+    expect(Object.values(blueprint.materialVariants).every(variant => !variant.includes('#'))).toBe(true);
     const windows = blueprint.floors.flatMap(f => f.openings.filter(o => o.kind === 'window'));
     expect(windows.some(o => o.material === 'cyberpunk/paired-window-black/mid' && !o.scenery)).toBe(true);
     expect(windows.some(o => o.scenery?.lights?.length)).toBe(true);
     const json = glbJson(glb);
+    expect(json.materials.every((material: { extras?: { materialVariant?: string } }) => !material.extras?.materialVariant?.includes('#'))).toBe(true);
+    if (family.materials?.['light-fixture']) {
+      const [key, variant] = splitMaterialSlot(family.materials['light-fixture']);
+      const lights = json.materials.filter((material: { name: string }) => material.name === key);
+      expect(lights.length).toBeGreaterThan(0);
+      expect(lights.every((material: { extras?: { materialVariant?: string } }) => material.extras?.materialVariant === variant)).toBe(true);
+      expect(blueprint.materialVariants[key]).toBe(variant);
+    }
     const names = new Set<string>(json.nodes.map((n: { name: string }) => n.name));
     expect([...names].some(name => name.startsWith('section:'))).toBe(false);
     expect(json.materials.some((m: { name: string }) => m.name.startsWith(family.materials!.wall!.split('#')[0]!))).toBe(true);

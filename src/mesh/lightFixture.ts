@@ -1,5 +1,5 @@
 import type { Blueprint } from '../types.ts';
-import { materialSlot } from '../materials/slot.ts';
+import { withDefaultVariant } from '../materials/slot.ts';
 import { add, scale, type PartSink, type V3 } from './primitives.ts';
 
 /** Recessed diffuser in a layered, hooded metal housing, fitted to its reserved seat. */
@@ -20,7 +20,7 @@ export function meshLightFixture(sink: PartSink, light: Blueprint['lights'][numb
   box(0, -h * 0.44, d * 0.58, w, h * 0.12, d * 0.68);
   for (const side of [-1, 1]) box(side * w * 0.43, 0, d * 0.56, w * 0.08, h * 0.76, d * 0.64);
   const x = w * 0.35, y = h * 0.35, z = d * 0.72;
-  sink.quadFacing(light.material ?? materialSlot(mat('light-fixture'), 'strip'),
+  sink.quadFacing(light.material ?? withDefaultVariant(mat('light-fixture'), 'strip'),
     at(-x, -y, z), at(x, -y, z), at(x, y, z), at(-x, y, z),
     n, [[0, 1], [1, 1], [1, 0], [0, 0]]);
 }

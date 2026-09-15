@@ -16,3 +16,11 @@ export function splitMaterialSlot(slot: string): [key: string, variant?: string,
   return cut < 0 ? [surface!, undefined, finish, exact ? 'exact' : undefined]
     : [surface!.slice(0, cut), surface!.slice(cut + 1), finish, exact ? 'exact' : undefined];
 }
+
+/** Apply a host default only when the resolved slot has no authored variant. */
+export function withDefaultVariant(slot: string, variant: string): string {
+  const [key, authored, finish, mapping] = splitMaterialSlot(slot);
+  if (authored !== undefined) return slot;
+  const selected = materialSlot(key, variant, finish);
+  return mapping === 'exact' ? exactMaterialSlot(selected) : selected;
+}

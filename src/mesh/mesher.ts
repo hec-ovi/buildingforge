@@ -38,7 +38,7 @@ import { paneGrid } from '../layout/glazing.ts';
 import { fixedPanelAxis } from '../layout/module.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
 import type { BalconyBand, Blueprint, DoorAssembly, Opening } from '../types.ts';
-import { materialSlot } from '../materials/slot.ts';
+import { materialSlot, withDefaultVariant } from '../materials/slot.ts';
 import { selectedMaterialKey, facadeSurfacePattern } from '../layout/materialPlan.ts';
 import { meshGroundPrivacy, meshExteriorLouvre } from './windowTreatments.ts';
 import { meshWindowWeathering } from './windowWeathering.ts';
@@ -388,7 +388,7 @@ function doorFrameDetails(
   meshDoorSurround(sink, fr, u0, u1, yb, yt, inner + outer, depth, material);
 
   if (assembly.set !== 'illuminated') return;
-  const light = materialSlot(mat('light-fixture'), 'strip');
+  const light = withDefaultVariant(mat('light-fixture'), 'strip');
   const strip = Math.min(0.035, inner * 0.35);
   const proud = assembly.frameDepth + 0.012;
   const line = (a: number, b: number, y0: number, y1: number) => {
