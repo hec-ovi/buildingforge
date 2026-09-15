@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { FacadeField, MeshBuilder, type FamilyInput, type FamilyPlan, type FloorLayout, type Layout } from '../api.ts';
 import { family } from './index.ts';
+import p117 from './fixtures/p117.json' with { type: 'json' };
+import { intersections } from './simple-polygon.fixture.ts';
 
-const input = (): FamilyInput => ({ rectangle: [[0, 0], [35.5, 0], [35.5, 35.5], [0, 35.5]],
+const input = (): FamilyInput => ({ rectangle: [[0, 0], [37.5, 0], [37.5, 37.5], [0, 37.5]],
   floorHeights: [4.5, 4.5, 6, 4.5], seed: 'balcony-grid-contract' });
 
 function layout(plan: FamilyPlan, request: FamilyInput): Layout {
@@ -23,14 +25,31 @@ function layout(plan: FamilyPlan, request: FamilyInput): Layout {
 }
 
 describe('balcony-grid family contract', () => {
+  it('keeps adjacent gallery recesses separated on the real p117 parcel, minimum plates and rotated long plates', () => {
+    const real = p117 as FamilyInput;
+    const minimum = { ...real, rectangle: [[0, 0], [20.5, 0], [20.5, 20.5], [0, 20.5]] } as FamilyInput;
+    const rotated = { ...real, rectangle: real.rectangle.map(([x, z]) =>
+      [(x - z) / Math.SQRT2, (x + z) / Math.SQRT2]) } as FamilyInput;
+    for (const request of [real, minimum, rotated]) {
+      const result = family.plan(request);
+      expect(result.floors).toHaveLength(13);
+      for (const floor of result.floors) expect(intersections(floor.outline)).toEqual([]);
+      expect(result.floors[1]!.sections.filter(s => s.id.startsWith('bg:glass:')).every(s => s.width === 10)).toBe(true);
+      expect(result.floors[1]!.sections.filter(s => s.id.startsWith('bg:gallery:') && s.technique === 'paired-glass')
+        .every(s => s.width === 5)).toBe(true);
+      expect(result.floors[1]!.sections.filter(s => s.id.startsWith('bg:corner:curve:'))).toHaveLength(4);
+    }
+    expect(family.plan(real).extent).toEqual({ width: 54, depth: 20 });
+  });
+
   it('fits repeatable paired windows and recessed gallery fields with closed ground and exact caller floors', () => {
     const request = input(), result = family.plan(request);
     expect(family.id).toBe('balcony-grid');
     expect(result).toEqual(family.plan(request));
-    expect(result.extent).toEqual({ width: 35, depth: 35 });
+    expect(result.extent).toEqual({ width: 37, depth: 37 });
     expect(result.floors.map(f => f.floor)).toEqual([0, 1, 2, 3]);
-    expect(result.groups).toEqual([{ id: 0, fromFloor: 0, toFloor: 0, width: 35, depth: 35 },
-      { id: 1, fromFloor: 1, toFloor: 3, width: 35, depth: 35 }]);
+    expect(result.groups).toEqual([{ id: 0, fromFloor: 0, toFloor: 0, width: 37, depth: 37 },
+      { id: 1, fromFloor: 1, toFloor: 3, width: 37, depth: 37 }]);
     expect(result.floors[0]!.sections.every(s => s.windows?.length === 0)).toBe(true);
     for (const floor of result.floors) {
       expect(floor.balconySections).toEqual([]);
@@ -58,11 +77,11 @@ describe('balcony-grid family contract', () => {
     const spans = fields.flatMap(s => s.spans!);
     for (const span of spans) {
       const point = floor.outline[span.edge]!;
-      expect(Math.hypot(point[0] - 30.25, point[1] - 30.25)).toBeCloseTo(5);
+      expect(Math.hypot(point[0] - 32.25, point[1] - 32.25)).toBeCloseTo(5);
     }
     const last = spans.at(-1)!;
-    expect(floor.outline[(last.edge + 1) % floor.outline.length]).toEqual([30.25, 35.25]);
-    expect(floor.outline[spans[0]!.edge]).toEqual([35.25, 30.25]);
+    expect(floor.outline[(last.edge + 1) % floor.outline.length]).toEqual([32.25, 37.25]);
+    expect(floor.outline[spans[0]!.edge]).toEqual([37.25, 32.25]);
     expect(floor.sections.filter(s => s.id.startsWith('bg:corner:leg:')).map(s => s.width)).toEqual([6, 6]);
   });
 
@@ -81,9 +100,9 @@ describe('balcony-grid family contract', () => {
       for (let i = 0; i < primitive.positions.length; i += 3) {
         const x = primitive.positions[i]! - 70, z = primitive.positions[i + 2]! + 40;
         expect((x + z) / Math.SQRT2).toBeGreaterThanOrEqual(-1e-7);
-        expect((x + z) / Math.SQRT2).toBeLessThanOrEqual(35.5 + 1e-7);
+        expect((x + z) / Math.SQRT2).toBeLessThanOrEqual(37.5 + 1e-7);
         expect((z - x) / Math.SQRT2).toBeGreaterThanOrEqual(-1e-7);
-        expect((z - x) / Math.SQRT2).toBeLessThanOrEqual(35.5 + 1e-7);
+        expect((z - x) / Math.SQRT2).toBeLessThanOrEqual(37.5 + 1e-7);
       }
     }
   });
@@ -108,18 +127,18 @@ describe('balcony-grid family contract', () => {
       expect(primitive.normals.every(Number.isFinite)).toBe(true);
       for (let i = 0; i < primitive.positions.length; i += 3) {
         expect(primitive.positions[i]!).toBeGreaterThanOrEqual(0.25 - 1e-7);
-        expect(primitive.positions[i]!).toBeLessThanOrEqual(35.25 + 1e-7);
+        expect(primitive.positions[i]!).toBeLessThanOrEqual(37.25 + 1e-7);
         expect(primitive.positions[i + 2]!).toBeGreaterThanOrEqual(0.25 - 1e-7);
-        expect(primitive.positions[i + 2]!).toBeLessThanOrEqual(35.25 + 1e-7);
+        expect(primitive.positions[i + 2]!).toBeLessThanOrEqual(37.25 + 1e-7);
       }
     }
   });
 
   it.each([
-    { rectangle: [[0, 0], [17, 0], [17, 35.5], [0, 35.5]] },
-    { rectangle: [[0, 0], [0, 35.5], [35.5, 35.5], [35.5, 0]] },
-    { rectangle: [[0, 0], [35.5, 0], [35, 35.5], [0, 35.5]] },
-    { rectangle: [[0, 0], [Infinity, 0], [35.5, 35.5], [0, 35.5]] },
+    { rectangle: [[0, 0], [17, 0], [17, 37.5], [0, 37.5]] },
+    { rectangle: [[0, 0], [0, 37.5], [37.5, 37.5], [37.5, 0]] },
+    { rectangle: [[0, 0], [37.5, 0], [35, 37.5], [0, 37.5]] },
+    { rectangle: [[0, 0], [Infinity, 0], [37.5, 37.5], [0, 37.5]] },
     { floorHeights: [4.5] },
     { floorHeights: [4.5, 2.5] },
   ] as Partial<FamilyInput>[])('rejects impossible input %j', invalid => {

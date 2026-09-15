@@ -6,6 +6,7 @@ export const ROOM_PAIR = 10;
 export const GALLERY = 5;
 export const GALLERY_DEPTH = 2;
 export const RESERVE = 0.25;
+export const END_ALLOWANCE = PIER + GALLERY_DEPTH;
 
 export class BuildingFrame {
   readonly width: number;
@@ -33,8 +34,8 @@ export class BuildingFrame {
     }
     this.width = input.fixedFaces ? width : fitted(width);
     this.depth = input.fixedFaces ? depth : fitted(depth);
-    if (Math.min(this.width, this.depth) < BLOCK + PIER) {
-      throw new RangeError('balcony-grid needs at least 18 m on both fitted sides');
+    if (Math.min(this.width, this.depth) < BLOCK + END_ALLOWANCE) {
+      throw new RangeError('balcony-grid needs at least 20 m on both fitted sides');
     }
     this.axis = [(b[0] - a[0]) / width, (b[1] - a[1]) / width];
     this.inward = [(d[0] - a[0]) / depth, (d[1] - a[1]) / depth];
@@ -53,5 +54,5 @@ export class BuildingFrame {
 }
 
 function fitted(maximum: number): number {
-  return Math.floor((maximum - RESERVE * 2 - PIER + 1e-8) / BLOCK) * BLOCK + PIER;
+  return Math.floor((maximum - RESERVE * 2 - END_ALLOWANCE + 1e-8) / BLOCK) * BLOCK + END_ALLOWANCE;
 }

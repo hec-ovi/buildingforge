@@ -1,5 +1,5 @@
 import type { FamilyFloor, FamilyInput, FamilyPlan, FamilySection, Point } from '../api.ts';
-import { BLOCK, BuildingFrame, GALLERY, GALLERY_DEPTH, PIER, ROOM_PAIR } from './dimensions.ts';
+import { BLOCK, BuildingFrame, END_ALLOWANCE, GALLERY, GALLERY_DEPTH, PIER, ROOM_PAIR } from './dimensions.ts';
 import { CORNER_RADIUS, glazedCorner } from './corner.ts';
 
 type Run = { kind: 'pier' | 'glass' | 'gallery'; width: number };
@@ -25,14 +25,14 @@ export function plan(input: FamilyInput): FamilyPlan {
 }
 
 function runs(length: number): Run[] {
-  const count = Math.floor((length - PIER + 1e-8) / BLOCK);
-  const end = (length - count * BLOCK - PIER) / 2;
+  const count = Math.floor((length - END_ALLOWANCE + 1e-8) / BLOCK);
+  const end = (length - count * BLOCK - END_ALLOWANCE) / 2;
   const result: Run[] = [{ kind: 'pier', width: PIER + end }];
   for (let i = 0; i < count; i++) {
     result.push({ kind: 'glass', width: ROOM_PAIR }, { kind: 'pier', width: PIER }, { kind: 'gallery', width: GALLERY });
     if (i < count - 1) result.push({ kind: 'pier', width: PIER });
   }
-  result.push({ kind: 'pier', width: end + PIER });
+  result.push({ kind: 'pier', width: end + END_ALLOWANCE });
   return result;
 }
 
