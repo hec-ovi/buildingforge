@@ -1,5 +1,7 @@
 import { architectureSelection } from './layout/architectureSelection.ts';
 import { isPaired } from './sections/index.ts';
+import { buildingFamily } from './families/registry.ts';
+import { GENERATION_POLICY } from './rules/generationPolicy.ts';
 import { CanonicalNativeMaterials } from './materials/canonicalNative.ts';
 import { applyWindowPolicy } from './layout/windowPolicy.ts';
 // Orchestration: validate -> style -> massing -> floor stack -> facades ->
@@ -67,6 +69,13 @@ async function generateBuilding(raw: unknown, options: GenerateOptions, canonica
     if (isPaired(req.options.architecture)) style.parapetHeight = 0.28;
     if (req.options.architecture === 'terrace-blocks') style.balconyDepth = 1.5;
   }
+  const referenceFamily = buildingFamily(req.options?.architecture);
+  if (isPaired(req.options?.architecture ?? '') || referenceFamily) {
+    style.groundFloorHeight = referenceFamily?.groundFloorHeight ?? GENERATION_POLICY.defaultFloorHeight;
+    style.floorHeight = GENERATION_POLICY.defaultFloorHeight;
+  }
+  if (referenceFamily?.parapetHeight !== undefined) style.parapetHeight = referenceFamily.parapetHeight;
+  if (req.options?.architecture === 'garden-taper') style.parapetHeight = 0.3;
   const facadeInset = req.options?.architecture ? Math.max(0.5, facadeDepth(style.facade.kind)) : facadeDepth(style.facade.kind);
   const preferredCoreInset = facadeInset + corePerimeterClearance(req);
   const stack = buildFloorStack(req, family, tier, style);

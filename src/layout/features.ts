@@ -1,3 +1,5 @@
+import { isFamilyArchitecture } from '../families/registry.ts';
+import { gardenLights } from './gardenLights.ts';
 // Facade features: signage, ad screens, lights, equipment and fire escape.
 
 import { ExteriorError } from '../core/errors.ts';
@@ -26,6 +28,7 @@ export function buildFacadeFeatures(
   massing: Massing, top: number, floors: FloorLayout[], faces: number[],
   obstacles: Map<number, Rect[]>,
 ): FacadeFeatures {
+  const authored = isFamilyArchitecture(req.options?.architecture);
   const streetEdge = faces[0] as number;
   const ground = massing.groundOutline;
   const groundFloor = floors.find((f) => f.index === 0)!;
@@ -36,15 +39,16 @@ export function buildFacadeFeatures(
   // Fixtures first: they are facade obstacles like ribs and anchors, so the
   // sign and screen scans land clear of them and the overlay invariant proves it.
   placeLights(req, family, ground, streetEdge, groundFloor, lights, obstacles);
-  const acUnits = style.facade.kind === 'curtain-wall' || isPaired(req.options?.architecture) ? [] : placeAcUnits(req, family, tier, floors, obstacles);
+  const acUnits = authored || style.facade.kind === 'curtain-wall' || isPaired(req.options?.architecture) ? [] : placeAcUnits(req, family, tier, floors, obstacles);
   placeSignage(req, family, ground, faces, groundFloor, top, signage, obstacles);
-  placeScreens(req, family, tier, ground, faces, groundFloor.height, top, signage, screens, obstacles);
+  if (!authored) placeScreens(req, family, tier, ground, faces, groundFloor.height, top, signage, screens, obstacles);
   const facadeArtifacts = [
     ...acUnits,
-    ...(isPaired(req.options?.architecture) ? [] : placeFacadeArtifacts(req, style, floors, signage, screens, obstacles)),
+    ...(authored || isPaired(req.options?.architecture) ? [] : placeFacadeArtifacts(req, style, floors, signage, screens, obstacles)),
   ];
   const fireEscape = placeFireEscape(req, family, tier, massing, floors, streetEdge);
 
+  if (req.options?.architecture === 'garden-taper') lights.push(...gardenLights(groundFloor));
   return { signage, screens, lights, facadeArtifacts, fireEscape };
 }
 
@@ -334,7 +338,7 @@ function placeLights(
       mountLight('entrance', ground, o.edge, u, y, out, obstacles);
     }
   }
-  if (!LIGHTING.accentFamilies.includes(family)) return;
+  if (isFamilyArchitecture(req.options?.architecture) || !LIGHTING.accentFamilies.includes(family)) return;
 
   // Accent fixtures on clear wall along the street edge, one per bay-ish spacing.
   const rng = new Rng(req.seed, 'lights');

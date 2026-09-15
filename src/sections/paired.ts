@@ -6,7 +6,7 @@ export const END_TRIM = 0.5;
 export const ROUNDED_RADIUS = 10;
 
 export function isPaired(architecture?: string): boolean {
-  return architecture === 'paired-rounded' || architecture === 'paired-rectangular';
+  return architecture === 'paired-rounded' || architecture === 'paired-rectangular' || architecture === 'garden-taper';
 }
 
 export function pairedExtent(maximum: number): number {

@@ -1,0 +1,5 @@
+{
+  "rectangle": [[0, 0], [54, 0], [54, 34], [0, 34]],
+  "floorHeights": [4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5],
+  "seed": "mirror-shutters-reference"
+}

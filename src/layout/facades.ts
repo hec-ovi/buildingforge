@@ -1,5 +1,7 @@
+import { isFamilyArchitecture } from '../families/registry.ts';
 import { GENERATION_POLICY } from '../rules/generationPolicy.ts';
 import { sectionOpenings } from './sectionOpenings.ts';
+import { isPaired } from '../sections/index.ts';
 // Facade layout: split-grammar bays per floor band and edge, entrance on the
 // street face, aperture cuts reserved first, openings never overlapping.
 
@@ -132,6 +134,8 @@ export function buildFacades(
 
     if (isBasement) { floors.push({ index: level.index, kind: level.kind, elevation: level.elevation, height: level.height, outline, openings }); continue; }
 
+    const apertureReservations = [...takenByEdge].flatMap(([edge, taken]) => taken.map(field => ({ edge, start: field.start, end: field.end })));
+
     // 2. Entrance and service doors on the ground floor (doors exist even window-less),
     // reserved before any window fill so the facade always keeps its entrance zone.
     if (isGround) {
@@ -150,8 +154,8 @@ export function buildFacades(
 
     if (massing.assembly) {
       const assembly = massing.assembly.floors[level.index]!;
-      sectionOpenings(req, assembly, level.height, openings);
-      floors.push({ index: level.index, kind: level.kind, elevation: level.elevation, height: level.height, outline, openings, assembly });
+      sectionOpenings(req, assembly, level.height, openings, apertureReservations);
+      floors.push({ index: level.index, kind: level.kind, elevation: level.elevation, height: level.height, outline, openings, assembly, ...(assembly.topOutline ? { topOutline: assembly.topOutline } : {}) });
       continue;
     }
 
@@ -271,7 +275,9 @@ export function buildFacades(
       opening.state = closurePercent === 0 ? 'open' : closurePercent < 45 ? 'partial'
         : closurePercent < 65 ? 'half' : closurePercent < 100 ? 'closed80' : 'closed';
     }
-    if (opening.kind === 'window') opening.material = selectedMaterialKey(req.theme, tier, exteriorStyle, 'window-glass');
+    if (opening.kind === 'window' && !isPaired(massing.assembly?.architecture) && !isFamilyArchitecture(massing.assembly?.architecture)) {
+      opening.material = selectedMaterialKey(req.theme, tier, exteriorStyle, 'window-glass');
+    }
     if (opening.kind === 'window' && floor.index === 0) {
       opening.windowTreatment = { privacy: 'shell-only', nodeId: `ground-privacy:${opening.id}` };
     }

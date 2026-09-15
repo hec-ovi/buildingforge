@@ -22,10 +22,11 @@ export function scenicFixtures(sink: PartSink, frame: RoomFrame, width: number, 
   };
   if (layout === 'strips') {
     const depth = Math.min(2.6, front - back - 0.6);
-    for (const fraction of [0.2, 0.3, 0.7, 0.8]) fixture(width * fraction, (front + back) / 2, 0.095, depth);
+    for (const fraction of width < 1.2 ? [0.5] : width < 3 ? [0.25, 0.75] : [0.2, 0.3, 0.7, 0.8]) fixture(width * fraction, (front + back) / 2, 0.095, depth);
   } else {
-    for (let column = 0; column < 4; column++) for (let row = 0; row < 2; row++) {
-      fixture(width * (column + 0.5) / 4, front + (back - front) * (row + 0.6) / 2.2, 0.12, 0.12);
+    const columns = Math.max(1, Math.min(4, Math.floor(width / 0.6)));
+    for (let column = 0; column < columns; column++) for (let row = 0; row < 2; row++) {
+      fixture(width * (column + 0.5) / columns, front + (back - front) * (row + 0.6) / 2.2, 0.12, 0.12);
     }
   }
   return emitters;

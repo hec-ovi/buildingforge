@@ -12,7 +12,16 @@
       "enum": [
         "rounded-corner",
         "chamfered-corners",
-        "terrace-blocks", "paired-rounded", "paired-rectangular"
+        "terrace-blocks",
+        "paired-rounded",
+        "paired-rectangular",
+        "garden-taper",
+        "corporate-sectors",
+        "faceted-bays",
+        "white-grid",
+        "balcony-grid",
+        "mirror-shutters",
+        "mirror-frame"
       ]
     },
     "rectangle": {
@@ -35,6 +44,14 @@
         "type": "number",
         "exclusiveMinimum": 1.5
       }
+    },
+    "seed": {
+      "type": "string",
+      "default": ""
+    },
+    "fixedFaces": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

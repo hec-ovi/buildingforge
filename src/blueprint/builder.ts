@@ -1,3 +1,4 @@
+import { buildingFamily } from '../families/registry.ts';
 // Blueprint JSON from the layout; shapes mirror schemas/blueprint.schema.json.
 
 import type { Blueprint } from '../types.ts';
@@ -24,12 +25,18 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     const [key, variant] = splitMaterialSlot(slot);
     if (variant) selected[key] = variant;
   }
+  const family = buildingFamily(layout.assembly?.architecture);
+  const binding = (slot: string) => {
+    const [key, variant] = splitMaterialSlot(slot);
+    return { key, variantId: variant ?? selected[key] ?? preferredVariantForKey(key)! };
+  };
   const paired = isPaired(layout.assembly?.architecture);
   const materialVariants = Object.fromEntries(materials
     .map((key) => [key, selected[key] ?? preferredVariantForKey(key)] as const)
     .filter((entry): entry is [string, string] => entry[1] !== undefined));
   return {
     version: release.version,
+    ...(layout.modelInstances?.length ? { modelInstances: layout.modelInstances } : {}),
     ...(layout.assembly ? { assembly: layout.assembly } : {}),
     buildingId: layout.request.buildingId,
     ...(layout.coreFrame ? { coreFrame: layout.coreFrame } : {}),
@@ -44,7 +51,8 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
       elevation: f.elevation,
       height: f.height,
       outline: f.outline,
-      roomEnvelope: envelopes.forFloor(f, wallDepth),
+      ...(f.topOutline ? { topOutline: f.topOutline } : {}),
+      roomEnvelope: envelopes.forFloor(f.topOutline ? { ...f, outline: f.topOutline } : f, wallDepth),
       openings: f.openings,
     })),
     balconyBands: layout.balconyBands,
@@ -54,7 +62,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     lights: layout.lights,
     facade: {
       surfacePattern: facadeSurfacePattern(layout.request.options!.exteriorStyle!),
-      groundMaterial: paired ? { key: 'cyberpunk/paired-cladding/mid', variantId: 'surface' } : {
+      groundMaterial: family?.materials?.ground ? binding(family.materials.ground) : layout.assembly?.architecture === 'garden-taper' ? { key: 'cyberpunk/garden-concrete/mid', variantId: 'surface' } : paired ? { key: 'cyberpunk/paired-cladding/mid', variantId: 'surface' } : {
         key: `${layout.theme}/${styleSurfaces(layout.request.options!.exteriorStyle!).ground.kind}/${layout.tier}`,
         variantId: styleSurfaces(layout.request.options!.exteriorStyle!).ground.variant,
       },
@@ -68,7 +76,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
         origin: layout.style.facade.panelOrigin,
         boundary: layout.style.facade.panelBoundary,
       },
-      materialPlan: paired ? { palette: 'neutral-dystopian', field: { key: 'cyberpunk/paired-cladding-metal/mid', variantId: 'surface' },
+      materialPlan: family?.materials ? { palette: 'neutral-dystopian', field: binding(family.materials.wall!), border: binding(family.materials.column!), trim: binding(family.materials['wall-trim']!) } : paired ? { palette: 'neutral-dystopian', field: { key: 'cyberpunk/paired-cladding-metal/mid', variantId: 'surface' },
         border: { key: 'cyberpunk/paired-frame-metal/mid', variantId: 'surface' }, trim: { key: 'cyberpunk/paired-frame-metal/mid', variantId: 'surface' } }
         : facadeMaterialPlan(layout.theme, layout.tier, layout.request.options!.exteriorStyle!),
       wallDepth,
@@ -82,7 +90,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     facadeArtifacts: layout.facadeArtifacts,
     facadeServices: layout.facadeServices,
     fireEscape: layout.fireEscape,
-    roof: { ...layout.roof, material: { key: `${layout.theme}/roof/${layout.tier}`, variantId: selected[`${layout.theme}/roof/${layout.tier}`]! } },
+    roof: { ...layout.roof, material: family?.materials?.roof ? binding(family.materials.roof) : { key: `${layout.theme}/roof/${layout.tier}`, variantId: selected[`${layout.theme}/roof/${layout.tier}`]! } },
     materials,
     materialVariants,
   };
@@ -94,7 +102,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
  * half-metre head clearance.
  */
 function slabBandBelow(layout: Layout): number {
-  if (layout.style.facade.kind !== 'curtain-wall') return SLAB_BAND.below;
+  if (!layout.assembly && layout.style.facade.kind !== 'curtain-wall') return SLAB_BAND.below;
   let band = Infinity;
   for (const floor of layout.floors) {
     for (const opening of floor.openings) {

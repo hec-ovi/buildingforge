@@ -29,6 +29,8 @@ export interface Prim {
 }
 
 export interface Part {
+  floor?: number;
+  sloped?: boolean;
   name: string;
   prims: Map<string, Prim>;
   /** node this part hangs under; the root when absent */
@@ -65,9 +67,10 @@ function pushNormal(g: Prim, n: V3, vertices: number): void {
 
 export class MeshBuilder {
   readonly parts: Part[] = [];
+  floor?: number;
 
   part(name: string, options: { parent?: string; pivot?: V3; keepNode?: boolean } = {}): PartSink {
-    const p: Part = { name, prims: new Map(), ...options };
+    const p: Part = { name, prims: new Map(), ...(this.floor === undefined ? {} : { floor: this.floor }), ...options };
     this.parts.push(p);
     return new PartSink(p);
   }

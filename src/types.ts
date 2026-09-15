@@ -1,3 +1,4 @@
+import type { ModelInstance } from './families/api.ts';
 import type { Architecture, Assembly } from './sections/index.ts';
 // TypeScript mirrors of schemas/building-request.schema.json and schemas/blueprint.schema.json.
 
@@ -213,6 +214,7 @@ export interface Floor {
   elevation: number;
   height: number;
   outline: P2[];
+  topOutline?: P2[];
   /** Generated on every floor; optional for stored blueprints from earlier releases. */
   roomEnvelope?: RoomEnvelope;
   openings: Opening[];
@@ -317,6 +319,7 @@ export interface ArchitectureSelection {
 }
 
 export interface Blueprint {
+  modelInstances?: ModelInstance[];
   architectureSelection?: ArchitectureSelection;
   assembly?: Assembly;
   version?: string;
@@ -352,6 +355,10 @@ export interface Blueprint {
   screens: { edge: number; center: P3; width: number; height: number; standoff: number; normal: P2 }[];
   lights: {
     kind: 'entrance' | 'accent';
+    material?: string;
+    color?: string;
+    lumens?: number;
+    range?: number;
     /** carrying ground-outline edge */
     edge: number;
     /** centre of the fixture's rear mounting face on the facade plane */

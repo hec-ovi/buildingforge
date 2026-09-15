@@ -172,10 +172,11 @@ function checkEdgeRuns(floor: Layout['floors'][number]): void {
   }
   for (const [edge, list] of byEdge) {
     const sorted = [...list].sort((a, b) => openingEnvelope(a).offset - openingEnvelope(b).offset);
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = sorted[i - 1]!, cur = sorted[i]!;
+    for (let i = 0; i < sorted.length; i++) for (let j = i + 1; j < sorted.length; j++) {
+      const prev = sorted[i]!, cur = sorted[j]!;
       const prevField = openingEnvelope(prev), curField = openingEnvelope(cur);
-      if (curField.offset < prevField.offset + prevField.width - 1e-6) {
+      if (curField.offset >= prevField.offset + prevField.width - 1e-6) break;
+      if (curField.sill < prevField.sill + prevField.height - 1e-6 && curField.sill + curField.height > prevField.sill + 1e-6) {
         throw new ExteriorError('E_INVARIANT',
           `openings ${prev.id} and ${cur.id} overlap on edge ${edge} of floor ${floor.index}; exterior bug, report with the request`);
       }

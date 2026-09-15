@@ -1,3 +1,6 @@
+import { buildingFamily } from '../families/registry.ts';
+import { meshGardenFacade } from './gardenFacade.ts';
+import { applyFloorSlopes } from './floorSlope.ts';
 import { meshRibbonLouvres } from './ribbonLouvres.ts';
 import { meshPairedWindows } from './pairedWindows.ts';
 import { isPaired } from '../sections/index.ts';
@@ -67,14 +70,18 @@ export function buildOpeningMesh(layout: OpeningLayout): MeshBuilder {
   const mb = new MeshBuilder();
   const mat = materialResolver(layout);
   for (const floor of layout.floors) {
+    mb.floor = floor.index;
     for (const opening of floor.openings) meshOpening(mb, layout, floor, opening, mat);
   }
+  mb.floor = undefined;
+  applyFloorSlopes(mb, layout.floors);
   return mb;
 }
 
 /** Complete the shell around its already fitted opening parts. */
 export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBuilder {
   const mat = materialResolver(layout);
+  const family = buildingFamily(layout.assembly?.architecture);
   const wallThickness = measureWallDepth(layout, mb);
   const floors = layout.floors;
   const above = floors.filter((f) => f.index >= 0);
@@ -89,16 +96,18 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   // a one-sided slab is invisible and the shell reads hollow. Each keeps its node
   // in merged output, so the interior can swap it for the slab it furnishes.
   for (const f of floors) {
+    mb.floor = f.index;
     const sink = mb.part(`floor:${f.index}/slab`, { keepNode: true });
     capUp(sink, mat('floor-slab'), caps, f.outline, f.elevation);
     capDown(sink, mat('floor-slab'), caps, f.outline, f.elevation);
   }
 
+  mb.floor = undefined;
   // Terrace rings where the outline steps inward.
   for (let i = 1; i < above.length; i++) {
     const prev = above[i - 1]!, cur = above[i]!;
-    if (prev.outline.length !== cur.outline.length || prev.outline.some((p, i) =>
-      Math.hypot(p[0] - cur.outline[i]![0], p[1] - cur.outline[i]![1]) > 1e-8)) {
+    if (!prev.topOutline && (prev.outline.length !== cur.outline.length || prev.outline.some((p, i) =>
+      Math.hypot(p[0] - cur.outline[i]![0], p[1] - cur.outline[i]![1]) > 1e-8))) {
       const terrace = mb.part(`terrace:${cur.index}`);
       capUp(terrace, mat('roof'), caps, prev.outline, cur.elevation, cur.outline);
       capDown(terrace, mat('floor-slab'), caps, prev.outline, cur.elevation, cur.outline);
@@ -107,6 +116,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
 
   // Walls with holes, then per-opening geometry.
   for (const f of floors) {
+    mb.floor = f.index;
     for (let e = 0; e < f.outline.length; e++) {
       const fr = frame(f.outline, e);
       const holes: Hole[] = [];
@@ -128,49 +138,53 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
       // after the centred solid border, so every visible joint agrees with the
       // fixed panel grid instead of stretching to close the face.
       const pattern = facadeSurfacePattern(layout.request.options!.exteriorStyle!);
-      const panel = !f.assembly && f.index !== 0 && pattern.kind === 'panel' ? pattern : undefined;
+      const gardenPodium = layout.assembly?.architecture === 'garden-taper' && f.index === 0;
+      const panel = gardenPodium ? { width: 5, height: 2.5, jointWidth: 0.025 } : !f.assembly && f.index !== 0 && pattern.kind === 'panel' ? pattern : undefined;
       const horizontal = panel ? fixedPanelAxis(fr.len, panel.width) : undefined;
       const vertical = panel ? fixedPanelAxis(f.height, panel.height) : undefined;
       const uOrigin = horizontal?.borders[0] ?? 0;
       const yOrigin = f.elevation + (vertical?.borders[0] ?? 0);
       const pieces = cutWall(fr.len, f.elevation, f.elevation + f.height, holes);
-      const depth = panel ? -PANEL_JOINT_DEPTH : 0;
+      const depth = family && f.index >= 0 ? -0.12 : panel ? -PANEL_JOINT_DEPTH : 0;
       for (const piece of pieces) {
         const uvs = [piece.bl, piece.br, piece.tr, piece.tl]
           .map(([u, y]) => [u - uOrigin, yOrigin - y] as [number, number]);
         sink.quadFacing(mat(f.index === 0 ? 'ground' : 'wall'), at(fr, piece.bl, depth), at(fr, piece.br, depth), at(fr, piece.tr, depth), at(fr, piece.tl, depth), n3(fr), uvs);
       }
-      const glazedCorner = f.assembly?.sections.some(section => section.technique === 'rounded-glass' && sectionSpans(section).some(span => span.edge === e));
+      const glazedCorner = f.assembly?.sections.some(section => !!section.spans && sectionSpans(section).some(span => span.edge === e));
       meshWallLining(sink, f.outline, e, pieces, depth, mat(glazedCorner ? 'window-frame' : 'inner-wall'), wallThickness,
         layout.request.options?.architecture === 'chamfered-corners' ? mat('window-frame') : undefined);
       if (panel) meshPanelField(sink, {
         outline: f.outline, edge: e, elevation: f.elevation, height: f.height,
         width: panel.width, panelHeight: panel.height, jointWidth: panel.jointWidth,
-        pieces, material: mat('wall'),
+        pieces, material: mat(gardenPodium ? 'ground' : 'wall'),
       });
       if (horizontal && vertical) meshPanelBorders(panelBorders, fr, f, holes,
         horizontal.borders, vertical.borders, mat('column'));
     }
   }
-  meshSectionFinish(mb, layout, mat);
+  mb.floor = undefined;
+  if (!family) meshSectionFinish(mb, layout, mat);
   meshBalconyBands(mb, layout, mat);
 
   // Roof, parapet, bottom cap. The roof is the top floor's ceiling too, cut open
   // where the stair head comes up.
   const roofSink = mb.part('roof');
   const cutout = layout.roof.bulkhead ? bulkheadRect(layout.roof.bulkhead) : undefined;
-  capUp(roofSink, mat('roof'), caps, topFloor.outline, top, cutout);
-  capDown(roofSink, mat('floor-slab'), caps, topFloor.outline, top, cutout);
+  capUp(roofSink, mat('roof'), caps, layout.roof.outline, top, cutout);
+  capDown(roofSink, mat('floor-slab'), caps, layout.roof.outline, top, cutout);
   if (layout.roof.bulkhead) meshBulkhead(mb, layout.roof.bulkhead, top, caps, mat);
   capDown(mb.part('base'), mat('floor-slab'), caps, lowest.outline, lowest.elevation);
-  const parapet = mb.part('parapet');
-  for (let e = 0; e < topFloor.outline.length; e++) {
-    const fr = frame(topFloor.outline, e);
-    const mid = at(fr, [fr.len / 2, top + layout.roof.parapetHeight / 2]);
-    parapet.box(mat('parapet'), mid,
-      [fr.dir[0] * fr.len / 2, 0, fr.dir[1] * fr.len / 2],
-      [0, layout.roof.parapetHeight / 2, 0],
-      [fr.n[0] * 0.075, 0, fr.n[1] * 0.075]);
+  if (layout.roof.parapetHeight > 0) {
+    const parapet = mb.part('parapet');
+    for (let e = 0; e < layout.roof.outline.length; e++) {
+      const fr = frame(layout.roof.outline, e);
+      const mid = at(fr, [fr.len / 2, top + layout.roof.parapetHeight / 2]);
+      parapet.box(mat('parapet'), mid,
+        [fr.dir[0] * fr.len / 2, 0, fr.dir[1] * fr.len / 2],
+        [0, layout.roof.parapetHeight / 2, 0],
+        [fr.n[0] * 0.075, 0, fr.n[1] * 0.075]);
+    }
   }
 
   meshFacadeRelief(mb, layout, above, top, mat);
@@ -184,12 +198,20 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
 
   meshWindowWeathering(mb, layout);
   meshPairedWindows(mb, layout);
+  meshGardenFacade(mb, layout);
+  const decoration = family?.decorate?.({ builder: mb, layout, material: mat });
+  if (decoration?.instances?.length) layout.modelInstances = decoration.instances;
+  layout.lights.forEach((light, i) => meshLightFixture(mb.part(`light:${i}`), light, mat));
+  applyFloorSlopes(mb, layout.floors);
   return mb;
 }
 
 function materialResolver(layout: OpeningLayout): (kind: string) => string {
   const { theme, tier } = layout;
+  const family = buildingFamily(layout.request.options?.architecture);
   return (kind: string) => {
+    if (family?.materials?.[kind]) return family.materials[kind]!;
+    if (layout.request.options?.architecture === 'garden-taper' && kind === 'ground') return 'cyberpunk/garden-concrete/mid#surface';
     if (isPaired(layout.request.options?.architecture)) {
       if (['window-frame', 'wall-trim', 'column'].includes(kind)) return 'cyberpunk/paired-frame/mid#surface';
       if (['wall', 'ground', 'inner-wall'].includes(kind)) return 'cyberpunk/paired-cladding/mid#surface';
@@ -268,7 +290,7 @@ function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: 
     const sink = mb.part(`window:${o.id}`);
     const privacy = o.windowTreatment ? mb.part(o.windowTreatment.nodeId, { keepNode: true }) : undefined;
     const section = f.assembly?.sections.find(s => s.id === o.sectionId);
-    if (section?.technique === 'rounded-glass') {
+    if (section?.spans?.length) {
       o.glazing = meshCurvedWindow(sink, f, o, section, mat);
       return;
     }
@@ -796,9 +818,7 @@ function meshBulkhead(
 function meshFeatures(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {
   layout.signage.forEach((s, i) => meshSign(mb.part(`signage:${i}`), s, mat));
   layout.screens.forEach((s, i) => plate(mb.part(`screen:${i}`), s.center, s.normal, s.width, s.height, s.standoff + 0.1, mat('ad-screen'), s.standoff));
-  layout.lights.forEach((l, i) => {
-    meshLightFixture(mb.part(`light:${i}`), l, mat);
-  });
+
 }
 
 /**

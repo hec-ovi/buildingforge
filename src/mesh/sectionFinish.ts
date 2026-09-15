@@ -7,8 +7,9 @@ import type { MeshBuilder } from './primitives.ts';
 /** Full-map solid section fields, with closed front, back and return faces. */
 export function meshSectionFinish(mb: MeshBuilder, layout: Layout, mat: (kind: string) => string): void {
   for (const floor of layout.floors) {
+    mb.floor = floor.index;
     const plan = floor.assembly;
-    if (!plan || floor.index < 0) continue;
+    if (!plan || floor.index < 0 || floor.index === 0 && layout.assembly?.architecture === 'garden-taper') continue;
     const group = layout.assembly!.groups.find(g => g.id === plan.group)!;
     for (const section of plan.sections) {
       const opening = floor.openings.find(o => o.sectionId === section.id);
@@ -18,7 +19,7 @@ export function meshSectionFinish(mb: MeshBuilder, layout: Layout, mat: (kind: s
         for (const role of sectionRoles(section, floor.height)) {
           const field = spanField(role, span);
           if (!field) continue;
-          if (field.role === 'middle' && !['frame-pier', 'paired-solid', 'paired-pier'].includes(section.technique)) continue;
+          if (field.role === 'middle' && !['frame-pier', 'paired-solid', 'paired-pier', 'podium-panel'].includes(section.technique)) continue;
           if ((opening?.kind === 'door' || opening?.kind === 'balconyDoor') && field.role === 'bottom-middle') continue;
           // An entrance's head uses its real public passage height.
           let sill = field.sill, height = field.height;
@@ -45,4 +46,5 @@ export function meshSectionFinish(mb: MeshBuilder, layout: Layout, mat: (kind: s
       }
     }
   }
+  mb.floor = undefined;
 }

@@ -1,3 +1,4 @@
+import { isFamilyArchitecture } from '../families/registry.ts';
 // How far the opening units reach behind the outline skin: the deepest vertex
 // of every window, door, balcony door, open frontage and aperture part, measured against the
 // outward normal of the edge it sits on. Published as facade.wallDepth, so a
@@ -13,12 +14,12 @@ const NODE: Record<OpeningKind, string> = {
   window: 'window:', door: 'door:', balconyDoor: 'balcony:', openFront: 'open-front:', aperture: 'aperture:',
 };
 
-export function measureWallDepth(layout: Pick<Layout, 'floors'>, mb: MeshBuilder): number {
+export function measureWallDepth(layout: Pick<Layout, 'floors'> & Partial<Pick<Layout, 'request'>>, mb: MeshBuilder): number {
   const byName = new Map(mb.parts.map((p) => [p.name, p]));
   const children = new Map<string, Part[]>();
   for (const p of mb.parts) if (p.parent) children.set(p.parent, [...(children.get(p.parent) ?? []), p]);
 
-  let deepest = WALL_THICKNESS;
+  let deepest = isFamilyArchitecture(layout.request?.options?.architecture) ? 0.24 : WALL_THICKNESS;
   for (const floor of layout.floors) {
     for (const o of floor.openings) {
       const base = `${NODE[o.kind]}${o.id}`;

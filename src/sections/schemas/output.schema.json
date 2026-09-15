@@ -14,7 +14,16 @@
       "enum": [
         "rounded-corner",
         "chamfered-corners",
-        "terrace-blocks", "paired-rounded", "paired-rectangular"
+        "terrace-blocks",
+        "paired-rounded",
+        "paired-rectangular",
+        "garden-taper",
+        "corporate-sectors",
+        "faceted-bays",
+        "white-grid",
+        "balcony-grid",
+        "mirror-shutters",
+        "mirror-frame"
       ]
     },
     "grid": {
@@ -109,6 +118,19 @@
             "type": "integer",
             "minimum": 0
           },
+          "topOutline": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": "number"
+              }
+            }
+          },
           "outline": {
             "type": "array",
             "minItems": 4,
@@ -145,7 +167,12 @@
                     "corner-leg",
                     "rounded-glass",
                     "chamfered-glass",
-                    "frame-pier", "paired-glass", "paired-solid", "paired-pier"
+                    "frame-pier",
+                    "paired-glass",
+                    "paired-solid",
+                    "paired-pier",
+                    "garden-bay",
+                    "podium-panel"
                   ]
                 },
                 "edge": {
@@ -227,6 +254,73 @@
                       "sectionOffset": {
                         "type": "number",
                         "minimum": 0
+                      }
+                    }
+                  }
+                },
+                "panes": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "cols",
+                    "rows"
+                  ],
+                  "properties": {
+                    "cols": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "rows": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                },
+                "windows": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "offset",
+                      "width",
+                      "sill",
+                      "height"
+                    ],
+                    "properties": {
+                      "offset": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "width": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "sill": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "height": {
+                        "type": "number",
+                        "exclusiveMinimum": 0
+                      },
+                      "panes": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "cols",
+                          "rows"
+                        ],
+                        "properties": {
+                          "cols": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "rows": {
+                            "type": "integer",
+                            "minimum": 1
+                          }
+                        }
                       }
                     }
                   }

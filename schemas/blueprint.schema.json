@@ -17,6 +17,17 @@
       }
     },
     "assembly": { "$ref": "../src/sections/schemas/output.schema.json" },
+    "modelInstances": {
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false, "required": ["kind", "position", "size"],
+        "properties": {
+          "kind": { "enum": ["ornamental-tree", "palm", "shrub"] },
+          "position": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" } },
+          "size": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number", "exclusiveMinimum": 0 } },
+          "rotation": { "type": "number" }
+        }
+      }
+    },
     "version": { "type": "string", "description": "Generator package version; absent on older stored blueprints." },
     "buildingId": { "type": "string" },
     "coreFrame": {
@@ -53,7 +64,8 @@
           "kind": { "type": "string", "description": "atlas type verbatim for typed floors (residential, hotel, offices, corpo, hospital, clinic, police, military, factory, commerce, mall, restaurant, coffee_shop) plus lobby, entry, basement, bar, executive; request floorKinds pass through unchanged" },
           "elevation": { "type": "number", "description": "Y of this floor's walking surface" },
           "height": { "type": "number", "minimum": 2.2, "maximum": 12, "description": "floor-to-floor distance" },
-          "outline": {
+          "topOutline": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}}},
+            "outline": {
             "type": "array",
             "minItems": 3,
             "items": { "$ref": "#/$defs/point2" },
@@ -353,6 +365,10 @@
         "required": ["kind", "edge", "position", "normal", "size", "standoff"],
         "additionalProperties": false,
         "properties": {
+          "material": { "type": "string" },
+          "color": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+          "lumens": { "type": "number", "minimum": 0 },
+          "range": { "type": "number", "exclusiveMinimum": 0 },
           "kind": { "enum": ["entrance", "accent"] },
           "edge": { "type": "integer", "minimum": 0, "description": "carrying ground-outline edge" },
           "position": { "$ref": "#/$defs/point3", "description": "centre of the rear mounting face on the facade plane" },

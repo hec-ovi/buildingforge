@@ -111,9 +111,9 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
         let g = byMaterial.get(key);
         if (!g) { g = { positions: [], normals: [], uvs: [], indices: [] }; byMaterial.set(key, g); }
         const base = g.positions.length / 3;
-        g.positions.push(...prim.positions);
-        g.normals.push(...prim.normals);
-        g.uvs.push(...prim.uvs);
+        for (const position of prim.positions) g.positions.push(position);
+        for (const normal of prim.normals) g.normals.push(normal);
+        for (const uv of prim.uvs) g.uvs.push(uv);
         for (const i of prim.indices) g.indices.push(base + i);
       }
     }

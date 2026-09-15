@@ -1,14 +1,16 @@
+import { FAMILY_IDS, type FamilyArchitecture } from '../families/registry.ts';
 import type { Architecture, CornerTechnique, SectionTechnique } from './types.ts';
 
 export const CONSTRUCTION_GRID = 0.5;
 export const CORNER_EXTENT = 3;
 export const BAY_WIDTH = 4;
-export const ARCHITECTURES: Architecture[] = ['rounded-corner', 'chamfered-corners', 'terrace-blocks', 'paired-rounded', 'paired-rectangular'];
-export const COMPOSITIONS: Record<Architecture, { corners: CornerTechnique[]; bay: SectionTechnique }> = {
+export const ARCHITECTURES: Architecture[] = ['rounded-corner', 'chamfered-corners', 'terrace-blocks', 'paired-rounded', 'paired-rectangular', 'garden-taper', ...FAMILY_IDS];
+export const COMPOSITIONS: Record<Exclude<Architecture, FamilyArchitecture>, { corners: CornerTechnique[]; bay: SectionTechnique }> = {
   'rounded-corner': { corners: ['square', 'square', 'rounded', 'square'], bay: 'deep-bay' },
   'chamfered-corners': { corners: ['square', 'chamfered', 'chamfered', 'square'], bay: 'ribbon-bay' },
   'terrace-blocks': { corners: ['square', 'square', 'square', 'square'], bay: 'deep-bay' },
   'paired-rounded': { corners: ['square', 'square', 'rounded', 'square'], bay: 'paired-glass' },
+  'garden-taper': { corners: ['square', 'square', 'square', 'square'], bay: 'paired-glass' },
   'paired-rectangular': { corners: ['square', 'square', 'square', 'square'], bay: 'paired-glass' },
 };
 
@@ -21,5 +23,7 @@ export const BORDERS: Record<SectionTechnique, { side: number; bottom: number; t
   'frame-pier': { side: 0.5, bottom: 0.5, top: 0.5, depth: 0.85 },
   'paired-glass': { side: 0.04, bottom: 0.22, top: 0.28, depth: 0.12 },
   'paired-solid': { side: 0.03, bottom: 0.22, top: 0.28, depth: 0.12 },
+  'garden-bay': { side: 0.15, bottom: 0.22, top: 0.28, depth: 1.2 },
+  'podium-panel': { side: 0.04, bottom: 0.22, top: 0.28, depth: 0.12 },
   'paired-pier': { side: 0.03, bottom: 0.22, top: 0.28, depth: 0.12 },
 };

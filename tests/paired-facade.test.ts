@@ -32,7 +32,8 @@ it.each(['paired-rounded', 'paired-rectangular'] as const)('exports the %s facad
   const scenery = blueprint.floors.flatMap(f => f.openings.filter(o => o.scenery));
   expect(new Set(scenery.map(o => o.scenery!.nodeId)).size).toBe(3);
   expect(scenery.every(opening => nodeNames.has(opening.scenery!.nodeId))).toBe(true);
-  expect(blueprint.floors[0]!.openings.filter(o => o.kind === 'window').every(o => o.windowTreatment && !o.scenery)).toBe(true);
+  expect(blueprint.floors[0]!.openings.filter(o => o.kind === 'window')).toEqual([]);
+  expect(blueprint.floors[0]!.openings.filter(o => o.doorRole === 'main')).toHaveLength(1);
   expect(blueprint.facade.materialPlan.field.key).toBe('cyberpunk/paired-cladding-metal/mid');
   expect(blueprint.facade.groundMaterial!.key).toBe('cyberpunk/paired-cladding/mid');
   expect(blueprint.materials).toContain('cyberpunk/paired-blind/mid');

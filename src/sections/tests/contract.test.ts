@@ -1,9 +1,10 @@
+import { isFamilyArchitecture } from '../../families/registry.ts';
 import { expect, it } from 'vitest';
 import { ARCHITECTURES, SectionAssembler, sectionRoles, sectionSpans, isPaired } from '../index.ts';
 
 it('fits complete corner and bay sections and partitions every actual floor edge', () => {
   const assembler = new SectionAssembler();
-  for (const architecture of ARCHITECTURES) {
+  for (const architecture of ARCHITECTURES.filter(value => value !== 'garden-taper' && !isFamilyArchitecture(value))) {
     const input = { architecture, rectangle: [[0, 0], [32, 0], [32, 28], [0, 28]] as [[number, number], [number, number], [number, number], [number, number]], floorHeights: Array(9).fill(4) };
     const result = assembler.assemble(input);
     expect(result).toEqual(assembler.assemble(input));

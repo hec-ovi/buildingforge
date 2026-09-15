@@ -1,5 +1,9 @@
 # Changelog
 
+0.49.0: six modular facade families with shared room detail, source-model planting requests and fixed bridge elevations.
+
+0.49.0: tapered garden towers with planted facade bands, pale podiums and reflective dark windows.
+
 0.49.0: formed perforated louvers, cyan room lighting records, clear upper glazing and graphite metal finishes.
 
 0.49.0: paired rounded and rectangular facades with authored scenic rooms, ceiling fixtures and coverings.

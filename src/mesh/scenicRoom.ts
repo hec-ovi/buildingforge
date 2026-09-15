@@ -12,7 +12,10 @@ export interface ScenicRoomInput {
 export function scenicRoom(sink: PartSink, frame: RoomFrame, room: ScenicRoomInput): ScenicEmitter[] {
   const { width, bottom, top, front, depth, state } = room;
   const back = front - depth;
-  const leftBack = room.leftInset ?? 0, rightBack = width - (room.rightInset ?? 0);
+  const left = Math.max(0, room.leftInset ?? 0), right = Math.max(0, room.rightInset ?? 0);
+  const minimumBackWidth = Math.min(width, Math.max(0.3, width * 0.2));
+  const scale = Math.min(1, (width - minimumBackWidth) / Math.max(0.001, left + right));
+  const leftBack = left * scale, rightBack = width - right * scale;
   const backWidth = rightBack - leftBack;
   const point = (u: number, y: number, z: number) => frame.point(u, y, z);
   const key = (kind: string) => materialSlot(`cyberpunk/paired-${kind}${kind.startsWith('room-') && state !== 'lit' ? '-' + state : ''}/mid`, 'surface');
@@ -26,10 +29,10 @@ export function scenicRoom(sink: PartSink, frame: RoomFrame, room: ScenicRoomInp
   quad(key('room-wall'), point(leftBack, bottom, back), point(rightBack, bottom, back), point(rightBack, top, back), point(leftBack, top, back), normal);
   const plateWidth = Math.min(backWidth, (top - bottom) * 2);
   const plateHeight = plateWidth / 2;
-  const left = leftBack + (backWidth - plateWidth) / 2;
-  quad(materialSlot(`cyberpunk/paired-room-${state}/mid`, 'lounge'), point(left, bottom, back + 0.004),
-    point(left + plateWidth, bottom, back + 0.004), point(left + plateWidth, bottom + plateHeight, back + 0.004),
-    point(left, bottom + plateHeight, back + 0.004), normal);
+  const plateLeft = leftBack + (backWidth - plateWidth) / 2;
+  quad(materialSlot(`cyberpunk/paired-room-${state}/mid`, 'lounge'), point(plateLeft, bottom, back + 0.004),
+    point(plateLeft + plateWidth, bottom, back + 0.004), point(plateLeft + plateWidth, bottom + plateHeight, back + 0.004),
+    point(plateLeft, bottom + plateHeight, back + 0.004), normal);
   const fixtureFrame: RoomFrame = { ...frame, point: (u, y, z) => frame.point(u + leftBack, y, z) };
   return scenicFixtures(sink, fixtureFrame, backWidth, top, front, back, room.lights,
     key(state === 'dark' ? 'light-off' : room.warm ? 'light-warm' : 'light-cool'), 'cyberpunk/paired-frame-metal/mid#surface', state === 'dark' ? 0 : state === 'dim' ? 0.15 : 1, room.warm);

@@ -1,3 +1,5 @@
+import { buildingFamily } from '../families/registry.ts';
+import { gardenAssembly } from './garden.ts';
 import { ARCHITECTURES, BAY_WIDTH, BORDERS, COMPOSITIONS, CONSTRUCTION_GRID, CORNER_EXTENT } from './catalog.ts';
 import { sectionOutline } from './outline.ts';
 import { isPaired, pairedExtent, pairedOutline } from './paired.ts';
@@ -20,6 +22,9 @@ export class SectionAssembler {
       || Math.hypot(rectangle[2][0] - origin[0] - dx - vx, rectangle[2][1] - origin[1] - dz - vz) > 1e-6) {
       throw new RangeError('available plate must be a CCW rectangle');
     }
+    const family = buildingFamily(architecture);
+    if (family) return { ...family.plan({ rectangle, floorHeights, seed: input.seed ?? '', fixedFaces: input.fixedFaces }), architecture };
+    if (architecture === 'garden-taper') return gardenAssembly(rectangle, floorHeights);
     const fitted = (length: number) => 2 * CORNER_EXTENT + BAY_WIDTH * Math.floor((length - 2 * CORNER_EXTENT + 1e-8) / BAY_WIDTH);
     const fit = isPaired(architecture) ? pairedExtent : fitted;
     const width = fit(maxWidth), depth = fit(maxDepth);
@@ -28,7 +33,7 @@ export class SectionAssembler {
     const u: Point = [dx / maxWidth, dz / maxWidth], v: Point = [vx / maxDepth, vz / maxDepth];
     const shiftU = Math.floor((maxWidth - width) / (2 * CONSTRUCTION_GRID) + 1e-8) * CONSTRUCTION_GRID;
     const shiftV = Math.floor((maxDepth - depth) / (2 * CONSTRUCTION_GRID) + 1e-8) * CONSTRUCTION_GRID;
-    const composition = COMPOSITIONS[architecture];
+    const composition = COMPOSITIONS[architecture as keyof typeof COMPOSITIONS];
     const groupCount = architecture === 'terrace-blocks' ? Math.min(3, Math.floor(floorHeights.length / 3)) : 1;
     if (groupCount < 1 || (architecture === 'terrace-blocks' && (width < 22 || depth < 18))) throw new RangeError('terrace blocks require three floors and a 22 by 18 m plate');
     const groups = Array.from({ length: groupCount }, (_, id) => ({

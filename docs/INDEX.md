@@ -4,6 +4,7 @@
 | --- | --- | --- | --- |
 | [Exterior](../CONTRACT.md) | Builds one shell and its floor/opening blueprint | Atlas parcel, Connections apertures, Interior feasibility, Materials catalog | [Request](../schemas/building-request.schema.json), [blueprint](../schemas/blueprint.schema.json), [result](../src/types.ts) |
 | [Facade sections](../src/sections/CONTRACT.md) | Fits fixed corners, horizontal ribbon facades and floor groups | Caller maximum rectangle and floor heights | [Input](../src/sections/schemas/input.schema.json), [output](../src/sections/schemas/output.schema.json) |
+| [Building families](../src/families/CONTRACT.md) | Fits photographed facade families and their attached details | Facade sections, shared scenic rooms, Materials | [Input/output](../src/families/api.ts) |
 | [Facade services](../src/facade-services/CONTRACT.md) | Fits attached services around reservations | Caller geometry and materials | [Input](../src/facade-services/schema/input.schema.json), [output](../src/facade-services/schema/output.schema.json) |
 | [Preview](../src/ui/CONTRACT.md) | Displays a generated building and inspection controls | Exterior, Materials, Three.js | Request controls, GLB and blueprint |
 
@@ -12,7 +13,11 @@
 - `src/core`, `src/rules`: validation, polygon arithmetic and [canonical floor/window policy](../schemas/floor-constants.json).
 - `src/layout`: [automatic architecture selection](../schemas/architecture-policy.json), floor stacks, volume fitting and section-driven openings.
 - `src/sections/paired.ts`: rounded and rectangular facades assembled from complete two-room sections.
+- `src/sections/garden.ts`: pale podium and continuously tapered tower with two planted faces and a minimum-width roof termination.
+- `src/mesh/floorSlope.ts`: fits floor-owned shell parts and emitter positions to their published upper outlines.
 - `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
+- `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
+- `src/mesh/scenicCurve.ts`: shared room geometry derived from authored curved spans.
 - `src/mesh/profiledBlind.ts`: formed slats with punched openings, folded lips, support clips and raised stacks.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.
 - `src/glb`, `src/materials`: GLB output and material resolution.

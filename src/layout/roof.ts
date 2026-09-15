@@ -16,7 +16,7 @@ export function buildRoof(
   style: Style, floors: FloorLayout[], coreStair: CoreStairPlacement,
 ): Blueprint['roof'] {
   const topFloor = floors[floors.length - 1]!;
-  const outline = topFloor.outline;
+  const outline = topFloor.topOutline ?? topFloor.outline;
   const elevation = topFloor.elevation + topFloor.height;
   const artifacts: RoofArtifact[] = [];
   const bulkhead = fitRoofAccess(request.seed, outline, coreStair);

@@ -1,0 +1,5 @@
+{
+  "rectangle": [[0, 0], [32.5, 0], [32.5, 17.5], [0, 17.5]],
+  "floorHeights": [5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5],
+  "seed": "white-grid-reference"
+}

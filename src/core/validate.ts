@@ -1,3 +1,4 @@
+import { isFamilyArchitecture } from '../families/registry.ts';
 import { minimumFloorHeight } from '../rules/generationPolicy.ts';
 import { ARCHITECTURES, isPaired } from '../sections/index.ts';
 // Request validation mirroring schemas/building-request.schema.json.
@@ -118,6 +119,12 @@ export function validateRequest(raw: unknown): BuildingRequest {
   }
   const family = FAMILY[type];
   minimumFloorHeight(family, options?.minimumClearHeight);
+  if (options?.architecture === 'garden-taper') {
+    const minimum = minimumFloorHeight(family, options.minimumClearHeight);
+    if (maxHeight < Math.max(4.5, minimum) + (floors - 1) * minimum - 1e-8) {
+      throw new ExteriorError('E_ENVELOPE_TOO_LOW', 'garden tower needs its 4.5 m podium and the requested clear upper floors');
+    }
+  }
   if (area(footprint) < RULES[family].minFootprintArea) {
     throw new ExteriorError('E_FOOTPRINT_TOO_SMALL', `${type} needs at least ${RULES[family].minFootprintArea} m2, footprint has ${area(footprint).toFixed(1)}`);
   }
@@ -127,13 +134,13 @@ export function validateRequest(raw: unknown): BuildingRequest {
   if (floorKinds && floorKinds.length !== floors) {
     throw new ExteriorError('E_FLOORKINDS_MISMATCH', `floorKinds has ${floorKinds.length} entries for ${floors} floors`);
   }
-  const fixedFacade = apertures.some(a => !isPaired(options?.architecture) || a.base + a.height > 0 || a.kind === 'wire-anchor');
+  const fixedFacade = !isFamilyArchitecture(options?.architecture) && apertures.some(a => !isPaired(options?.architecture) || a.base + a.height > 0 || a.kind === 'wire-anchor');
   if (options?.architecture && options.architecture !== 'auto' && (fixedFacade || options.doorMotion === 'pocket' || options.openFront === 'on'
     || options.entranceLayout === 'repeated' || options.windows === 'none'
     || options.architecture === 'terrace-blocks' && (options.balconies === 'off' || options.balconyStyle === 'bay')
     || options.architecture !== 'terrace-blocks' && options.balconies === 'on' || options.shape && options.shape !== 'auto' && options.shape !== 'box'
     || buildingGrid && Math.abs(buildingGrid.spacing - 0.5) > 1e-9)) {
-    fail('options.architecture', 'section compositions require unbound faces, a single swing entrance, windows, their authored balcony selection and the 0.5 m construction grid');
+    fail('options.architecture', 'section compositions require supported faces, a single swing entrance, windows, their authored balcony selection and the 0.5 m construction grid');
   }
   validateAperturesSemantics(apertures, footprint, maxHeight, basements, RULES[family].maxFloorHeight);
 
