@@ -33,13 +33,14 @@ export function meshSectionFinish(mb: MeshBuilder, layout: Layout, mat: (kind: s
           const ribbon = layout.assembly!.architecture === 'chamfered-corners';
           const pier = section.technique === 'frame-pier';
           const proud = paired ? (section.technique === 'paired-solid' ? 0.32 : 0.08) : pier ? 0.85 : ribbon ? (groupBand || floor.index === 0 && field.role.startsWith('bottom') ? 0.85 : 0.5) : curved ? 0.04 : groupBand ? 0.42 : section.border.depth;
-          const material = paired ? mat(section.technique === 'paired-solid' ? 'wall' : 'window-frame') : ribbon ? mat(pier || groupBand ? 'column' : 'wall-trim')
+          const material = paired ? (floor.index > 0 ? `cyberpunk/paired-${section.technique === 'paired-solid' ? 'cladding' : 'frame'}-metal/mid#surface`
+            : mat(section.technique === 'paired-solid' ? 'wall' : 'window-frame')) : ribbon ? mat(pier || groupBand ? 'column' : 'wall-trim')
             : mat(curved ? 'window-frame' : field.role.includes('left') || field.role.includes('right') ? 'column' : 'wall-trim');
           frame.solid(sink, ribbon || paired ? material : exactMaterialSlot(material),
             field.offset, field.offset + field.width, floor.elevation + sill, floor.elevation + sill + height, proud, 0,
             [(field.offset - span.offset + span.sectionOffset - role.offset) / role.width,
               (field.offset + field.width - span.offset + span.sectionOffset - role.offset) / role.width],
-            { start: role.offset >= span.sectionOffset - 1e-7, end: role.offset + role.width <= span.sectionOffset + span.width + 1e-7 }, ribbon);
+            { start: role.offset >= span.sectionOffset - 1e-7, end: role.offset + role.width <= span.sectionOffset + span.width + 1e-7 }, ribbon || paired && floor.index > 0);
         }
       }
     }

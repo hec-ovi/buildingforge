@@ -160,7 +160,8 @@ export interface Opening {
   /** Exact covering travel; authoritative over the legacy categorical state. */
   curtain?: { style: 'roller-shade' | 'venetian-blind'; closurePercent: number };
   windowTreatment?: { privacy: 'shell-only'; nodeId: string };
-  scenery?: { nodeId: string; depth: number; lightLayout: 'strips' | 'spots'; state: 'lit' | 'dim' | 'dark' };
+  scenery?: { nodeId: string; depth: number; lightLayout: 'strips' | 'spots'; state: 'lit' | 'dim' | 'dark';
+    lights?: { position: P3; color: string; lumens: number; range: number }[] };
   glazing?: { offset: number; sill: number; width: number; height: number; glassDepth: number; housingBackDepth: number };
   exteriorCovering?: { style: 'metal-louvre'; placement: 'exterior'; depth: number; standoff: number; material: string };
   state?: CurtainState;

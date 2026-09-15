@@ -6,14 +6,19 @@ export interface RoomFrame {
   normal: [number, number];
 }
 
+export interface ScenicEmitter { position: V3; color: string; lumens: number; range: number }
+
 /** Housed ceiling fixtures, oriented across room width and into room depth. */
 export function scenicFixtures(sink: PartSink, frame: RoomFrame, width: number, top: number, front: number, back: number,
-  layout: 'strips' | 'spots', light: string, housing: string): void {
+  layout: 'strips' | 'spots', light: string, housing: string, level: number, warm: boolean): ScenicEmitter[] {
+  const emitters: ScenicEmitter[] = [];
   const along = (half: number): V3 => [frame.dir[0] * half, 0, frame.dir[1] * half];
   const inward = (half: number): V3 => [frame.normal[0] * half, 0, frame.normal[1] * half];
   const fixture = (u: number, z: number, w: number, d: number) => {
     sink.box(housing, frame.point(u, top - 0.055, z), along(w / 2 + 0.018), [0, 0.055, 0], inward(d / 2 + 0.018));
     sink.box(light, frame.point(u, top - 0.113, z), along(w / 2), [0, 0.008, 0], inward(d / 2));
+    emitters.push({ position: frame.point(u, top - 0.13, z), color: warm ? '#f0ffc6' : '#99fff0',
+      lumens: (layout === 'strips' ? 2400 : 1200) * level, range: 12 });
   };
   if (layout === 'strips') {
     const depth = Math.min(2.6, front - back - 0.6);
@@ -23,4 +28,5 @@ export function scenicFixtures(sink: PartSink, frame: RoomFrame, width: number, 
       fixture(width * (column + 0.5) / 4, front + (back - front) * (row + 0.6) / 2.2, 0.12, 0.12);
     }
   }
+  return emitters;
 }

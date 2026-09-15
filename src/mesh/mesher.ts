@@ -255,6 +255,10 @@ function n3(fr: Frame): V3 {
 }
 
 function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: Opening, mat: (k: string) => string): void {
+  if (f.index > 0 && isPaired(layout.request.options?.architecture)) {
+    const base = mat;
+    mat = kind => kind === 'window-frame' ? 'cyberpunk/paired-frame-metal/mid#surface' : base(kind);
+  }
   const fr = frame(f.outline, o.edge);
   const yb = f.elevation + o.sill;
   const yt = yb + o.height;

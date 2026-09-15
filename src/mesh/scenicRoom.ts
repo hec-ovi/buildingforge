@@ -1,22 +1,21 @@
 import type { PartSink, V3 } from './primitives.ts';
-import { scenicFixtures, type RoomFrame } from './scenicFixtures.ts';
-import { scenicCurtain } from './scenicCurtain.ts';
+import { scenicFixtures, type RoomFrame, type ScenicEmitter } from './scenicFixtures.ts';
 import { materialSlot } from '../materials/slot.ts';
 
 export interface ScenicRoomInput {
   width: number; bottom: number; top: number; front: number; depth: number;
-  lights: 'strips' | 'spots'; state: 'lit' | 'dim' | 'dark'; warm: boolean; curtain: number;
+  lights: 'strips' | 'spots'; state: 'lit' | 'dim' | 'dark'; warm: boolean;
   leftInset?: number; rightInset?: number;
 }
 
 /** Five receiving faces retain the plate's physical aspect from oblique views. */
-export function scenicRoom(sink: PartSink, frame: RoomFrame, room: ScenicRoomInput): void {
+export function scenicRoom(sink: PartSink, frame: RoomFrame, room: ScenicRoomInput): ScenicEmitter[] {
   const { width, bottom, top, front, depth, state } = room;
   const back = front - depth;
   const leftBack = room.leftInset ?? 0, rightBack = width - (room.rightInset ?? 0);
   const backWidth = rightBack - leftBack;
   const point = (u: number, y: number, z: number) => frame.point(u, y, z);
-  const key = (kind: string) => materialSlot(`cyberpunk/paired-${kind}/mid`, 'surface');
+  const key = (kind: string) => materialSlot(`cyberpunk/paired-${kind}${kind.startsWith('room-') && state !== 'lit' ? '-' + state : ''}/mid`, 'surface');
   const uv: [number, number][] = [[0, 1], [1, 1], [1, 0], [0, 0]];
   const normal: V3 = [frame.normal[0], 0, frame.normal[1]];
   const quad = (material: string, a: V3, b: V3, c: V3, d: V3, n: V3) => sink.quadFacing(material, a, b, c, d, n, uv);
@@ -32,7 +31,6 @@ export function scenicRoom(sink: PartSink, frame: RoomFrame, room: ScenicRoomInp
     point(left + plateWidth, bottom, back + 0.004), point(left + plateWidth, bottom + plateHeight, back + 0.004),
     point(left, bottom + plateHeight, back + 0.004), normal);
   const fixtureFrame: RoomFrame = { ...frame, point: (u, y, z) => frame.point(u + leftBack, y, z) };
-  scenicFixtures(sink, fixtureFrame, backWidth, top, front, back, room.lights,
-    key(state === 'dark' ? 'light-off' : room.warm ? 'light-warm' : 'light-cool'), key('frame'));
-  if (room.curtain > 0) scenicCurtain(sink, frame, width, bottom, top, front - 0.48, room.curtain, 'cyberpunk/curtain/mid#shade');
+  return scenicFixtures(sink, fixtureFrame, backWidth, top, front, back, room.lights,
+    key(state === 'dark' ? 'light-off' : room.warm ? 'light-warm' : 'light-cool'), 'cyberpunk/paired-frame-metal/mid#surface', state === 'dark' ? 0 : state === 'dim' ? 0.15 : 1, room.warm);
 }

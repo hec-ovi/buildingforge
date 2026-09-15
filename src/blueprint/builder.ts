@@ -68,8 +68,8 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
         origin: layout.style.facade.panelOrigin,
         boundary: layout.style.facade.panelBoundary,
       },
-      materialPlan: paired ? { palette: 'neutral-dystopian', field: { key: 'cyberpunk/paired-cladding/mid', variantId: 'surface' },
-        border: { key: 'cyberpunk/paired-frame/mid', variantId: 'surface' }, trim: { key: 'cyberpunk/paired-frame/mid', variantId: 'surface' } }
+      materialPlan: paired ? { palette: 'neutral-dystopian', field: { key: 'cyberpunk/paired-cladding-metal/mid', variantId: 'surface' },
+        border: { key: 'cyberpunk/paired-frame-metal/mid', variantId: 'surface' }, trim: { key: 'cyberpunk/paired-frame-metal/mid', variantId: 'surface' } }
         : facadeMaterialPlan(layout.theme, layout.tier, layout.request.options!.exteriorStyle!),
       wallDepth,
       coreAdjacency: coreAdjacency(layout.request),

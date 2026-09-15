@@ -13,6 +13,7 @@
 - `src/layout`: [automatic architecture selection](../schemas/architecture-policy.json), floor stacks, volume fitting and section-driven openings.
 - `src/sections/paired.ts`: rounded and rectangular facades assembled from complete two-room sections.
 - `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
+- `src/mesh/profiledBlind.ts`: formed slats with punched openings, folded lips, support clips and raised stacks.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.
 - `src/glb`, `src/materials`: GLB output and material resolution.
 - `src/layout/validateLayout.ts`: final geometry and opening guards.

@@ -46,7 +46,7 @@ export function sectionOpenings(request: BuildingRequest, plan: FloorAssembly, h
       } else {
         opening.panes = { cols: section.technique === 'paired-glass' ? 4 : Math.max(1, Math.ceil(width / (request.options?.architecture === 'chamfered-corners' ? 4 : 1.5))), rows: 1 };
         if (isPaired(request.options?.architecture)) {
-          opening.material = `${request.theme}/window-glass-office/${request.building.tier}`;
+          opening.material = plan.floor === 0 ? `${request.theme}/window-glass-office/${request.building.tier}` : 'cyberpunk/paired-window-glass/mid';
           if (plan.floor === 0) opening.windowTreatment = { privacy: 'shell-only', nodeId: `ground-privacy:${opening.id}` };
         }
       }

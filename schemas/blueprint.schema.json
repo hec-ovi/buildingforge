@@ -103,7 +103,17 @@
                   "type": "object", "required": ["nodeId", "depth", "lightLayout", "state"], "additionalProperties": false,
                   "properties": {
                     "nodeId": { "type": "string" }, "depth": { "type": "number", "exclusiveMinimum": 0 },
-                    "lightLayout": { "enum": ["strips", "spots"] }, "state": { "enum": ["lit", "dim", "dark"] }
+                    "lightLayout": { "enum": ["strips", "spots"] }, "state": { "enum": ["lit", "dim", "dark"] },
+                    "lights": {
+                      "type": "array", "items": { "type": "object", "additionalProperties": false,
+                        "required": ["position", "color", "lumens", "range"],
+                        "properties": {
+                          "position": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" } },
+                          "color": { "type": "string", "pattern": "^#[0-9a-f]{6}$" },
+                          "lumens": { "type": "number", "minimum": 0 }, "range": { "type": "number", "exclusiveMinimum": 0 }
+                        }
+                      }
+                    }
                   },
                   "description": "Authored shell-only room geometry. Render this original node, omit generated scenic replacements, and hide it when a real interior replaces the floor."
                 },
