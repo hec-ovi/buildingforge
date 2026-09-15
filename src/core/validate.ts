@@ -1,5 +1,5 @@
 import { minimumFloorHeight } from '../rules/generationPolicy.ts';
-import { ARCHITECTURES } from '../sections/index.ts';
+import { ARCHITECTURES, isPaired } from '../sections/index.ts';
 // Request validation mirroring schemas/building-request.schema.json.
 // Shape violations throw E_SCHEMA naming the path; semantic checks throw their own codes.
 
@@ -127,7 +127,8 @@ export function validateRequest(raw: unknown): BuildingRequest {
   if (floorKinds && floorKinds.length !== floors) {
     throw new ExteriorError('E_FLOORKINDS_MISMATCH', `floorKinds has ${floorKinds.length} entries for ${floors} floors`);
   }
-  if (options?.architecture && options.architecture !== 'auto' && (apertures.length > 0 || options.doorMotion === 'pocket' || options.openFront === 'on'
+  const fixedFacade = apertures.some(a => !isPaired(options?.architecture) || a.base + a.height > 0 || a.kind === 'wire-anchor');
+  if (options?.architecture && options.architecture !== 'auto' && (fixedFacade || options.doorMotion === 'pocket' || options.openFront === 'on'
     || options.entranceLayout === 'repeated' || options.windows === 'none'
     || options.architecture === 'terrace-blocks' && (options.balconies === 'off' || options.balconyStyle === 'bay')
     || options.architecture !== 'terrace-blocks' && options.balconies === 'on' || options.shape && options.shape !== 'auto' && options.shape !== 'box'

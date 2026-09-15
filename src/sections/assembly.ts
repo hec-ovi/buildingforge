@@ -1,5 +1,6 @@
 import { ARCHITECTURES, BAY_WIDTH, BORDERS, COMPOSITIONS, CONSTRUCTION_GRID, CORNER_EXTENT } from './catalog.ts';
 import { sectionOutline } from './outline.ts';
+import { isPaired, pairedExtent, pairedOutline } from './paired.ts';
 import type { Assembly, AssemblyInput, Point } from './types.ts';
 
 /** Fits whole corner and bay sections, then composes authored groups of floors. */
@@ -20,7 +21,9 @@ export class SectionAssembler {
       throw new RangeError('available plate must be a CCW rectangle');
     }
     const fitted = (length: number) => 2 * CORNER_EXTENT + BAY_WIDTH * Math.floor((length - 2 * CORNER_EXTENT + 1e-8) / BAY_WIDTH);
-    const width = fitted(maxWidth), depth = fitted(maxDepth);
+    const fit = isPaired(architecture) ? pairedExtent : fitted;
+    const width = fit(maxWidth), depth = fit(maxDepth);
+    if (isPaired(architecture) && (width < 21 || depth < 21)) throw new RangeError('paired facades require two complete room pairs on each axis');
     if (width < 10 || depth < 10) throw new RangeError('available rectangle cannot fit complete corners and a bay');
     const u: Point = [dx / maxWidth, dz / maxWidth], v: Point = [vx / maxDepth, vz / maxDepth];
     const shiftU = Math.floor((maxWidth - width) / (2 * CONSTRUCTION_GRID) + 1e-8) * CONSTRUCTION_GRID;
@@ -35,7 +38,8 @@ export class SectionAssembler {
     }));
     const floors = floorHeights.map((_, floor) => {
       const group = groups.find(g => floor >= g.fromFloor && floor <= g.toFloor)!;
-      const local = sectionOutline(group.width, group.depth, composition.corners, composition.bay);
+      const local = isPaired(architecture) ? pairedOutline(group.width, group.depth, architecture)
+        : sectionOutline(group.width, group.depth, composition.corners, composition.bay);
       if (architecture === 'chamfered-corners') for (const section of local.sections) {
         if (section.technique === 'ribbon-bay') {
           const a = local.outline[section.edge]!, b = local.outline[(section.edge + 1) % local.outline.length]!;

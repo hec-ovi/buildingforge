@@ -91,7 +91,7 @@ export function buildFacades(
   }
 
   for (const level of stack.levels) {
-    const outline = massing.outlineOf(Math.max(0, level.index));
+    const outline = massing.outlineOf(level.index);
     const openings: Opening[] = [];
     const isGround = level.index === 0;
     const isBasement = level.index < 0;

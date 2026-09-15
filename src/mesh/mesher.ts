@@ -1,4 +1,6 @@
 import { meshRibbonLouvres } from './ribbonLouvres.ts';
+import { meshPairedWindows } from './pairedWindows.ts';
+import { isPaired } from '../sections/index.ts';
 import { measureWallDepth } from './wallDepth.ts';
 import { sectionSpans } from '../sections/index.ts';
 import { meshCurvedWindow } from './curvedWindow.ts';
@@ -181,12 +183,17 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   meshFireEscape(mb, layout, above, mat);
 
   meshWindowWeathering(mb, layout);
+  meshPairedWindows(mb, layout);
   return mb;
 }
 
 function materialResolver(layout: OpeningLayout): (kind: string) => string {
   const { theme, tier } = layout;
   return (kind: string) => {
+    if (isPaired(layout.request.options?.architecture)) {
+      if (['window-frame', 'wall-trim', 'column'].includes(kind)) return 'cyberpunk/paired-frame/mid#surface';
+      if (['wall', 'ground', 'inner-wall'].includes(kind)) return 'cyberpunk/paired-cladding/mid#surface';
+    }
     const key = selectedMaterialKey(theme, tier, layout.request.options!.exteriorStyle!, kind === 'wall' || kind === 'inner-wall' ? 'concrete' : kind);
     if (layout.request.options?.architecture !== 'chamfered-corners' || kind === 'inner-wall') return key;
     const surface = kind === 'wall' || kind === 'ground' || kind === 'wall-trim' ? ['concrete-monolith', 'graphite']

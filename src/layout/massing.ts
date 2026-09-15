@@ -31,7 +31,7 @@ export type Shape = 'box' | 'rounded-box' | 'octagon' | 'cylinder' | 'pyramid' |
 
 export interface Massing {
   assembly?: Assembly;
-  /** outline per above-ground floor index (0..floors-1); basements reuse outline 0 */
+  /** Outline per floor index; basements use the ground plate or paired parcel footprint. */
   outlineOf(floor: number): P2[];
   groundOutline: P2[];
   /** Rectangular plates keep the vertical core parallel to their construction axes. */
@@ -114,7 +114,7 @@ export function buildMassing(
     }
     return {
       groundOutline: base, rectangular,
-      outlineOf: (f) => steps[Math.min(f, steps.length - 1)] as P2[],
+      outlineOf: (f) => steps[Math.max(0, Math.min(f, steps.length - 1))] as P2[],
     };
   }
 

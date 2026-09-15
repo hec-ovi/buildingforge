@@ -8,4 +8,6 @@ Metres, CCW XZ, floor zero first. The construction grid is 0.5 m. The catalog ha
 
 Compositions: one rounded corner, two chamfered corners, or straight floor groups with exact 4 m cutbacks and one selected balcony floor. Output section spans partition each actual outline edge exactly. Curve tessellation does not introduce window jambs. Actual footprints can be smaller than the allowance. Group and floor identities remain explicit.
 
+Paired compositions (`paired-rounded`, `paired-rectangular`) use 5 m room widths in alternating 10 m glazed and solid sections, 0.5 m end trims and a 10 m rounded corner radius. Their straight extents are `1 + 10n` metres. The rounded form has one broad curved corner and three right-angle corners. Glazed pairs contain four panes; the curved corner contains six broad panes across eighteen geometric slices. Floor rims total 0.5 m of each storey.
+
 `RangeError` reports unknown composition, invalid rectangle/heights or a plate too small for complete sections. The caller checks parcel, circulation core and connection feasibility, places openings only in section fields and builds both wall faces, returns and glazing. Roof design is outside this box.

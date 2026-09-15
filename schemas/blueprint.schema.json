@@ -99,6 +99,14 @@
                     "housingBackDepth": { "type": "number", "minimum": 0 }
                   }
                 },
+                "scenery": {
+                  "type": "object", "required": ["nodeId", "depth", "lightLayout", "state"], "additionalProperties": false,
+                  "properties": {
+                    "nodeId": { "type": "string" }, "depth": { "type": "number", "exclusiveMinimum": 0 },
+                    "lightLayout": { "enum": ["strips", "spots"] }, "state": { "enum": ["lit", "dim", "dark"] }
+                  },
+                  "description": "Authored shell-only room geometry. Render this original node, omit generated scenic replacements, and hide it when a real interior replaces the floor."
+                },
                 "windowTreatment": {
                   "type": "object", "required": ["privacy", "nodeId"], "additionalProperties": false,
                   "properties": { "privacy": { "const": "shell-only" }, "nodeId": { "type": "string" } },

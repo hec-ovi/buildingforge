@@ -14,7 +14,7 @@
       "enum": [
         "rounded-corner",
         "chamfered-corners",
-        "terrace-blocks"
+        "terrace-blocks", "paired-rounded", "paired-rectangular"
       ]
     },
     "grid": {
@@ -145,7 +145,7 @@
                     "corner-leg",
                     "rounded-glass",
                     "chamfered-glass",
-                    "frame-pier"
+                    "frame-pier", "paired-glass", "paired-solid", "paired-pier"
                   ]
                 },
                 "edge": {

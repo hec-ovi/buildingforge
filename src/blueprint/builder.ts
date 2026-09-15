@@ -11,6 +11,8 @@ import type { MeshBuilder } from '../mesh/primitives.ts';
 import { coreAdjacency } from '../layout/coreAdjacency.ts';
 import { RoomEnvelopes } from './roomEnvelope.ts';
 import release from '../../package.json' with { type: 'json' };
+import { isPaired } from '../sections/index.ts';
+import { splitMaterialSlot } from '../materials/slot.ts';
 
 export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
   const topFloor = layout.floors[layout.floors.length - 1]!;
@@ -18,6 +20,11 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
   const wallDepth = measureWallDepth(layout, mb);
   const envelopes = new RoomEnvelopes(layout.request);
   const selected = buildingMaterialVariants(layout.theme, layout.tier, layout.request.options!.exteriorStyle!);
+  for (const slot of mb.materialSlots()) {
+    const [key, variant] = splitMaterialSlot(slot);
+    if (variant) selected[key] = variant;
+  }
+  const paired = isPaired(layout.assembly?.architecture);
   const materialVariants = Object.fromEntries(materials
     .map((key) => [key, selected[key] ?? preferredVariantForKey(key)] as const)
     .filter((entry): entry is [string, string] => entry[1] !== undefined));
@@ -47,7 +54,7 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
     lights: layout.lights,
     facade: {
       surfacePattern: facadeSurfacePattern(layout.request.options!.exteriorStyle!),
-      groundMaterial: {
+      groundMaterial: paired ? { key: 'cyberpunk/paired-cladding/mid', variantId: 'surface' } : {
         key: `${layout.theme}/${styleSurfaces(layout.request.options!.exteriorStyle!).ground.kind}/${layout.tier}`,
         variantId: styleSurfaces(layout.request.options!.exteriorStyle!).ground.variant,
       },
@@ -61,11 +68,13 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
         origin: layout.style.facade.panelOrigin,
         boundary: layout.style.facade.panelBoundary,
       },
-      materialPlan: facadeMaterialPlan(layout.theme, layout.tier, layout.request.options!.exteriorStyle!),
+      materialPlan: paired ? { palette: 'neutral-dystopian', field: { key: 'cyberpunk/paired-cladding/mid', variantId: 'surface' },
+        border: { key: 'cyberpunk/paired-frame/mid', variantId: 'surface' }, trim: { key: 'cyberpunk/paired-frame/mid', variantId: 'surface' } }
+        : facadeMaterialPlan(layout.theme, layout.tier, layout.request.options!.exteriorStyle!),
       wallDepth,
       coreAdjacency: coreAdjacency(layout.request),
       slabBand: {
-        below: slabBandBelow(layout),
+        below: paired ? 0.28 : slabBandBelow(layout),
         above: 0,
       },
       grids: buildFacadeGrids(layout.floors, layout.style.facade.panelWidth, layout.style.facade.panelHeight),

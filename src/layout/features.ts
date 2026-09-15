@@ -1,6 +1,7 @@
 // Facade features: signage, ad screens, lights, equipment and fire escape.
 
 import { ExteriorError } from '../core/errors.ts';
+import { isPaired } from '../sections/index.ts';
 import { cellCentre } from './module.ts';
 import { Rng } from '../core/rng.ts';
 import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, OPENING, MODULE, MODULE_U } from '../rules/tables.ts';
@@ -35,12 +36,12 @@ export function buildFacadeFeatures(
   // Fixtures first: they are facade obstacles like ribs and anchors, so the
   // sign and screen scans land clear of them and the overlay invariant proves it.
   placeLights(req, family, ground, streetEdge, groundFloor, lights, obstacles);
-  const acUnits = style.facade.kind === 'curtain-wall' ? [] : placeAcUnits(req, family, tier, floors, obstacles);
+  const acUnits = style.facade.kind === 'curtain-wall' || isPaired(req.options?.architecture) ? [] : placeAcUnits(req, family, tier, floors, obstacles);
   placeSignage(req, family, ground, faces, groundFloor, top, signage, obstacles);
   placeScreens(req, family, tier, ground, faces, groundFloor.height, top, signage, screens, obstacles);
   const facadeArtifacts = [
     ...acUnits,
-    ...placeFacadeArtifacts(req, style, floors, signage, screens, obstacles),
+    ...(isPaired(req.options?.architecture) ? [] : placeFacadeArtifacts(req, style, floors, signage, screens, obstacles)),
   ];
   const fireEscape = placeFireEscape(req, family, tier, massing, floors, streetEdge);
 

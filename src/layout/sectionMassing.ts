@@ -1,4 +1,4 @@
-import { SectionAssembler, type Assembly } from '../sections/index.ts';
+import { SectionAssembler, isPaired, type Assembly } from '../sections/index.ts';
 import { PlateGrid } from './buildingGrid.ts';
 import { ExteriorError } from '../core/errors.ts';
 import type { P2 } from '../core/polygon.ts';
@@ -28,6 +28,7 @@ export function buildSectionMassing(request: BuildingRequest, heights: readonly 
   });
   if (!assembly) throw new ExteriorError('E_CORE_PLATE', reason);
   const fitted = assembly;
-  return { groundOutline: fitted.floors[0]!.outline, outlineOf: floor => fitted.floors[Math.max(0, floor)]!.outline,
+  return { groundOutline: fitted.floors[0]!.outline, outlineOf: floor => floor < 0 && isPaired(architecture)
+    ? request.parcel.footprint : fitted.floors[Math.max(0, floor)]!.outline,
     rectangular: true, assembly: fitted };
 }

@@ -229,7 +229,8 @@ function checkSlabBands(layout: Layout): void {
         throw new ExteriorError('E_INVARIANT',
           `window ${o.id} on floor ${floor.index} starts ${glassLow.toFixed(2)} m below its floor line; exterior bug, report with the request`);
       }
-      const below = layout.style.facade.kind === 'curtain-wall' ? (o.head ?? 0) : SLAB_BAND.below;
+      const section = floor.assembly?.sections.find(s => s.id === o.sectionId);
+      const below = section?.border.top ?? (layout.style.facade.kind === 'curtain-wall' ? (o.head ?? 0) : SLAB_BAND.below);
       if (glassHigh > floor.height - below + 1e-6) {
         throw new ExteriorError('E_INVARIANT',
           `window ${o.id} on floor ${floor.index} reaches ${glassHigh.toFixed(2)} m of a ${floor.height.toFixed(2)} m floor, into the ${below} m head spandrel under the slab above; exterior bug, report with the request`);

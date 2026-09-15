@@ -1,4 +1,5 @@
 import { architectureSelection } from './layout/architectureSelection.ts';
+import { isPaired } from './sections/index.ts';
 import { CanonicalNativeMaterials } from './materials/canonicalNative.ts';
 import { applyWindowPolicy } from './layout/windowPolicy.ts';
 // Orchestration: validate -> style -> massing -> floor stack -> facades ->
@@ -63,6 +64,7 @@ async function generateBuilding(raw: unknown, options: GenerateOptions, canonica
   if (!req.options?.architecture) applyWindowPolicy(style);
   if (req.options?.architecture) {
     style.facade.bandHeight = 0; style.facade.bandProud = 0;
+    if (isPaired(req.options.architecture)) style.parapetHeight = 0.28;
     if (req.options.architecture === 'terrace-blocks') style.balconyDepth = 1.5;
   }
   const facadeInset = req.options?.architecture ? Math.max(0.5, facadeDepth(style.facade.kind)) : facadeDepth(style.facade.kind);
