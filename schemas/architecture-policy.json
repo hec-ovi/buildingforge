@@ -1,5 +1,17 @@
 {
   "roundedCornerChance": 0.5,
   "minimumFloors": 3,
-  "families": ["residential", "hotel", "office", "corpo"]
+  "families": ["residential", "hotel", "office", "corpo"],
+  "luxuryTiers": ["rich", "high_rich"],
+  "luxuryArchitectures": [
+    { "id": "corporate-sectors", "weight": 2 },
+    { "id": "faceted-bays", "weight": 1 },
+    { "id": "white-grid", "weight": 1 },
+    { "id": "balcony-grid", "weight": 1 },
+    { "id": "mirror-shutters", "weight": 1 },
+    { "id": "mirror-frame", "weight": 1 },
+    { "id": "paired-rounded", "weight": 1 },
+    { "id": "paired-rectangular", "weight": 1 },
+    { "id": "garden-taper", "weight": 1 }
+  ]
 }

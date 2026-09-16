@@ -1,4 +1,4 @@
-import { architectureSelection } from './layout/architectureSelection.ts';
+import { architectureSelections } from './layout/architectureSelection.ts';
 import { isPaired } from './sections/index.ts';
 import { buildingFamily } from './families/registry.ts';
 import { GENERATION_POLICY } from './rules/generationPolicy.ts';
@@ -136,21 +136,24 @@ async function generateBuilding(raw: unknown, options: GenerateOptions, canonica
 }
 
 async function generateAutomatic(request: BuildingRequest, options: GenerateOptions): Promise<GenerateResult> {
-  let selection = architectureSelection(request);
-  if (selection.selected === 'rounded-corner') {
+  const choices = architectureSelections(request);
+  let candidateError: { code: string; message: string } | undefined;
+  for (const selection of choices.filter(choice => choice.selected !== 'ordinary')) {
     try {
-      const candidate: BuildingRequest = { ...request, options: { ...request.options, architecture: 'rounded-corner', balconies: 'off', facadeServices: 'off' } };
+      const candidate: BuildingRequest = { ...request, options: { ...request.options, architecture: selection.selected as Exclude<typeof selection.selected, 'ordinary'>, balconies: 'off', facadeServices: 'off' } };
       const result = await generateBuilding(candidate, options, true);
       result.blueprint.architectureSelection = selection;
       return result;
     } catch (error) {
-      if (!(error instanceof ExteriorError) || !['E_CORE_PLATE', 'E_DOOR_FIT', 'E_SIGNAGE_TEXT_TOO_LONG'].includes(error.code)) throw error;
-      selection = { requested: 'auto', selected: 'ordinary', reason: 'section-fit', candidateError: { code: error.code, message: error.message } };
+      if (!(error instanceof ExteriorError) || !['E_SCHEMA', 'E_CORE_PLATE', 'E_DOOR_FIT', 'E_SIGNAGE_TEXT_TOO_LONG', 'E_ENVELOPE_TOO_LOW', 'E_APERTURE_UNREACHABLE', 'E_APERTURE_INVALID'].includes(error.code)) throw error;
+      candidateError = { code: error.code, message: error.message };
     }
   }
   const ordinary: BuildingRequest = { ...request, options: { ...request.options } };
   delete ordinary.options!.architecture;
   const result = await generateBuilding(ordinary, options);
-  result.blueprint.architectureSelection = selection;
+  result.blueprint.architectureSelection = candidateError
+    ? { requested: 'auto', selected: 'ordinary', reason: 'section-fit', candidateError }
+    : choices.at(-1)!;
   return result;
 }

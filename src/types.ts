@@ -313,7 +313,7 @@ export interface FacadeArtifact {
 
 export interface ArchitectureSelection {
   requested: 'auto';
-  selected: 'rounded-corner' | 'ordinary';
+  selected: Architecture | 'ordinary';
   reason: 'accepted-reference' | 'seeded-ordinary' | 'fixed-faces' | 'programme' | 'explicit-options' | 'section-fit';
   candidateError?: { code: string; message: string };
 }

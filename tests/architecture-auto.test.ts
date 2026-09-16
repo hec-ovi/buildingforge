@@ -7,7 +7,7 @@ import { fixture, keys, glbJson } from './support.ts';
 
 const request = () => {
   const r = fixture('architecture-01-rounded-corner');
-  r.seed = 'auto-7'; r.building.floors = 5; r.options!.architecture = 'auto';
+  r.seed = 'auto-7'; r.building.floors = 5; r.building.tier = 'mid'; r.options!.architecture = 'auto';
   return r;
 };
 const hash = (data: Uint8Array) => createHash('sha256').update(data).digest('hex');
@@ -63,10 +63,25 @@ it('selects the reviewed rounded shell with identical inward/outward geometry an
 }, 60000);
 
 it('records ordinary selection and preserves fixed connection faces', async () => {
-  const r = fixture('bridged-tower'); r.options!.architecture = 'auto';
+  const r = fixture('bridged-tower'); r.options!.architecture = 'auto'; r.building.tier = 'mid';
   const result = await generate(r, keys);
   const original = await generate({ ...r, options: { ...r.options, architecture: undefined } }, keys);
   expect(result.blueprint.architectureSelection).toMatchObject({ selected: 'ordinary', reason: 'fixed-faces' });
   delete result.blueprint.architectureSelection;
   expect(result.blueprint).toEqual(original.blueprint);
+});
+
+it('selects varied fitted luxury families through the automatic public entry', async () => {
+  const chosen = new Set<string>();
+  for (const seed of ['luxury-a', 'luxury-b', 'luxury-c']) {
+    const r = request(); r.seed = seed; r.building.tier = 'high_rich'; r.building.floors = 6;
+    r.parcel = { footprint: [[0, 0], [61, 0], [61, 49], [0, 49]], accessPoint: [30, -1], maxHeight: 32 };
+    const result = await generate(r, keys);
+    expect(result.blueprint.architectureSelection?.requested).toBe('auto');
+    expect(result.blueprint.architectureSelection?.selected).toBe(result.blueprint.assembly?.architecture);
+    expect(result.blueprint.architectureSelection?.selected).not.toBe('ordinary');
+    expect(result.blueprint.floors.filter(f => f.index >= 0)).toHaveLength(6);
+    chosen.add(result.blueprint.architectureSelection!.selected);
+  }
+  expect(chosen.size).toBeGreaterThan(1);
 });

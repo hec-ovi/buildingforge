@@ -11,7 +11,7 @@
       "type": "object", "additionalProperties": false, "required": ["requested", "selected", "reason"],
       "properties": {
         "requested": { "const": "auto" },
-        "selected": { "enum": ["rounded-corner", "ordinary"] },
+        "selected": { "enum": ["rounded-corner", "chamfered-corners", "terrace-blocks", "paired-rounded", "paired-rectangular", "garden-taper", "corporate-sectors", "faceted-bays", "white-grid", "balcony-grid", "mirror-shutters", "mirror-frame", "ordinary"] },
         "reason": { "enum": ["accepted-reference", "seeded-ordinary", "fixed-faces", "programme", "explicit-options", "section-fit"] },
         "candidateError": { "type": "object", "additionalProperties": false, "required": ["code", "message"], "properties": { "code": { "type": "string" }, "message": { "type": "string" } } }
       }

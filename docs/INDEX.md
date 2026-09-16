@@ -11,12 +11,12 @@
 - [Call guide](../SKILL.md): library and CLI usage.
 - [Issues](ISSUES.md): interface proposals and unresolved constraints.
 - `src/core`, `src/rules`: validation, polygon arithmetic and [canonical floor/window policy](../schemas/floor-constants.json).
-- `src/layout`: [automatic architecture selection](../schemas/architecture-policy.json), floor stacks, volume fitting and section-driven openings.
+- `src/layout`: [weighted automatic architecture selection](../schemas/architecture-policy.json), including fitted luxury families, floor stacks, volume fitting and section-driven openings.
 - `src/sections/paired.ts`: rounded and rectangular facades assembled from complete two-room sections.
 - `src/sections/garden.ts`: pale podium, fixed planted spine and tapered outer wings with base-relative height limits.
 - `src/mesh/floorSlope.ts`: fits outer wing geometry and emitters to upper outlines while retaining the planted spine.
 - `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
-- `src/mesh/slabOutline.ts`: floor edges follow recessed facade surfaces and retain floor-level access corridors.
+- `src/mesh/slabOutline.ts`, `slabSpans.ts`: floor edges follow flat and sloped facade profiles, close storey transitions and retain floor-level access corridors.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
 - `src/families/corporate-sectors`: two complete special faces with balcony bands and broad cladding over a window grid, one screen face and one uncovered window/service face; geometry reserves the parcel space for all facade projections.
 - `src/mesh/scenicRoom.ts`, `scenicCurve.ts`, `scenicSlope.ts`: rectangular window scenes with a 1 m depth, one rear image, ceiling lights and fitted placement on curved or tapered facades.

@@ -20,7 +20,7 @@ Call `generate(request, options?)` from `src/index.ts` in Node with TypeScript s
 | `building.basements`, `floorKinds` | Zero basements; program labels synthesized when absent. |
 | `apertures` | Empty; supplied faces, cuts and absolute base heights are fixed reservations. |
 | `options.minimumClearHeight` | 4 m clear by default for all floors; an explicit override uses the same family bounds. Slab/ceiling allowance is an additional 0.5 m. |
-| `options.architecture` | Optional: `rounded-corner`, `chamfered-corners`, `terrace-blocks`. Complete section fits require unbound faces, a 0.5 m grid and a single swing entrance. |
+| `options.architecture` | Optional. `auto` selects a compatible reviewed family by seed, programme, tier and dimensions. Explicit IDs and constraints are in the request schema and contract. |
 | `options.shape`, `exteriorStyle`, `glb` | `auto` (rectangular plates), seeded compatible style, `named`. |
 | `balconies`, `balconyStyle`, `openFront`, `fireEscape` | `auto`; detail is fitted where eligible. These and the following rows are inside `request.options`. |
 | `entranceLayout`, `doorMotion`, `windows` | `single`, `swing`, `auto`. Pocket doors need opaque chambers; `openFront:on` conflicts. |
