@@ -33,6 +33,8 @@ The API re-exports `MeshBuilder.part(name, {keepNode?, parent?, pivot?})`, yield
 
 `FacadeField(outline, edge)` exposes `length`, `dir`, `normal`, `point(u,y,depth)` and `solid(sink, material,u0,u1,y0,y1,front,back,mapU?,ends?,worldUv?)`; positive depth is outward. `tubeSegment(sink,material,start,end,radius)` emits a tube. `capFrame(outline)` supplies the frame for `capUp` and `capDown`. `Rng(seed,path)` provides `range`, `int` and `chance`. Public types are linked above.
 
+`ProfiledBlind.build(sink, frame, width, bottom, top, front, closure)` builds the shared formed louvers, punched apertures and support clips. `frame` is [BlindFrame](api.ts), with horizontal direction/normal and `point(u,y,depth)`; dimensions are metres, closure is 0 to 100 percent. Materials are the paired blind and frame-metal surface variants. Families may attach these as permanent exterior ornaments independently of removable room scenery.
+
 `parapetHeight` optionally sets the extra roof edge height; zero retains a flush authored cap. Registered families own screen and mechanical decoration; the host retains explicit signage and entrance fixtures.
 
 `groundFloorHeight` optionally selects a preferred total ground height; fixed connection bases retain priority. Host generation uses the registered family ID as `options.architecture`. Apertures reaching above ground fix the upper faces and require a rectangular parcel; other fixed shapes report `E_SCHEMA`. Basement-only cuts retain their original parcel faces while upper floors use the free family shape. Supplied cuts remain exact and ordinary openings that intersect their reservations are omitted. Multiple authored windows may share a horizontal span when their vertical intervals do not overlap.

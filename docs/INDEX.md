@@ -21,6 +21,7 @@
 - `src/mesh/scenicCurve.ts`: shared room geometry derived from authored curved spans.
 - `src/mesh/scenicLining.ts`, `wallBoundary.ts`: single window returns and room joins at the measured lining depth.
 - `src/mesh/profiledBlind.ts`: formed slats with punched openings, folded lips, support clips and raised stacks.
+- `src/families/api.ts`: shared geometry helpers, including formed louvers for family-owned exterior coverings.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.
 - `src/glb`, `src/materials`: GLB output and material resolution.
 - `src/layout/validateLayout.ts`: final geometry and opening guards.
