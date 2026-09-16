@@ -23,7 +23,7 @@ export function windowReturnProfile(layout: Layout, floor: FloorLayout, edge: nu
         const section = floor.assembly?.sections.find(s => s.id === opening.sectionId);
         const scenic = shared && floor.index > 0 && section
           && scenicState(layout.request.seed, floor.index, section.id, section.technique === 'rounded-glass').state !== 'dark';
-        return { front: 0, depth: scenic ? Math.min(wallDepth, opening.glazing!.glassDepth) : wallDepth };
+        return { front: -(section?.border.surfaceDepth ?? 0), depth: scenic ? Math.min(wallDepth, opening.glazing!.glassDepth) : wallDepth };
       }
     }
     return undefined;

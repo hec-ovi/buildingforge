@@ -298,7 +298,7 @@ function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: 
     }
     const style = section ? { ...layout.style, facade: { ...layout.style.facade, windowRecess: section.border.depth },
       glazing: { ...layout.style.glazing, frameWidth: Math.min(0.08, section.border.side), frameProud: 0.04, glassInset: 0.02 } } : layout.style;
-    o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, style, mat, privacy);
+    o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, style, mat, privacy, section?.border.surfaceDepth ?? 0);
     if (layout.request.options?.architecture === 'chamfered-corners') meshRibbonLouvres(sink, f, o, mat);
     return;
   }
@@ -467,6 +467,7 @@ function windowUnit(
   sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
   o: Opening, style: Style, mat: (k: string) => string,
   privacy?: PartSink,
+  surfaceDepth = 0,
 ): NonNullable<Opening['glazing']> {
   const g = style.glazing;
   const fw = Math.min(g.frameWidth, (u1 - u0) / 4, (yt - yb) / 4);
@@ -495,7 +496,7 @@ function windowUnit(
     ? { u0: u0 + fw, u1: u1 - fw, y0: sill + fw, y1: headY - fw }
     : { u0: u0 + half, u1: u1 - half, y0: sill + half, y1: headY - half };
   const field = curtainWall ? inner : { u0, u1, y0: sill, y1: headY };
-  const proud = curtainWall ? g.frameProud + z : g.frameProud;
+  const proud = curtainWall ? g.frameProud + z : g.frameProud - surfaceDepth;
   const depth = curtainWall ? g.frameProud + g.glassInset : g.frameProud + FRAME_BITE;
   const { g0, g1, gb, gt } = { g0: field.u0, g1: field.u1, gb: field.y0, gt: field.y1 };
 
