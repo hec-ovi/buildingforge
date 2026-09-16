@@ -20,6 +20,7 @@ export const family: BuildingFamily = {
     light: 'cyberpunk/paired-light-cool/mid#surface',
     screen: 'cyberpunk/corporate-screen/mid#native',
     shield: 'cyberpunk/ivory-panel/mid#cool-grey',
+    louver: 'cyberpunk/paired-blind/mid#surface',
   },
   decorate(context) {
     const previous = context.builder.floor;

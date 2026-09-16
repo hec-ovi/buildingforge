@@ -1,8 +1,9 @@
 import type { DecorationContext, FamilySection } from '../api.ts';
 import { Surface } from './surface.ts';
-import { RIM_DEPTH } from './dimensions.ts';
+import { RIM_DEPTH, SHIELD_PANEL_WIDTH, SHIELD_PANEL_HEIGHT, CHANNEL_RECESS } from './dimensions.ts';
 import { cassette } from './cassette.ts';
 import { mechanics } from './mechanics.ts';
+import { channelLimit } from './channel.ts';
 
 export function decorateFloors(context: DecorationContext): void {
   const { builder, layout, material } = context;
@@ -18,8 +19,8 @@ export function decorateFloors(context: DecorationContext): void {
       const y = floor.elevation, top = y + floor.height;
       const pale = group.id > 0 && (edge === 1 || (edge === 0 && group.id >= 2));
       const skin = pale ? material('shield') : panel;
-      surface.solid(sink, skin, surface.start, surface.end, y, top, 0.02, -0.1);
       if (group.id === 0) {
+        surface.solid(sink, skin, surface.start, surface.end, y, top, 0.02, -0.1);
         surface.panels(sink, panel, surface.start, surface.end, y, top, 1, 1.5, 0, 0.15);
         if (floor.index === group.toFloor) {
           const rim = builder.part(`corporate:podium-rim:${edge}`, { keepNode: true });
@@ -30,6 +31,15 @@ export function decorateFloors(context: DecorationContext): void {
       for (const section of floor.assembly!.sections as FamilySection[]) {
         if (section.edge !== edge) continue;
         const u = section.offset, end = u + section.width;
+        if (section.id.includes(':recessed-slit:')) {
+          surface.solid(sink, panel, u, end, y, top, -CHANNEL_RECESS, -CHANNEL_RECESS - 0.12);
+          continue;
+        }
+        if (section.id.includes(':channel-left:') || section.id.includes(':channel-right:')) {
+          channelLimit(surface, sink, trim, section, floor);
+          continue;
+        }
+        surface.solid(sink, skin, u, end, y, top, 0.02, -0.1);
         if (section.id.includes(':large-panel:')) {
           const wing = builder.part(`${section.id}:wing`, { keepNode: true });
           surface.solid(wing, panel, u + 0.015, end - 0.015, y, top, 1.08, 0.03);
@@ -41,16 +51,9 @@ export function decorateFloors(context: DecorationContext): void {
         } else if (section.id.includes(':mask-panel:')) {
           const mask = builder.part(`${section.id}:mask`, { keepNode: true });
           surface.solid(mask, skin, u, end, y, top, 1.04, 0.04);
-          surface.panels(mask, skin, u, end, y, top, 1, 0.75, 0, 1.16);
+          surface.panels(mask, skin, u, end, y, top, SHIELD_PANEL_WIDTH, SHIELD_PANEL_HEIGHT, 0, 1.16);
         } else {
-          surface.panels(sink, skin, u, end, y, top, 1, pale ? 0.75 : 1.5, 0, 0.06);
-          if (section.id.includes(':channel-left:') || section.id.includes(':channel-right:')) {
-            const left = section.id.includes(':channel-left:');
-            for (let i = 0; i < 3; i++) {
-              const at = left ? u + i * 0.14 : end - (i + 1) * 0.14;
-              surface.solid(sink, trim, at, at + 0.1, y, top, 0.22 + i * 0.22, 0.03);
-            }
-          }
+          surface.panels(sink, skin, u, end, y, top, pale ? SHIELD_PANEL_WIDTH : 1, pale ? SHIELD_PANEL_HEIGHT : 1.5, 0, 0.06);
         }
       }
     }

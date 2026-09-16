@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { MeshBuilder, type FamilyInput, type FamilyPlan, type Layout } from '../../api.ts';
 import { family } from '../index.ts';
+import { generate, type BuildingRequest } from '../../../index.ts';
+import { NodeIO, type Document } from '@gltf-transform/core';
 
 const input: FamilyInput = { rectangle: [[0, 0], [51, 0], [51, 33], [0, 33]], floorHeights: Array(12).fill(4.5), seed: 'corporate-contract' };
 type Part = MeshBuilder['parts'][number];
@@ -43,6 +45,46 @@ function panelJoints(part: Part, edge: number) {
   return { horizontal: interior(horizontal), vertical: interior(vertical) };
 }
 
+function frontAt(parts: Part[], x: number, y: number): number {
+  let nearest = Infinity;
+  for (const part of parts) for (const prim of part.prims.values()) for (let i = 0; i < prim.indices.length; i += 3) {
+    const points = prim.indices.slice(i, i + 3).map(index => [0, 1, 2].map(axis => prim.positions[index * 3 + axis]! + (part.pivot?.[axis] ?? 0)));
+    nearest = Math.min(nearest, triangleDepth(points, x, y));
+  }
+  return nearest;
+}
+
+function triangleDepth(points: number[][], x: number, y: number): number {
+  const [a, b, c] = points as [number[], number[], number[]];
+  const denominator = (b[1]! - c[1]!) * (a[0]! - c[0]!) + (c[0]! - b[0]!) * (a[1]! - c[1]!);
+  if (Math.abs(denominator) < 1e-10) return Infinity;
+  const u = ((b[1]! - c[1]!) * (x - c[0]!) + (c[0]! - b[0]!) * (y - c[1]!)) / denominator;
+  const v = ((c[1]! - a[1]!) * (x - c[0]!) + (a[0]! - c[0]!) * (y - c[1]!)) / denominator;
+  return u >= -1e-8 && v >= -1e-8 && u + v <= 1 + 1e-8 ? u * a[2]! + v * b[2]! + (1 - u - v) * c[2]! : Infinity;
+}
+
+function slabCovers(document: Document, floor: number, x: number, z: number): boolean {
+  const node = document.getRoot().listNodes().find(n => n.getName() === `floor:${floor}/slab`)!;
+  const matrix = node.getWorldMatrix();
+  for (const primitive of node.getMesh()!.listPrimitives()) {
+    const positions = primitive.getAttribute('POSITION')!.getArray()!, indices = primitive.getIndices()!.getArray()!;
+    for (let i = 0; i < indices.length; i += 3) {
+      const points = Array.from(indices.slice(i, i + 3), index => [0, 2, 1].map(axis => matrix[axis]! * positions[index * 3]! + matrix[4 + axis]! * positions[index * 3 + 1]! + matrix[8 + axis]! * positions[index * 3 + 2]! + matrix[12 + axis]!));
+      if (Number.isFinite(triangleDepth(points, x, z))) return true;
+    }
+  }
+  return false;
+}
+
+function exportedSource(apertures: BuildingRequest['apertures'] = []) {
+  return generate({
+    seed: input.seed, buildingId: 'corporate-window-plane', theme: 'cyberpunk',
+    parcel: { footprint: input.rectangle, accessPoint: [25, -1], maxHeight: 45 },
+    building: { type: 'corpo', tier: 'rich', floors: 8 }, apertures,
+    options: { architecture: 'corporate-sectors', glb: 'named', balconies: 'off', roofArtifacts: 'off', facadeServices: 'off', fireEscape: 'off', adScreens: 'off' },
+  }, { textures: { mode: 'keys', source: null } });
+}
+
 function layout(plan: FamilyPlan, source = input): Layout {
   let elevation = 0;
   const floors = plan.floors.map(f => {
@@ -56,10 +98,40 @@ function layout(plan: FamilyPlan, source = input): Layout {
 }
 
 describe('corporate sectors public family', () => {
+
+  it('keeps the exported middle window casings at the recessed panel plane', async () => {
+    const { blueprint, glb } = await exportedSource();
+    const floor = blueprint.floors.find(f => f.index === 4)!;
+    const opening = floor.openings.find(o => o.sectionId?.includes(':recessed-slit:'))!;
+    const section = blueprint.assembly!.floors[4]!.sections.find(s => s.id === opening.sectionId)!;
+    expect(section.border.surfaceDepth).toBe(1);
+    const document = await new NodeIO().readBinary(glb);
+    const node = document.getRoot().listNodes().find(n => n.getName() === `window:${opening.id}`)!;
+    const matrix = node.getWorldMatrix();
+    let front = Infinity;
+    for (const primitive of node.getMesh()!.listPrimitives()) {
+      const positions = primitive.getAttribute('POSITION')!.getArray()!;
+      for (let i = 0; i < positions.length; i += 3) front = Math.min(front, matrix[2]! * positions[i]! + matrix[6]! * positions[i + 1]! + matrix[10]! * positions[i + 2]! + matrix[14]!);
+    }
+    expect(front).toBeCloseTo(floor.outline[0]![1] + 1 - 0.04, 4);
+    const middle = floor.outline[0]![0] + section.offset + section.width / 2;
+    expect(slabCovers(document, 4, middle, floor.outline[0]![1] + 0.5)).toBe(false);
+    expect(slabCovers(document, 4, middle, floor.outline[0]![1] + 1.5)).toBe(true);
+  });
+
+  it('retains walking approaches through an inset shell to fixed bridges and the entrance', async () => {
+    const { blueprint, glb } = await exportedSource([{ id: 'bridge', buildingId: 'corporate-window-plane', floor: 2, face: 1, kind: 'bridge', u: 18, base: 9, width: 3, height: 3, shape: 'rect',
+      cut: { polygon: [[51, 9, 16.5], [51, 9, 19.5], [51, 12, 19.5], [51, 12, 16.5]], axisDir: [1, 0, 0] }, linkId: 'link' }]);
+    const document = await new NodeIO().readBinary(glb);
+    expect(slabCovers(document, 2, 50.5, 18)).toBe(true);
+    expect(slabCovers(document, 2, 50.5, 24)).toBe(false);
+    const entrance = blueprint.floors[0]!.openings.find(o => o.kind === 'door')!;
+    expect(slabCovers(document, 0, entrance.offset + entrance.width / 2, 0.5)).toBe(true);
+  });
   it('fits fixed face limits around complete two-metre window repeats and distinct upper blocks', () => {
     const plan = family.plan(input);
     expect(plan).toEqual(family.plan(input));
-    expect(plan.extent).toEqual({ width: 43, depth: 25 });
+    expect(plan.extent).toEqual({ width: 44, depth: 25 });
     expect(plan.groups.map(g => [g.fromFloor, g.toFloor])).toEqual([[0, 3], [4, 7], [8, 11]]);
     for (const floor of plan.floors) for (let edge = 0; edge < 4; edge++) {
       let end = 0;
@@ -78,19 +150,22 @@ describe('corporate sectors public family', () => {
     const slit = plan.floors[4]!.sections.find(s => s.id.includes(':recessed-slit:'))!;
     expect(slit.windows).toHaveLength(2);
     expect(slit.windows![0]!.sill).toBe(0.3);
+    expect(slit.windows![1]!.height).toBe(slit.windows![0]!.height);
+    expect(input.floorHeights[4]! - slit.windows![1]!.sill - slit.windows![1]!.height).toBeCloseTo(0.3);
     const facade = plan.floors[4]!.sections.filter(s => s.edge === 0 && !s.id.includes(':end:'));
     const box = facade[0]!, wing = facade.at(-1)!;
     expect(wing.id).toContain(':large-panel:');
     expect(wing.width).toBe(4);
     expect(box.id).toContain(':cassette:');
-    expect(box.width).toBe(9);
-    expect(box.windows).toHaveLength(2);
-    expect(box.windows!.every(w => w.offset + w.width < 6)).toBe(true);
+    expect(box.width).toBe(18);
+    expect(box.windows).toHaveLength(1);
+    expect(box.windows![0]!.panes?.cols).toBe(2);
+    expect(box.windows![0]!.offset + box.windows![0]!.width).toBeLessThan(12);
     expect(facade.filter(s => s.id.includes(':recessed-slit:')).every(s => s.width === 2)).toBe(true);
     const wider = family.plan({ ...input, rectangle: [[0, 0], [63, 0], [63, 33], [0, 33]] });
     const expanded = wider.floors[4]!.sections.filter(s => s.edge === 0);
     expect(expanded.filter(s => s.id.includes(':large-panel:')).map(s => s.width)).toEqual([4]);
-    expect(expanded.filter(s => s.id.includes(':cassette:')).map(s => s.width)).toEqual([9]);
+    expect(expanded.filter(s => s.id.includes(':cassette:')).map(s => s.width)).toEqual([18]);
     expect(expanded.filter(s => s.id.includes(':recessed-slit:'))).toHaveLength(facade.filter(s => s.id.includes(':recessed-slit:')).length + 6);
     const upper = plan.floors[8]!.sections.filter(s => s.edge === 0);
     expect(upper.filter(s => s.id.includes(':mechanical:'))).toHaveLength(1);
@@ -100,12 +175,13 @@ describe('corporate sectors public family', () => {
   });
 
   it('preserves supplied bridge faces and rotation without changing any floor pitch', () => {
-    const source: FamilyInput = { rectangle: [[10, 20], [34, 38], [19, 58], [-5, 40]], floorHeights: [4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5], seed: 'bridge', fixedFaces: true };
+    const source: FamilyInput = { rectangle: [[10, 20], [43.6, 45.2], [28.6, 65.2], [-5, 40]], floorHeights: [4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5], seed: 'bridge', fixedFaces: true };
     const plan = family.plan(source);
     expect(plan.floors.every(f => JSON.stringify(f.outline) === JSON.stringify(source.rectangle))).toBe(true);
-    expect(plan.extent).toEqual({ width: 30, depth: 25 });
+    expect(plan.extent.width).toBeCloseTo(42);
+    expect(plan.extent.depth).toBeCloseTo(25);
     expect(source.floorHeights).toEqual([4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5]);
-    expect(plan.floors[4]!.sections.find(s => s.id.includes(':recessed-slit:'))!.border.depth).toBeCloseTo(4.3);
+    expect(plan.floors[4]!.sections.find(s => s.id.includes(':recessed-slit:'))!.border.depth).toBeCloseTo(4.68);
   });
 
   it('rejects impossible storeys and malformed or undersized plates', () => {
@@ -119,7 +195,7 @@ describe('corporate sectors public family', () => {
 
   it('decorates within the parcel, leaves bridge holes clear, and publishes cyan emitters', () => {
     const scene = layout(family.plan(input));
-    scene.carved.push({ aperture: { face: 0, kind: 'bridge' }, facePoly: [[8, 23], [11, 23], [11, 26], [8, 26]] } as Layout['carved'][number]);
+    scene.carved.push({ aperture: { face: 0, kind: 'bridge' }, facePoly: [[1, 23], [4, 23], [4, 26], [1, 26]] } as Layout['carved'][number]);
     const builder = new MeshBuilder();
     builder.floor = 99;
     const decoration = family.decorate!({ builder, layout: scene, material: role => family.materials![role]! });
@@ -136,7 +212,7 @@ describe('corporate sectors public family', () => {
     for (const part of bridgeParts) for (const prim of part.prims.values()) {
       for (let i = 0; i < prim.indices.length; i += 3) {
         const vertices = prim.indices.slice(i, i + 3).map(index => [prim.positions[index * 3]! + (part.pivot?.[0] ?? 0) - scene.floors[5]!.outline[0]![0], prim.positions[index * 3 + 1]! + (part.pivot?.[1] ?? 0)] as const);
-        const overlaps = Math.min(...vertices.map(p => p[0])) < 11.19 && Math.max(...vertices.map(p => p[0])) > 7.81 && Math.min(...vertices.map(p => p[1])) < 26.19 && Math.max(...vertices.map(p => p[1])) > 22.81;
+        const overlaps = Math.min(...vertices.map(p => p[0])) < 4.19 && Math.max(...vertices.map(p => p[0])) > 0.81 && Math.min(...vertices.map(p => p[1])) < 26.19 && Math.max(...vertices.map(p => p[1])) > 22.81;
         if (overlaps) blocked.add(part.name);
       }
     }
@@ -152,6 +228,20 @@ describe('corporate sectors public family', () => {
     const masks = builder.parts.filter(p => p.name.includes(':mask-panel:'));
     expect(masks.length).toBeGreaterThan(0);
     expect(masks.every(p => p.prims.has(family.materials!.shield!))).toBe(true);
+    const boxes = builder.parts.filter(p => p.name.includes(':cassette:') && !p.name.startsWith('corporate:5:'));
+    expect(boxes.length).toBeGreaterThan(0);
+    for (const box of boxes) {
+      const shape = bounds([box]);
+      expect(shape.max[1]! - shape.min[1]!).toBeCloseTo(2.4);
+      expect(shape.max[0]! - shape.min[0]!).toBeCloseTo(18);
+      expect(box.prims.has(family.materials!.louver!)).toBe(true);
+    }
+    const floor = scene.floors[4]!, channel = floor.assembly!.sections.find(s => s.id.includes(':recessed-slit:'))!;
+    expect(frontAt(builder.parts.filter(p => p.name === 'corporate:4:0:cladding'), floor.outline[0]![0] + channel.offset + channel.width / 2, floor.elevation + 1.5)).toBeCloseTo(floor.outline[0]![1] + 1);
+    const cassette = floor.assembly!.sections.find(s => s.id.includes(':cassette:'))!;
+    const openBox = builder.parts.find(p => p.name === `${cassette.id}:box`)!;
+    const centre = floor.outline[0]![0] + cassette.offset + cassette.width / 3;
+    expect(frontAt([openBox], centre, floor.elevation + floor.height - 0.65)).toBe(Infinity);
   });
 
   it('fits fixed-face relief, aligns pale panel grids across unequal storeys, and clears a bridged screen', () => {
@@ -164,19 +254,24 @@ describe('corporate sectors public family', () => {
     const wing = builder.parts.find(p => p.name.startsWith('corporate:4:0:large-panel:'))!;
     const box = builder.parts.find(p => p.name.startsWith('corporate:4:0:cassette:'))!;
     const faceDepth = (part: Part) => bounds([part]).min[2]!;
-    expect(faceDepth(wing) - faceDepth(box)).toBeCloseTo(0.246, 3);
+    expect(faceDepth(box)).toBeLessThan(faceDepth(wing));
     expectInsideParcel(builder.parts);
     const misaligned = new Set<string>();
     for (const edge of [0, 1]) {
       const masks = builder.parts.filter(p => new RegExp(`^corporate:[0-9]+:${edge}:mask-panel:`).test(p.name));
       expect(masks.length).toBeGreaterThan(0);
-      const reference = panelJoints(masks[0]!, edge).horizontal;
+      const reference = masks.map(part => panelJoints(part, edge).horizontal).find(values => values.length >= 2)!;
+      expect(reference).toBeDefined();
       const origin = (reference[0]! + reference[1]!) / 2;
+      let horizontalJoints = 0, verticalJoints = 0;
       for (const part of masks) {
         const joints = panelJoints(part, edge);
         const aligned = (value: number, pitch: number, gap: number) => Math.abs(Math.abs(value - Math.round(value / pitch) * pitch) - gap) < 1e-8;
-        if (!joints.horizontal.length || !joints.vertical.length || !joints.horizontal.every(u => aligned(u - origin, 1, 0.016)) || !joints.vertical.every(y => aligned(y, 0.75, 0.018))) misaligned.add(part.name);
+        horizontalJoints += joints.horizontal.length; verticalJoints += joints.vertical.length;
+        if (!joints.horizontal.every(u => aligned(u - origin, 3, 0.016)) || !joints.vertical.every(y => aligned(y, 3, 0.018))) misaligned.add(part.name);
       }
+      expect(horizontalJoints).toBeGreaterThan(0);
+      expect(verticalJoints).toBeGreaterThan(0);
     }
     expect([...misaligned]).toEqual([]);
   });

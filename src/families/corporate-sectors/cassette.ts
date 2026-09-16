@@ -1,18 +1,31 @@
-import type { FloorLayout, FamilySection, PartSink } from '../api.ts';
+import { ProfiledBlind, type FloorLayout, type FamilySection, type PartSink } from '../api.ts';
 import type { Surface } from './surface.ts';
+import { cassetteProfile } from './dimensions.ts';
+import { fold } from './fold.ts';
 
 export function cassette(surface: Surface, sink: PartSink, material: string, section: FamilySection, floor: FloorLayout): void {
-  const u = section.offset, end = u + section.width, y = floor.elevation, top = y + floor.height;
-  const bottom = y + 0.6, head = top - 0.6;
-  surface.solid(sink, material, u, end, bottom + 0.12, head - 0.09, 1.43, 0.03);
-  surface.solid(sink, material, u + 0.12, end - 0.12, head - 0.09, head, 1.28, 0.03);
-  surface.solid(sink, material, u + 0.1, end - 0.1, bottom, bottom + 0.12, 1.2, 0.03);
-  for (let i = 1; i < 3; i++) {
-    const at = u + section.width * i / 3;
-    surface.solid(sink, material, at - 0.018, at + 0.018, bottom + 0.16, top - 1.79, 1.446, 1.43);
-  }
-  if (surface.clear([u, end, bottom, bottom + 0.12])) {
-    const p = (a: number, h: number, depth: number) => surface.point(a, h, depth);
-    sink.quadFacing(material, p(u, bottom + 0.12, 1.43), p(end, bottom + 0.12, 1.43), p(end - 0.1, bottom, 1.2), p(u + 0.1, bottom, 1.2), [surface.field.normal[0], -1, surface.field.normal[1]], [[0, 0], [section.width, 0], [section.width, 0.26], [0, 0.26]]);
+  const u = section.offset, end = u + section.width;
+  const profile = cassetteProfile(floor.height);
+  const bottom = floor.elevation + profile.bottom, top = floor.elevation + profile.top;
+  const { front, back } = profile;
+  const apronTop = floor.elevation + profile.slotBottom - 0.06;
+  const solidStart = u + section.width * 2 / 3;
+  surface.solid(sink, material, u, end, bottom + 0.25, apronTop, front, back);
+  fold(surface, sink, material, u, end, bottom, bottom + 0.25, front - 0.3, front, back);
+  surface.solid(sink, material, solidStart, end, apronTop, top - 0.14, front, back);
+  fold(surface, sink, material, solidStart, end, top - 0.14, top, front, front - 0.1, back);
+  const blind = new ProfiledBlind();
+  for (const window of section.windows ?? []) {
+    const x0 = u + window.offset, x1 = x0 + window.width;
+    const y0 = floor.elevation + window.sill, y1 = y0 + window.height;
+    // Existing window reservations are expected here; reject a bridge or door replacing this window.
+    const opening = floor.openings.find(o => o.kind === 'window' && o.edge === section.edge &&
+      Math.abs(o.offset - x0) < 1e-6 && Math.abs(o.sill - window.sill) < 1e-6);
+    if (!opening || !surface.clear([x0, x1, y0, y1], true)) continue;
+    const panes = window.panes?.cols ?? 1, paneWidth = (x1 - x0) / panes;
+    for (let pane = 0; pane < panes; pane++) blind.build(sink, {
+      dir: surface.field.dir, normal: surface.field.normal,
+      point: (at, y, depth) => surface.point(x0 + pane * paneWidth + 0.025 + at, y, depth),
+    }, paneWidth - 0.05, y0, y1, front - 0.4, 100);
   }
 }
