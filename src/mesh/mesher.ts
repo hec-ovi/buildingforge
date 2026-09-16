@@ -201,7 +201,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   meshFireEscape(mb, layout, above, mat);
 
   meshWindowWeathering(mb, layout);
-  meshPairedWindows(mb, layout, wallThickness);
+  meshPairedWindows(mb, layout);
   meshGardenFacade(mb, layout);
   const decoration = family?.decorate?.({ builder: mb, layout, material: mat });
   if (decoration?.instances?.length) layout.modelInstances = decoration.instances;

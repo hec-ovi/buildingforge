@@ -5,7 +5,7 @@ description: Generate one seeded building exterior GLB and its floor/opening blu
 
 # Exterior 0.49.0
 
-Builds one deterministic building shell, empty inside except replaceable floor slabs, with its exact opening blueprint.
+Builds one deterministic building shell with replaceable slabs, 1 m-deep window scenery and its exact opening blueprint.
 
 Call `generate(request, options?)` from `src/index.ts` in Node with TypeScript stripping, or use the CLI below. The installed dependencies and Interior's published `dist/feasibility.js` build must be available; see [CONTRACT.md](CONTRACT.md).
 

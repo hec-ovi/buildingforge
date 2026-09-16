@@ -1,8 +1,6 @@
-import { meshScenicLining } from './scenicLining.ts';
 import { buildingFamily } from '../families/registry.ts';
 import { curvedRoomFrame, meshScenicCurve, roomBasis } from './scenicCurve.ts';
-import { edgeDir } from '../core/polygon.ts';
-import { slopePoint } from './floorSlope.ts';
+import { scenicSlope } from './scenicSlope.ts';
 import { Rng } from '../core/rng.ts';
 import { scenicState } from '../layout/scenicState.ts';
 import { isPaired } from '../sections/index.ts';
@@ -11,11 +9,11 @@ import type { MeshBuilder } from './primitives.ts';
 import { FacadeField } from './facadeField.ts';
 import { ProfiledBlind } from './profiledBlind.ts';
 import { meshGroundPrivacy } from './windowTreatments.ts';
-import { scenicRoom } from './scenicRoom.ts';
+import { scenicRoom, SCENIC_DEPTH } from './scenicRoom.ts';
 
 const frameMaterial = 'cyberpunk/paired-frame/mid#surface';
 
-export function meshPairedWindows(mb: MeshBuilder, layout: Layout, wallDepth: number): void {
+export function meshPairedWindows(mb: MeshBuilder, layout: Layout): void {
   const family = buildingFamily(layout.assembly?.architecture);
   if (!family && !isPaired(layout.assembly?.architecture)) return;
   const blind = new ProfiledBlind();
@@ -23,7 +21,7 @@ export function meshPairedWindows(mb: MeshBuilder, layout: Layout, wallDepth: nu
     if (!floor.assembly) continue;
     mb.floor = floor.index;
     const nodeId = `scenery:${floor.index}`;
-    const scenery = floor.index > 0 ? mb.part(nodeId, { keepNode: true }) : undefined;
+    const scenery = floor.index > 0 ? mb.part(nodeId, { keepNode: true, sloped: true }) : undefined;
     const ribs = mb.part(`paired-ribs:${floor.index}`);
     for (const section of floor.assembly.sections.filter(s => !family && s.technique === 'paired-pier')) {
       const frame = new FacadeField(floor.outline, section.edge);
@@ -37,8 +35,6 @@ export function meshPairedWindows(mb: MeshBuilder, layout: Layout, wallDepth: nu
       if (opening.kind !== 'window' || !opening.glazing) continue;
       const section = floor.assembly.sections.find(s => s.id === opening.sectionId)!;
       const curved = !!section.spans?.length;
-      const curveSections = section.technique === 'rounded-glass'
-        ? floor.assembly.sections.filter(s => s.technique === 'rounded-glass' && s.corner === section.corner) : [section];
       const field = new FacadeField(floor.outline, opening.edge);
       const g = opening.glazing;
       const bottom = floor.elevation + g.sill, top = bottom + g.height;
@@ -55,9 +51,9 @@ export function meshPairedWindows(mb: MeshBuilder, layout: Layout, wallDepth: nu
         continue;
       }
       if (state === 'dark') continue;
-      opening.scenery = { nodeId, depth: 2.8 + wallDepth - g.glassDepth + (curved ? curvedRoomFrame(floor, curveSections, -wallDepth).rise : 0), lightLayout: lights, state };
-      const sink = scenery!;
-      meshScenicLining(sink, floor, opening, wallDepth, state);
+      opening.scenery = { nodeId, depth: SCENIC_DEPTH, lightLayout: lights, state };
+      const fitScenery = scenicSlope(floor, field.point(g.offset, 0, glass), field.normal);
+      const sink = scenery!.mapped(fitScenery);
       const panes = curved ? 1 : opening.panes?.cols ?? 4;
       for (let pane = 0; pane < panes && top - bottom > 0.5 && g.width > 0.2 && (!curved || opening.sectionSpan === 0); pane++) {
         const paneRng = new Rng(layout.request.seed, `paired-blind:${floor.index}:${section.id}:${pane}`);
@@ -72,27 +68,15 @@ export function meshPairedWindows(mb: MeshBuilder, layout: Layout, wallDepth: nu
         }
       }
       if (curved) {
-        if (section.id !== curveSections[0]!.id || opening.sectionSpan !== 0) continue;
-        meshScenicCurve(sink, floor, opening, curveSections, wallDepth, { lights, state, warm });
+        if (opening.sectionSpan !== 0) continue;
+        meshScenicCurve(sink, floor, opening, [section], g.glassDepth, { lights, state, warm });
       } else {
-        const origin = field.point(opening.offset, 0, -wallDepth);
+        const origin = field.point(g.offset, 0, glass);
         const roomFrame = roomBasis(origin, field.dir, field.normal);
-        const reach = 2.8 + wallDepth;
-        const turn = (edge: number) => {
-          const before = edgeDir(floor.outline, (edge + floor.outline.length - 1) % floor.outline.length);
-          const after = edgeDir(floor.outline, edge);
-          const cross = before[0] * after[1] - before[1] * after[0];
-          const dot = before[0] * after[0] + before[1] * after[1];
-          return cross > 1e-7 ? Math.min(1, cross / (1 + dot)) : 0;
-        };
-        const leftInset = Math.max(0, reach * turn(opening.edge) - opening.offset);
-        const rightInset = Math.max(0, reach * turn((opening.edge + 1) % floor.outline.length) - (field.length - opening.offset - opening.width));
-        opening.scenery.lights = scenicRoom(sink, roomFrame, { width: opening.width, bottom: floor.elevation + opening.sill,
-          top: floor.elevation + opening.sill + opening.height, front: 0, depth: 2.8,
-          leftInset, rightInset, lights, state, warm });
+        opening.scenery.lights = scenicRoom(sink, roomFrame, { width: g.width, bottom, top, front: 0, depth: SCENIC_DEPTH, lights, state, warm });
       }
+      for (const light of opening.scenery.lights ?? []) light.position = fitScenery(light.position);
     }
-    for (const opening of floor.openings) for (const light of opening.scenery?.lights ?? []) light.position = slopePoint(floor, light.position);
   }
   mb.floor = undefined;
 }

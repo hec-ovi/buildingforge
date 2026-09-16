@@ -61,7 +61,8 @@ it.each(['paired-rounded', 'paired-rectangular'] as const)('exports the %s facad
   expect(emitting.length).toBeGreaterThan(0);
   for (const opening of emitting) {
     const room = opening.scenery!;
-    expect(room.lights).toHaveLength(room.lightLayout === 'strips' ? 4 : 8);
+    expect(room.depth).toBe(1);
+    expect(room.lights!.length).toBeGreaterThan(0);
     for (const light of room.lights!) {
       expect(light.lumens).toBe(room.state === 'dark' ? 0 : (room.lightLayout === 'strips' ? 2400 : 1200) * (room.state === 'dim' ? 0.15 : 1));
       expect(light.range).toBe(12);

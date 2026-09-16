@@ -39,7 +39,7 @@ function eastPoint(floor: Blueprint['floors'][number], offset: number, y: number
 
 function dispose(meshes: Mesh[]): void { for (const mesh of meshes) { mesh.geometry.dispose(); (mesh.material as MeshBasicMaterial).dispose(); } }
 
-it('joins shallow and deep window returns to one illuminated room surface at the shell lining', async () => {
+it('joins window returns to one rectangular room surface ending one metre behind the glass', async () => {
   const { blueprint, glb } = await generate(request('garden-taper'), keys);
   expect(blueprint.floors.flatMap(f => f.openings).some(o => (o.glazing?.glassDepth ?? 0) > 1)).toBe(true);
   expect(blueprint.facade.wallDepth).toBeGreaterThan(1);
@@ -49,9 +49,11 @@ it('joins shallow and deep window returns to one illuminated room surface at the
   const opening = floor.openings.find(o => o.edge === 1 && o.offset > 5 && o.scenery && o.glazing!.glassDepth < 0.3)!;
   const meshes = surfaces(await new NodeIO().readBinary(glb));
   const candidates = meshes.filter(mesh => mesh.name === `wall:${floor.index}/1` || mesh.name === `window:${opening.id}` || mesh.name === `scenery:${floor.index}`);
-  const glass = opening.glazing!.glassDepth, lining = blueprint.facade.wallDepth;
+  const glass = opening.glazing!.glassDepth;
+  expect(opening.scenery!.depth).toBe(1);
   const ceiling = floor.elevation + opening.sill + opening.height;
-  const depths = [glass * 0.47, (glass + 0.14 + lining) / 2, lining - 0.035, lining + 0.035, lining + 0.4];
+  // The ceiling-mounted blind rail reaches 0.22 m behind the glass.
+  const depths = [glass * 0.47, glass + 0.25, glass + 0.55, glass + 0.95];
   for (const depth of depths) {
     const target = eastPoint(floor, opening.offset + opening.width * 0.413, ceiling, depth);
     const hits = new Raycaster(target.clone().add(new Vector3(0, -0.004, 0)), new Vector3(0, 1, 0), 0, 0.008).intersectObjects(candidates, false);
@@ -62,13 +64,20 @@ it('joins shallow and deep window returns to one illuminated room surface at the
     }
   }
   const middle = floor.elevation + opening.sill + opening.height * 0.41;
-  for (const depth of [depths[1]!, lining - 0.035, lining + 0.035]) {
+  for (const depth of [glass + 0.15, glass + 0.55, glass + 0.95]) {
     const target = eastPoint(floor, opening.offset, middle, depth);
     const hits = new Raycaster(target.clone().add(new Vector3(0, 0, 0.004)), new Vector3(0, 0, -1), 0, 0.008).intersectObjects(candidates, false);
     expect(hits, `side wall at depth ${depth}`).toHaveLength(1);
     expect(hits[0]!.object.name).toBe(`scenery:${floor.index}`);
     expect(hits[0]!.object.userData.material).toContain('paired-room-wall');
   }
+  const rear = eastPoint(floor, opening.offset + opening.width * 0.413, middle, glass + 0.9);
+  const rearHits = new Raycaster(rear, new Vector3(-1, 0, 0), 0, 0.2).intersectObjects(candidates, false);
+  expect(rearHits).toHaveLength(1);
+  expect(rearHits[0]!.object.userData.material).toBe(`cyberpunk/paired-room-${opening.scenery!.state}/mid`);
+  expect(rearHits[0]!.distance).toBeCloseTo(0.1, 5);
+  const beyond = eastPoint(floor, opening.offset + opening.width * 0.413, ceiling, glass + 1.15);
+  expect(new Raycaster(beyond.clone().add(new Vector3(0, -0.004, 0)), new Vector3(0, 1, 0), 0, 0.008).intersectObjects(candidates, false)).toHaveLength(0);
   const ground = blueprint.floors.find(f => f.index === 0)!;
   expect(ground.height).toBe(4.5);
   for (const y of [0.3, ground.height - 0.3]) {

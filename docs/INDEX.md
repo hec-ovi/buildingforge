@@ -18,9 +18,9 @@
 - `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
 - `src/mesh/slabOutline.ts`: floor edges follow recessed facade surfaces and retain floor-level access corridors.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
-- `src/families/corporate-sectors`: four authored faces, fixed edge features, 2 m window repeats, 3 m pale panels and shallow folded balcony bodies with exterior louvers; the body reserves space for its canopy and joined podium rim inside the parcel.
-- `src/mesh/scenicCurve.ts`: shared room geometry derived from authored curved spans.
-- `src/mesh/scenicLining.ts`, `wallBoundary.ts`: single window returns and room joins at the measured lining depth.
+- `src/families/corporate-sectors`: two complete special faces with balcony bands and broad cladding over a window grid, one screen face and one uncovered window/service face; geometry reserves the parcel space for all facade projections.
+- `src/mesh/scenicRoom.ts`, `scenicCurve.ts`, `scenicSlope.ts`: rectangular window scenes with a 1 m depth, one rear image, ceiling lights and fitted placement on curved or tapered facades.
+- `src/mesh/scenicLining.ts`, `wallBoundary.ts`: single window returns ending at the glazing plane for authored scenery.
 - `src/mesh/profiledBlind.ts`: formed slats with punched openings, folded lips, support clips and raised stacks.
 - `src/families/api.ts`: shared geometry helpers, including formed louvers for family-owned exterior coverings.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.

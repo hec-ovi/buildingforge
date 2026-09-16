@@ -69,7 +69,8 @@ export class MeshBuilder {
   readonly parts: Part[] = [];
   floor?: number;
 
-  part(name: string, options: { parent?: string; pivot?: V3; keepNode?: boolean } = {}): PartSink {
+  /** `sloped` marks positions already fitted to the floor, excluding them from the taper pass. */
+  part(name: string, options: { parent?: string; pivot?: V3; keepNode?: boolean; sloped?: boolean } = {}): PartSink {
     const p: Part = { name, prims: new Map(), ...(this.floor === undefined ? {} : { floor: this.floor }), ...options };
     this.parts.push(p);
     return new PartSink(p);
@@ -90,8 +91,12 @@ export class MeshBuilder {
 
 export class PartSink {
   private readonly p: Part;
+  private readonly mapPoint?: (point: V3) => V3;
 
-  constructor(p: Part) { this.p = p; }
+  constructor(p: Part, mapPoint?: (point: V3) => V3) { this.p = p; this.mapPoint = mapPoint; }
+
+  /** Write transformed geometry into the same part, computing its final face normals. */
+  mapped(mapPoint: (point: V3) => V3): PartSink { return new PartSink(this.p, mapPoint); }
 
   private prim(material: string): Prim {
     let g = this.p.prims.get(material);
@@ -107,6 +112,7 @@ export class PartSink {
 
   /** Raw triangle, vertices CCW from the visible side. uv per vertex. */
   tri(material: string, a: V3, b: V3, c: V3, uv: [number, number][]): void {
+    if (this.mapPoint) [a, b, c] = [a, b, c].map(this.mapPoint) as [V3, V3, V3];
     const g = this.prim(material);
     const base = g.positions.length / 3;
     g.positions.push(...this.local(a), ...this.local(b), ...this.local(c));
@@ -127,6 +133,7 @@ export class PartSink {
 
   /** Quad bl, br, tr, tl ordered CCW from the visible side. */
   quad(material: string, bl: V3, br: V3, tr: V3, tl: V3, uv: [number, number][]): void {
+    if (this.mapPoint) [bl, br, tr, tl] = [bl, br, tr, tl].map(this.mapPoint) as [V3, V3, V3, V3];
     const g = this.prim(material);
     const base = g.positions.length / 3;
     g.positions.push(...this.local(bl), ...this.local(br), ...this.local(tr), ...this.local(tl));

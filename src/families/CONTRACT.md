@@ -29,7 +29,7 @@ Decoration may return `{instances:[{kind,position,size,rotation?}]}`. Kinds are 
 
 ## Geometry helpers
 
-The API re-exports `MeshBuilder.part(name, {keepNode?, parent?, pivot?})`, yielding a `PartSink` with `box(material, centre, halfX, halfY, halfZ, uvMode?)`, `quadFacing(material, a,b,c,d, normal, uvs)` and `triFacing`.
+The API re-exports `MeshBuilder.part(name, {keepNode?, parent?, pivot?, sloped?})`, yielding a `PartSink` with `box(material, centre, halfX, halfY, halfZ, uvMode?)`, `quadFacing(material, a,b,c,d, normal, uvs)` and `triFacing`. `sink.mapped(transform)` places vertices during generation and recomputes face normals; `sloped: true` marks already fitted positions so the common taper pass leaves them in place.
 
 `FacadeField(outline, edge)` exposes `length`, `dir`, `normal`, `point(u,y,depth)` and `solid(sink, material,u0,u1,y0,y1,front,back,mapU?,ends?,worldUv?)`; positive depth is outward. `tubeSegment(sink,material,start,end,radius)` emits a tube. `capFrame(outline)` supplies the frame for `capUp` and `capDown`. `Rng(seed,path)` provides `range`, `int` and `chance`. Public types are linked above.
 
