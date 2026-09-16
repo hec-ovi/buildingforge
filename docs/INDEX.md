@@ -17,6 +17,7 @@
 - `src/mesh/floorSlope.ts`: fits outer wing geometry and emitters to upper outlines while retaining the planted spine.
 - `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
+- `src/families/corporate-sectors`: four authored faces, fixed edge features, 2 m window repeats and aligned panels; the body reserves space for its canopy and joined podium rim inside the parcel.
 - `src/mesh/scenicCurve.ts`: shared room geometry derived from authored curved spans.
 - `src/mesh/scenicLining.ts`, `wallBoundary.ts`: single window returns and room joins at the measured lining depth.
 - `src/mesh/profiledBlind.ts`: formed slats with punched openings, folded lips, support clips and raised stacks.

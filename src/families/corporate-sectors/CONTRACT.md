@@ -1,27 +1,27 @@
 # Corporate sectors
 
-Builds a dark corporate tower with grouped panel wings, recessed window channels, folded balcony cassettes, a screened rear face and a canopied entrance.
+Builds four distinct corporate facades with a joined lower rim, fixed facade limits and a deep LED entrance canopy.
 
-- In: [FamilyInput](../api.ts), four CCW rectangle corners, actual floor pitches, seed and fixed-face flag.
+- In: [FamilyInput](../api.ts), CCW rectangle, floor pitches, seed and fixed-face flag.
 - Out: [FamilyPlan and DecorationContext](../api.ts), exported as `family` from `index.ts`.
-- Dependencies: [building families](../CONTRACT.md), host glazing, formed coverings, scenic rooms, door motion and material resolution.
+- Dependencies: [building families](../CONTRACT.md), host glazing, formed coverings, scenery, doors and Materials.
 
 ## Dimensions
 
-Ground has a 6 m entry sector and opaque panels. The first three upper floors have 1.5 m slit-window cells. Upper groups contain 3 to 6 floors where possible; the final group accepts the remaining floors.
+The complete model fits inside the input parcel. The body reserves 3.5 m on every side for projections; free dimensions fit whole 2 m repeats around 15 m of fixed frontage. Minimum parcel: 24 x 24 m. Fixed connection faces keep their input coordinates, while the visible body and window recesses share the 3.5 m inset. Structural backing is 3.6 m inward. Floor pitches are unchanged, at least 3.5 m; at least five floors are required.
 
-A nominal 28 m front repeat contains an 8 m projecting panel wing, a 4 m recessed window channel, a 4 m setback spacer and one 12 m enclosed cassette. The cassette has a solid left third and two covered right windows, a continuous lower apron, folded lower edge and common top. At 4.5 m pitch its body is 3.3 m high, leaving 1.2 m between boxes. The repeat scales across complete sections, with 0.5 m end trims. Panel wings have full-depth side returns and three panel courses across a four-floor group. Side shields step across two-storey fields, beside paired narrow windows and a partly covered mechanical strip. The opposite face holds a portrait screen, fitted at 1:2.
+Ground has an opaque 4.5 m default storey with a 6 m entrance field. The next three floors have 1 m slit-window cells. A single 2 m projecting rim finishes this lower block. All four rim corners meet at shared miters. The entrance canopy projects 3.25 m, covers at least 18 m where the face permits, and carries a continuous cyan LED edge and underside fixtures.
 
-Floor pitches are supplied, normally 4.5 m. Low windows start at 0.3 m; the upper slit starts 1.18 m below the next floor. The host retains all floor and bridge elevations. Decorative balconies are closed cassettes and publish no traversable balcony doors.
+The next front block has a fixed left wing of two 2 m panel columns, 3 m high courses, a central repeat of 2 m dual-window fields with separate stepped end borders, and one fixed right 9 m cassette. Viewed from outside, the cassette's left third is opaque and its two right thirds have narrow covered windows. Its enclosed body has a folded lower lip. The low central windows start 0.3 m above each floor; upper windows start 1.18 m below the next floor.
 
-Unbound shells reserve a 1.5 m perimeter. Panel wings project 1.2 m, cassette fronts 1.43 m and group rims 1.45 m; the channel and spacer skin sits at 0.06 m. Fixed faces keep the exact input corners and shift the whole upper composition and its glazing recesses inward by 1.45 m. The host structural backing is 1.6 m inward. Minimum shell face: 17 m. Minimum floors: five. Minimum pitch: 3.5 m. Invalid, nonrectangular or undersized inputs throw `RangeError`.
+The following front blocks use recessed window fields and projecting pale shields. The adjacent side has its own pale shield field; each has one mechanical strip at its right limit. Windows and shields repeat in 2 m cells. The fourth face has dark dual-window fields. The opposite face holds one portrait screen and window flanks. Upper blocks have no projecting separator roofs. Pale panels use a 1 x 0.75 m grid with shared origins across floor slices and stepped shield boundaries.
+
+Upper groups cover 3 to 6 floors where possible; the final group takes the remainder. Decorative cassettes have no traversable balcony doors. Invalid rectangles, small plates and invalid pitches throw `RangeError`.
 
 ## Decoration
 
-Facade parts stop at actual openings, door cassettes and bridge cuts. The screen is omitted if a bridge intersects its frame. Ground lights publish cyan 1,200 lm base emitters and 1,800 lm canopy emitters with a 10 m range. The host supplies the room lights and dark glazing. Decoration returns two `ornamental-tree` instances per entrance where planters fit, using existing assets within 2.1 x 3 x 1.05 m boxes. Fixed-face shells omit planters without an exterior margin.
+Openings, door cassettes and bridge cuts remain clear. A bridge intersecting the screen suppresses it. Existing sources provide two ornamental trees where entrance planters fit. Cyan emitters publish 1,200 lm at the base and 1,800 lm beneath the canopy, each with a 10 m range. Original floor and bridge elevations remain authoritative.
 
-Materials: `corporate-panel#native` for panels; `paired-frame-metal#surface` for frames; `paired-cladding-metal#surface` for canopy and rims; `paired-light-cool#surface` for cyan lights; `corporate-screen#native` for the screen. All keys use `cyberpunk/<name>/mid`.
+Materials use `cyberpunk/<name>/mid`: `corporate-panel#native`, `ivory-panel#cool-grey` for upper shields, `paired-frame-metal#surface`, `paired-cladding-metal#surface`, `paired-light-cool#surface` and `corporate-screen#native`. Geometry owns panel joints and folds.
 
-References: 191741, 191756, 191921, 191940, 191950, 192017, 192054, 192102, 192116, 192217, 192417, 192427, 192445 and 192455 from the saved 2026-09-14 exterior photographs. The frame, seams and cassettes are geometry; surface grain and screen artwork are material maps.
-
-Check: `npm test -- src/families/corporate-sectors/tests/contract.test.ts` from `exterior`.
+Check: `npm test -- src/families/corporate-sectors/tests/contract.test.ts`.

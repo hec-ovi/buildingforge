@@ -6,7 +6,8 @@ import { decorateScreen } from './screen.ts';
 
 export const family: BuildingFamily = {
   id: 'corporate-sectors',
-  wallBackingDepth: 1.6,
+  wallBackingDepth: 3.6,
+  parapetHeight: 0,
   plan,
   materials: {
     ground: 'cyberpunk/corporate-panel/mid#native',
@@ -18,6 +19,7 @@ export const family: BuildingFamily = {
     roof: 'cyberpunk/paired-cladding-metal/mid#surface',
     light: 'cyberpunk/paired-light-cool/mid#surface',
     screen: 'cyberpunk/corporate-screen/mid#native',
+    shield: 'cyberpunk/ivory-panel/mid#cool-grey',
   },
   decorate(context) {
     const previous = context.builder.floor;

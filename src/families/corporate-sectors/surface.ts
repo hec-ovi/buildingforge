@@ -1,4 +1,5 @@
-import { FacadeField, type DecorationContext, type FloorLayout, type PartSink } from '../api.ts';
+import { FacadeField, type DecorationContext, type FloorLayout, type PartSink, type Point, type V3 } from '../api.ts';
+import { BODY_MARGIN } from './dimensions.ts';
 
 type Rect = [number, number, number, number];
 
@@ -13,12 +14,14 @@ function subtract(rect: Rect, cut: Rect): Rect[] {
 export class Surface {
   readonly field: FacadeField;
   readonly margin: number;
-  private readonly shift: number;
+  readonly start: number;
+  readonly end: number;
+  private readonly skin: FacadeField;
   private readonly holes: Rect[];
   constructor(context: DecorationContext, floor: FloorLayout, edge: number) {
     this.field = new FacadeField(floor.outline, edge);
     const p = this.field.point(this.field.length / 2, 0, 0);
-    let margin = 1.5;
+    let margin = BODY_MARGIN;
     const parcel = context.layout.request.parcel.footprint;
     for (let i = 0; i < parcel.length; i++) {
       const a = parcel[i]!, b = parcel[(i + 1) % parcel.length]!;
@@ -27,8 +30,14 @@ export class Surface {
       const approach = this.field.normal[0] * outX + this.field.normal[1] * outZ;
       if (approach > 1e-8) margin = Math.min(margin, ((a[0] - p[0]) * outX + (a[1] - p[2]) * outZ) / approach);
     }
-    this.margin = Math.max(0, margin - 0.025);
-    this.shift = floor.index >= 4 ? Math.max(0, 1.45 - this.margin) : 0;
+    this.margin = Math.max(0, margin);
+    this.start = Math.max(0, BODY_MARGIN - this.margin);
+    this.end = this.field.length - this.start;
+    const outline = floor.outline.map((_, i): Point => {
+      const vertex = new FacadeField(floor.outline, i).point(0, 0, -this.start);
+      return [vertex[0], vertex[2]];
+    });
+    this.skin = new FacadeField(outline, edge);
     this.holes = floor.openings.filter(o => o.edge === edge).map(o => {
       const bounds = o.door?.cassette ?? o;
       const pad = o.kind === 'window' ? 0.04 : 0.18;
@@ -43,21 +52,24 @@ export class Surface {
   clear(rect: Rect): boolean {
     return !this.holes.some(h => rect[0] < h[1] && rect[1] > h[0] && rect[2] < h[3] && rect[3] > h[2]);
   }
-  depth(front: number): number { return front - this.shift; }
+  point(u: number, y: number, depth: number): V3 { return this.skin.point(u - this.start, y, depth); }
   solid(part: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front = 0.1, back = 0, worldUv = true): void {
+    u0 = Math.max(u0, this.start); u1 = Math.min(u1, this.end);
     if (u1 <= u0 || y1 <= y0) return;
-    const shift = this.shift || Math.max(0, front - this.margin);
     let pieces: Rect[] = [[u0, u1, y0, y1]];
     for (const hole of this.holes) pieces = pieces.flatMap(p => subtract(p, hole));
-    for (const r of pieces) this.field.solid(part, material, ...r, front - shift, back - shift, [0, 1], undefined, worldUv);
+    for (const [a, b, c, d] of pieces) this.skin.solid(part, material, a - this.start, b - this.start, c, d, front, back, [0, 1], undefined, worldUv);
   }
-  panels(part: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, panelWidth: number, panelHeight: number, origin: number, front: number): void {
-    const count = Math.max(1, Math.round((u1 - u0) / panelWidth));
-    const width = (u1 - u0) / count;
-    const first = Math.floor((y0 - origin) / panelHeight);
-    for (let i = 0; i < count; i++) for (let row = first; origin + row * panelHeight < y1 - 1e-6; row++) {
-      const low = origin + row * panelHeight, high = low + panelHeight;
-      this.solid(part, material, u0 + i * width + 0.016, u0 + (i + 1) * width - 0.016, Math.max(y0, low + 0.018), Math.min(y1, high - 0.018), front, front - 0.12);
+  panels(part: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, panelWidth: number, panelHeight: number, originY: number, front: number, originU = this.start + 0.5): void {
+    const firstColumn = Math.floor((u0 - originU) / panelWidth);
+    const firstRow = Math.floor((y0 - originY) / panelHeight);
+    for (let column = firstColumn; originU + column * panelWidth < u1 - 1e-6; column++) {
+      const left = originU + column * panelWidth, right = left + panelWidth;
+      const a = Math.max(u0, left + 0.016), b = Math.min(u1, right - 0.016);
+      for (let row = firstRow; originY + row * panelHeight < y1 - 1e-6; row++) {
+        const low = originY + row * panelHeight, high = low + panelHeight;
+        this.solid(part, material, a, b, Math.max(y0, low + 0.018), Math.min(y1, high - 0.018), front, front - 0.12);
+      }
     }
   }
 }
