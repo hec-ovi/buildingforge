@@ -9,8 +9,8 @@ export function fit(input: FamilyInput): { outline: Point[]; width: number; dept
   const w = Math.hypot(...x), d = Math.hypot(...z);
   if (x[0] * z[1] - x[1] * z[0] <= 0 || Math.abs(x[0] * z[0] + x[1] * z[1]) > 1e-6 * w * d || Math.hypot(r[2][0] - r[1][0] - z[0], r[2][1] - r[1][1] - z[1]) > 1e-6) throw new RangeError('Corporate sectors require four CCW rectangle corners.');
   const width = fittedLength(w - BODY_MARGIN * 2);
-  const depth = 17 + WINDOW_CELL * Math.floor((d - BODY_MARGIN * 2 - 17 + 1e-8) / WINDOW_CELL);
-  if (width < FIXED_FRONT + WINDOW_CELL || depth < 17) throw new RangeError('Corporate sectors require a 28 x 17 m body and a 3.5 m perimeter for attached details.');
+  const depth = fittedLength(d - BODY_MARGIN * 2);
+  if (Math.min(width, depth) < FIXED_FRONT + WINDOW_CELL) throw new RangeError('Corporate sectors require a 28 x 28 m body and a 3.5 m perimeter for attached details.');
   if (input.fixedFaces) return { outline: r.map(p => [...p]), width: w, depth: d, inset: BODY_MARGIN };
   const left = (w - width) / 2, near = (d - depth) / 2;
   const point = (u: number, v: number): Point => [r[0][0] + x[0] * u / w + z[0] * v / d, r[0][1] + x[1] * u / w + z[1] * v / d];

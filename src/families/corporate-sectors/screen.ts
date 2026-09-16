@@ -1,12 +1,13 @@
 import type { DecorationContext } from '../api.ts';
 import { Surface } from './surface.ts';
+import { SCREEN_FACE } from './faces.ts';
 
 export function decorateScreen(context: DecorationContext): void {
   const { layout, builder, material } = context;
   const upper = layout.floors.filter(f => f.index >= 4);
   if (!upper.length) return;
   const first = upper[0]!, last = upper[upper.length - 1]!;
-  const surface = new Surface(context, first, 2);
+  const surface = new Surface(context, first, SCREEN_FACE);
   const length = surface.end - surface.start;
   const availableWidth = (length - 1) * 0.68 - 0.4;
   const availableHeight = last.elevation + last.height - first.elevation - 0.8;
@@ -15,7 +16,7 @@ export function decorateScreen(context: DecorationContext): void {
   const u0 = surface.start + (length - width) / 2, u1 = u0 + width;
   const y0 = first.elevation + (availableHeight - height) / 2 + 0.4, y1 = y0 + height;
   for (const floor of upper) {
-    const guard = new Surface(context, floor, 2);
+    const guard = new Surface(context, floor, SCREEN_FACE);
     if (!guard.clear([u0 - 0.25, u1 + 0.25, y0 - 0.2, y1 + 0.2])) return;
   }
   builder.floor = first.index;

@@ -8,14 +8,14 @@ export function plan(input: FamilyInput): FamilyPlan {
   const groups: FamilyPlan['groups'] = [{ id: 0, fromFloor: 0, toFloor: 3, width, depth }];
   for (let start = 4; start < input.floorHeights.length;) {
     const remaining = input.floorHeights.length - start;
-    const count = remaining <= 6 ? remaining : remaining === 7 ? 3 : 4;
+    const count = Math.min(4, remaining);
     groups.push({ id: groups.length, fromFloor: start, toFloor: start + count - 1, width, depth });
     start += count;
   }
   return { grid: 0.5, extent: { width, depth }, corners: ['square', 'square', 'square', 'square'], groups,
     floors: input.floorHeights.map((height, floor) => {
       const group = groups.find(g => floor >= g.fromFloor && floor <= g.toFloor)!;
-      const sections = [width, depth, width, depth].flatMap((length, edge) => face(floor, group.id, floor - group.fromFloor, edge, length, height, inset));
+      const sections = [width, depth, width, depth].flatMap((length, edge) => face(floor, group.id, edge, length, height, inset));
       return { floor, group: group.id, outline: outline.map(p => [...p]), balconySections: [], sections };
     }),
   };

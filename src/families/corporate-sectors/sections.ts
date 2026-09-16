@@ -1,5 +1,6 @@
 import type { FamilySection, WindowField } from '../api.ts';
 import { END, WINDOW_CELL, PANEL_WING, CASSETTE, CHANNEL_BORDER, CHANNEL_SPACER, CHANNEL_RECESS, FIXED_FRONT, cassetteProfile } from './dimensions.ts';
+import { SCREEN_FACE, SERVICE_WIDTH, specialFace } from './faces.ts';
 
 function windowPair(width: number, height: number, equal = false): WindowField[] {
   return [
@@ -22,7 +23,7 @@ class FaceSections {
   }
 }
 
-export function face(floor: number, group: number, localFloor: number, edge: number, length: number, height: number, inset: number): FamilySection[] {
+export function face(floor: number, group: number, edge: number, length: number, height: number, inset: number): FamilySection[] {
   const out = new FaceSections(floor, edge, inset);
   if (floor === 0) {
     out.add('ground-panel', (length - 6) / 2);
@@ -38,7 +39,7 @@ export function face(floor: number, group: number, localFloor: number, edge: num
     out.add('end', spare);
     for (let i = 0; i < count; i++) out.add('podium-slit', 1, [{ offset: 0.12, width: 0.76, sill: height - 1.1, height: 0.7 }]);
     out.add('end', spare);
-  } else if (edge === 0 && group === 1) {
+  } else if (specialFace(edge) && group === 1) {
     const count = Math.floor((length - inset * 2 - FIXED_FRONT + 1e-8) / WINDOW_CELL);
     const spare = (usable - PANEL_WING - CASSETTE - 2 * CHANNEL_BORDER - CHANNEL_SPACER - count * WINDOW_CELL) / 2;
     // Increasing face U runs from the viewer's right to left.
@@ -49,24 +50,16 @@ export function face(floor: number, group: number, localFloor: number, edge: num
     for (let i = 0; i < count; i++) out.add('recessed-slit', WINDOW_CELL, windowPair(WINDOW_CELL, height, true), CHANNEL_RECESS + 0.18, CHANNEL_RECESS);
     out.add('channel-left', CHANNEL_BORDER + spare);
     out.add('large-panel', PANEL_WING);
-  } else if (edge === 2) {
+  } else if (edge === SCREEN_FACE) {
     out.add('screen-flank', usable * 0.16, windowPair(usable * 0.16, height));
     out.add('screen', usable * 0.68);
     out.add('screen-flank', usable * 0.16, windowPair(usable * 0.16, height));
-  } else if (edge === 0 || edge === 1) {
-    out.add('mechanical', 2, [], 0.65);
-    const count = Math.floor((usable - 3) / WINDOW_CELL), trim = (usable - 2 - count * WINDOW_CELL) / 2;
-    out.add('shield-right', trim);
-    for (let i = 0; i < count; i++) {
-      const masked = localFloor % 4 >= 2 || i % 3 === 0;
-      out.add(masked ? 'mask-panel' : 'side-window', WINDOW_CELL, masked ? [] : windowPair(WINDOW_CELL, height), 0.55);
-    }
-    out.add('shield-left', trim);
   } else {
-    const count = Math.floor(usable / WINDOW_CELL), trim = (usable - count * WINDOW_CELL) / 2;
-    out.add('service-border', trim);
-    for (let i = 0; i < count; i++) out.add('service-window', WINDOW_CELL, windowPair(WINDOW_CELL, height), 0.55);
-    out.add('service-border', trim);
+    out.add('mechanical', SERVICE_WIDTH, [], 0.65);
+    const count = Math.floor((usable - SERVICE_WIDTH - 1) / WINDOW_CELL), trim = (usable - SERVICE_WIDTH - count * WINDOW_CELL) / 2;
+    out.add('upper-border', trim);
+    for (let i = 0; i < count; i++) out.add('upper-window', WINDOW_CELL, windowPair(WINDOW_CELL, height), 0.55);
+    out.add('upper-border', trim);
   }
   out.add('end', inset + END);
   return out.values;
