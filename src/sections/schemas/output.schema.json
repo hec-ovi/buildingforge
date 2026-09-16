@@ -212,6 +212,11 @@
                       "type": "number",
                       "exclusiveMinimum": 0
                     },
+                    "surfaceDepth": {
+                      "type": "number",
+                      "minimum": 0,
+                      "description": "Inward depth of the visible wall surface; defaults to zero. Straight window casings and opening returns start at this plane."
+                    },
                     "left": {
                       "type": "number",
                       "exclusiveMinimum": 0
