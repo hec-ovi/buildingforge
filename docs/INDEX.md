@@ -27,6 +27,7 @@
 - `src/glb`, `src/materials`: GLB output and material resolution.
 - `src/layout/validateLayout.ts`: final geometry and opening guards.
 - [Preview layout](../src/ui/views/preview.json): control definitions rendered by the shared Form component.
+- `vite.config.ts`: preview serving and source watching, excluding generated output trees.
 - [Native finishes](../assets/native/INDEX.md): bundled material assets and recipes.
 - [Requirements](REQUIREMENTS.md): local raw user instructions, excluded from git.
 

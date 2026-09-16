@@ -8,6 +8,8 @@ Displays one generated exterior and exposes request and inspection controls.
 
 `src/ui/main.ts` mounts in `#app`, loads `fixtures/*.request.json` (`?fixture=name` selects one), calls Exterior with an HTTP material source, and renders the returned GLB and blueprint. Layout and labels load from [views/preview.json](views/preview.json); [FormSchema](components/Form.ts) supports select, text, range, toggle, buttons and display slots. Form receives choice lists and an action callback, and contains no architectural rules.
 
+The preview watches source and fixtures; generated `out/` trees are excluded from file watching.
+
 ## Components and events
 
 - `RequestPanel(fixtures, {onGenerate}, initialFixture?)`: renders fixture, seed, style and shape controls. `currentRequest()` returns a clone with its displayed seed. Selection, Enter and buttons emit `onGenerate(request)`. `showError(message)` displays inline text and a toast.
