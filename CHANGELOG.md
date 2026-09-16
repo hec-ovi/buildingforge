@@ -1,5 +1,7 @@
 # Changelog
 
+0.49.0: enclosed central garden balconies, base-relative wing tapers, layered corporate sectors and single-owner scenic window reveals.
+
 0.49.0: six modular facade families with shared room detail, source-model planting requests and fixed bridge elevations.
 
 0.49.0: tapered garden towers with planted facade bands, pale podiums and reflective dark windows.

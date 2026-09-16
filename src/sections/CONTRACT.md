@@ -10,7 +10,7 @@ Compositions: one rounded corner, two chamfered corners, or straight floor group
 
 Paired compositions (`paired-rounded`, `paired-rectangular`) use 5 m room widths in alternating 10 m glazed and solid sections, 0.5 m end trims and a 10 m rounded corner radius. Their straight extents are `1 + 10n` metres. The rounded form has one broad curved corner and three right-angle corners. Glazed pairs contain four panes; the curved corner contains six broad panes across eighteen geometric slices. Floor rims total 0.5 m of each storey. Ground floors are opaque, with their host entrance.
 
-`garden-taper` reserves a 4.5 m podium through the caller floor policy. Above it, two fixed 10 m glazed wings flank a shrinking planted section on each of two opposite faces. Floor assemblies publish lower and upper outlines; the last upper outline is a flat 25 m roof, with a 3 m central minimum. The other faces are glazed. The footprint needs 35 x 25 m and three floors.
+`garden-taper` places its front on the longer axis. Its straight planted spine uses 10 m pair multiples near one third of the base, with a fixed depth. Only outer glazed wings taper. The flat roof retains 1.5 m wing tips; side inset per vertical metre is at least 0.3. Upper floor outlines remain explicit. The podium is 4.5 m, with a visible 4 m panel field. Required plate: 35 x 25 m and at least three floors; the requested height must fit the base-relative slope.
 
 Registered families receive the fitted rectangle, actual floor heights, seed and `fixedFaces`. Their optional section `windows` contain explicit offsets, sills, heights and pane counts; `[]` leaves the section opaque. Spans retain one broad window field across multiple geometric edges.
 

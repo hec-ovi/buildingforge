@@ -3,17 +3,23 @@ import { Surface } from './surface.ts';
 
 function cassette(surface: Surface, sink: PartSink, material: string, section: FamilySection, floor: FloorLayout): void {
   const u = section.offset, end = u + section.width, y = floor.elevation, top = y + floor.height;
-  const front = 1.15;
-  surface.solid(sink, material, u, end, y + 0.38, top - 1.57, front, 0.05);
-  surface.solid(sink, material, u, end, top - 0.39, top - 0.15, front, 0.05);
-  surface.solid(sink, material, u, u + 0.11, top - 1.57, top - 0.39, front, 0.05);
-  surface.solid(sink, material, end - 0.11, end, top - 1.57, top - 0.39, front, 0.05);
-  surface.solid(sink, material, u + 0.1, end - 0.1, y + 0.25, y + 0.38, 0.92, 0.08);
+  const bottom = y + 0.6, head = top - 0.6;
+  surface.solid(sink, material, u, end, bottom + 0.12, head - 0.09, 1.43, 0.03);
+  surface.solid(sink, material, u + 0.12, end - 0.12, head - 0.09, head, 1.28, 0.03);
+  surface.solid(sink, material, u + 0.1, end - 0.1, bottom, bottom + 0.12, 1.2, 0.03);
+  for (let i = 1; i < 3; i++) {
+    const at = u + section.width * i / 3;
+    surface.solid(sink, material, at - 0.018, at + 0.018, bottom + 0.16, top - 1.79, 1.446, 1.43);
+  }
+  if (surface.clear([u, end, bottom, bottom + 0.12])) {
+    const p = (a: number, h: number, depth: number) => surface.field.point(a, h, surface.depth(depth));
+    sink.quadFacing(material, p(u, bottom + 0.12, 1.43), p(end, bottom + 0.12, 1.43), p(end - 0.1, bottom, 1.2), p(u + 0.1, bottom, 1.2), [surface.field.normal[0], -1, surface.field.normal[1]], [[0, 0], [section.width, 0], [section.width, 0.26], [0, 0.26]]);
+  }
 }
 
 function mechanics(surface: Surface, sink: PartSink, metal: string, panel: string, section: FamilySection, floor: FloorLayout): void {
   const u = section.offset, width = section.width, y = floor.elevation, top = y + floor.height;
-  const front = Math.min(0.34, surface.margin - 0.04);
+  const front = surface.depth(0.34);
   for (let i = 0; i < 3; i++) {
     const at = u + 0.24 + i * width * 0.19;
     if (surface.clear([at - 0.05, at + 0.05, y + 0.2, top - 0.2])) tubeSegment(sink, metal, surface.field.point(at, y + 0.2, front), surface.field.point(at, top - 0.2, front), 0.04);
@@ -41,23 +47,29 @@ export function decorateFloors(context: DecorationContext): void {
         if (section.edge !== edge) continue;
         const u = section.offset, end = u + section.width;
         if (section.id.includes(':large-panel:')) {
-          surface.panels(sink, panel, u, end, y, top, section.width / 2, groupHeight / rows, base, 0.94);
-        } else if (section.id.includes(':cassette-')) {
-          cassette(surface, sink, metal, section, floor);
-          if (section.id.includes(':cassette-solid:')) surface.panels(sink, panel, u, end, y + 0.38, top - 0.15, section.width, floor.height, y, 1.16);
+          const wing = builder.part(`${section.id}:wing`, { keepNode: true });
+          surface.solid(wing, panel, u + 0.015, end - 0.015, y, top, 1.08, 0.03);
+          surface.panels(wing, panel, u, end, y, top, section.width / 2, groupHeight / rows, base, 1.2);
+        } else if (section.id.includes(':cassette:')) {
+          cassette(surface, builder.part(`${section.id}:box`, { keepNode: true }), metal, section, floor);
         } else if (section.id.includes(':mechanical:')) {
           mechanics(surface, sink, metal, panel, section, floor);
         } else if (section.id.includes(':mask-panel:')) {
-          surface.panels(sink, panel, u, end, y + 0.02, top - 0.02, 1.5, 1.5, base, 0.95);
+          const mask = builder.part(`${section.id}:mask`, { keepNode: true });
+          surface.solid(mask, panel, u + 0.014, end - 0.014, y, top, 1.04, 0.04);
+          surface.panels(mask, panel, u, end, y, top, 1.8, 0.9, base, 1.16);
         } else {
-          surface.panels(sink, panel, u, end, y + 0.015, top - 0.015, group.id === 0 ? 1.5 : section.width, group.id === 0 ? 1.5 : floor.height, base, 0.15);
+          const front = group.id === 0 ? 0.15 : 0.06;
+          surface.panels(sink, panel, u, end, y + 0.015, top - 0.015, group.id === 0 ? 1.5 : section.width, group.id === 0 ? 1.5 : floor.height, base, front);
           if (section.id.includes(':recessed-slit:')) {
-            for (const at of [u + 0.02, end - 0.2]) for (let i = 0; i < 3; i++) surface.solid(sink, trim, at + i * 0.045, at + 0.025 + i * 0.045, y + 0.02, top - 0.02, 0.76, 0.1);
+            for (const at of [u + 0.02, end - 0.2]) for (let i = 0; i < 3; i++) surface.solid(sink, trim, at + i * 0.045, at + 0.025 + i * 0.045, y, top, 0.82 - i * 0.075, 0.04);
+          } else if (section.id.includes(':side-pier:')) {
+            surface.solid(sink, trim, u + 0.04, end - 0.04, y, top, 1.22, 0.03);
           }
         }
       }
-      if (floor.index === group.fromFloor || floor.index === 1) surface.solid(sink, trim, 0.03, surface.field.length - 0.03, y + 0.01, y + 0.29, 1.27, 0.02);
-      if (floor.index === group.toFloor) surface.solid(sink, trim, 0.03, surface.field.length - 0.03, top - 0.31, top - 0.01, 1.27, 0.02);
+      if (floor.index === group.fromFloor || floor.index === 1) surface.solid(sink, trim, 0.03, surface.field.length - 0.03, y + 0.01, y + 0.29, 1.45, 0.02);
+      if (floor.index === group.toFloor) surface.solid(sink, trim, 0.03, surface.field.length - 0.03, top - 0.31, top - 0.01, 1.45, 0.02);
     }
   }
 }

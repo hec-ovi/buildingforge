@@ -44,6 +44,8 @@ export interface BuildingFamily {
   groundFloorHeight?: number;
   /** Extra roof-edge height; zero uses the authored flush roof cap. */
   parapetHeight?: number;
+  /** Inward depth of the structural backing behind family-owned facade layers. */
+  wallBackingDepth?: number;
   plan(input: FamilyInput): FamilyPlan;
   decorate?(context: DecorationContext): FamilyDecoration | void;
   /** Final catalog slots, including #variant when one is required. */

@@ -6,6 +6,7 @@ import { decorateScreen } from './screen.ts';
 
 export const family: BuildingFamily = {
   id: 'corporate-sectors',
+  wallBackingDepth: 1.6,
   plan,
   materials: {
     ground: 'cyberpunk/corporate-panel/mid#native',

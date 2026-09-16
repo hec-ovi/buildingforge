@@ -13,11 +13,12 @@ function subtract(rect: Rect, cut: Rect): Rect[] {
 export class Surface {
   readonly field: FacadeField;
   readonly margin: number;
+  private readonly shift: number;
   private readonly holes: Rect[];
   constructor(context: DecorationContext, floor: FloorLayout, edge: number) {
     this.field = new FacadeField(floor.outline, edge);
     const p = this.field.point(this.field.length / 2, 0, 0);
-    let margin = 1.3;
+    let margin = 1.5;
     const parcel = context.layout.request.parcel.footprint;
     for (let i = 0; i < parcel.length; i++) {
       const a = parcel[i]!, b = parcel[(i + 1) % parcel.length]!;
@@ -27,6 +28,7 @@ export class Surface {
       if (approach > 1e-8) margin = Math.min(margin, ((a[0] - p[0]) * outX + (a[1] - p[2]) * outZ) / approach);
     }
     this.margin = Math.max(0, margin - 0.025);
+    this.shift = floor.index >= 4 ? Math.max(0, 1.45 - this.margin) : 0;
     this.holes = floor.openings.filter(o => o.edge === edge).map(o => {
       const bounds = o.door?.cassette ?? o;
       const pad = o.kind === 'window' ? 0.04 : 0.18;
@@ -41,9 +43,10 @@ export class Surface {
   clear(rect: Rect): boolean {
     return !this.holes.some(h => rect[0] < h[1] && rect[1] > h[0] && rect[2] < h[3] && rect[3] > h[2]);
   }
+  depth(front: number): number { return front - this.shift; }
   solid(part: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front = 0.1, back = 0, worldUv = true): void {
     if (u1 <= u0 || y1 <= y0) return;
-    const shift = Math.max(0, front - this.margin);
+    const shift = this.shift || Math.max(0, front - this.margin);
     let pieces: Rect[] = [[u0, u1, y0, y1]];
     for (const hole of this.holes) pieces = pieces.flatMap(p => subtract(p, hole));
     for (const r of pieces) this.field.solid(part, material, ...r, front - shift, back - shift, [0, 1], undefined, worldUv);

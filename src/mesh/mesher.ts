@@ -1,10 +1,11 @@
+import { windowReturnProfile } from './scenicLining.ts';
 import { buildingFamily } from '../families/registry.ts';
 import { meshGardenFacade } from './gardenFacade.ts';
 import { applyFloorSlopes } from './floorSlope.ts';
 import { meshRibbonLouvres } from './ribbonLouvres.ts';
 import { meshPairedWindows } from './pairedWindows.ts';
 import { isPaired } from '../sections/index.ts';
-import { measureWallDepth } from './wallDepth.ts';
+import { familyBackingDepth, measureWallDepth } from './wallDepth.ts';
 import { sectionSpans } from '../sections/index.ts';
 import { meshCurvedWindow } from './curvedWindow.ts';
 import { meshSectionFinish } from './sectionFinish.ts';
@@ -139,13 +140,13 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
       // fixed panel grid instead of stretching to close the face.
       const pattern = facadeSurfacePattern(layout.request.options!.exteriorStyle!);
       const gardenPodium = layout.assembly?.architecture === 'garden-taper' && f.index === 0;
-      const panel = gardenPodium ? { width: 5, height: 2.5, jointWidth: 0.025 } : !f.assembly && f.index !== 0 && pattern.kind === 'panel' ? pattern : undefined;
+      const panel = gardenPodium ? { width: 5, height: (f.height - 0.5) / 2, jointWidth: 0.025 } : !f.assembly && f.index !== 0 && pattern.kind === 'panel' ? pattern : undefined;
       const horizontal = panel ? fixedPanelAxis(fr.len, panel.width) : undefined;
       const vertical = panel ? fixedPanelAxis(f.height, panel.height) : undefined;
       const uOrigin = horizontal?.borders[0] ?? 0;
       const yOrigin = f.elevation + (vertical?.borders[0] ?? 0);
       const pieces = cutWall(fr.len, f.elevation, f.elevation + f.height, holes);
-      const depth = family && f.index >= 0 ? -0.12 : panel ? -PANEL_JOINT_DEPTH : 0;
+      const depth = family && f.index >= 0 ? -familyBackingDepth(layout.request) : panel ? -PANEL_JOINT_DEPTH : 0;
       for (const piece of pieces) {
         const uvs = [piece.bl, piece.br, piece.tr, piece.tl]
           .map(([u, y]) => [u - uOrigin, yOrigin - y] as [number, number]);
@@ -153,7 +154,8 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
       }
       const glazedCorner = f.assembly?.sections.some(section => !!section.spans && sectionSpans(section).some(span => span.edge === e));
       meshWallLining(sink, f.outline, e, pieces, depth, mat(glazedCorner ? 'window-frame' : 'inner-wall'), wallThickness,
-        layout.request.options?.architecture === 'chamfered-corners' ? mat('window-frame') : undefined);
+        layout.request.options?.architecture === 'chamfered-corners' ? mat('window-frame') : undefined,
+        windowReturnProfile(layout, f, e, wallThickness));
       if (panel) meshPanelField(sink, {
         outline: f.outline, edge: e, elevation: f.elevation, height: f.height,
         width: panel.width, panelHeight: panel.height, jointWidth: panel.jointWidth,
@@ -175,7 +177,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   capDown(roofSink, mat('floor-slab'), caps, layout.roof.outline, top, cutout);
   if (layout.roof.bulkhead) meshBulkhead(mb, layout.roof.bulkhead, top, caps, mat);
   capDown(mb.part('base'), mat('floor-slab'), caps, lowest.outline, lowest.elevation);
-  if (layout.roof.parapetHeight > 0) {
+  if (layout.roof.parapetHeight > 0 && layout.assembly?.architecture !== 'garden-taper') {
     const parapet = mb.part('parapet');
     for (let e = 0; e < layout.roof.outline.length; e++) {
       const fr = frame(layout.roof.outline, e);
@@ -197,7 +199,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   meshFireEscape(mb, layout, above, mat);
 
   meshWindowWeathering(mb, layout);
-  meshPairedWindows(mb, layout);
+  meshPairedWindows(mb, layout, wallThickness);
   meshGardenFacade(mb, layout);
   const decoration = family?.decorate?.({ builder: mb, layout, material: mat });
   if (decoration?.instances?.length) layout.modelInstances = decoration.instances;
@@ -296,7 +298,7 @@ function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: 
     }
     const style = section ? { ...layout.style, facade: { ...layout.style.facade, windowRecess: section.border.depth },
       glazing: { ...layout.style.glazing, frameWidth: Math.min(0.08, section.border.side), frameProud: 0.04, glassInset: 0.02 } } : layout.style;
-    o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, style, mat, privacy, layout.request.options?.architecture === 'chamfered-corners');
+    o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, style, mat, privacy);
     if (layout.request.options?.architecture === 'chamfered-corners') meshRibbonLouvres(sink, f, o, mat);
     return;
   }
@@ -465,7 +467,6 @@ function windowUnit(
   sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
   o: Opening, style: Style, mat: (k: string) => string,
   privacy?: PartSink,
-  wallOwnsReveals = false,
 ): NonNullable<Opening['glazing']> {
   const g = style.glazing;
   const fw = Math.min(g.frameWidth, (u1 - u0) / 4, (yt - yb) / 4);
@@ -474,14 +475,9 @@ function windowUnit(
   const frameMat = mat('window-frame');
   const curtainWall = style.facade.kind === 'curtain-wall' && o.head !== undefined;
 
-  // The wall is cut at the opening; the reveal ring lines it from the skin back
-  // to the glass, so the hole never shows an open edge beside the frame.
+  // Shell lining owns the opening returns; this unit owns frame and glass only.
   const recess = style.facade.windowRecess;
   const z = -recess;
-  const lining = recess + g.glassInset;
-  if (!wallOwnsReveals && !curtainWall && lining > 0.005) {
-    reveal(sink, fr, [[u0, yb], [u1, yb], [u1, yt], [u0, yt]], lining, true, frameMat);
-  }
 
   // A punched window: the frame ring straddles the hole edge, half over the wall
   // and half over the glass, its back on the wall skin, and the glass fills the

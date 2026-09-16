@@ -12,10 +12,12 @@ const request: BuildingRequest = {
 };
 const gardenMaterials = ['cyberpunk/garden-stem/mid', 'cyberpunk/garden-leaf/mid', 'cyberpunk/garden-leaf-light/mid'];
 
-it('exports a continuous taper, two planted faces and a flat minimum-width roof', async () => {
+it('exports tapering wings around a straight enclosed planted spine', async () => {
   const { blueprint, glb } = await generate(request, keys);
   expect(blueprint.floors[0]!.height).toBe(4.5);
   const assembly = blueprint.assembly!;
+  let wingWidth = Infinity;
+  const spineBounds: number[][] = [];
   for (const floor of blueprint.floors.slice(1)) {
     expect(floor.topOutline).toHaveLength(4);
     expect(floor.topOutline![1]![0] - floor.topOutline![0]![0]).toBeLessThan(floor.outline[1]![0] - floor.outline[0]![0]);
@@ -24,8 +26,16 @@ it('exports a continuous taper, two planted faces and a flat minimum-width roof'
     expect(gardens.map(s => s.edge)).toEqual([0, 2]);
     const wings = assembly.floors[floor.index]!.sections.filter(s => s.technique === 'paired-glass' && s.edge % 2 === 0);
     expect(wings).toHaveLength(4);
-    expect(wings.every(s => s.width === 10)).toBe(true);
+    expect(wings.every(s => s.width === wings[0]!.width)).toBe(true);
+    expect(wings[0]!.width).toBeLessThan(wingWidth);
+    wingWidth = wings[0]!.width;
+    expect(gardens.every(s => s.width === 20)).toBe(true);
+    const garden = gardens[0]!;
+    const left = floor.outline[0]![0] + garden.offset;
+    spineBounds.push([left, left + garden.width, floor.outline[0]![1]]);
+    expect(floor.topOutline![2]![1] - floor.topOutline![1]![1]).toBeCloseTo(floor.outline[2]![1] - floor.outline[1]![1]);
   }
+  expect(spineBounds.every(bounds => bounds.every((value, i) => Math.abs(value - spineBounds[0]![i]!) < 1e-7))).toBe(true);
   expect(blueprint.roof.outline).toEqual(blueprint.floors[3]!.topOutline);
   expect(blueprint.roof.outline[1]![0] - blueprint.roof.outline[0]![0]).toBeCloseTo(25);
   expect(blueprint.facade.groundMaterial.key).toBe('cyberpunk/garden-concrete/mid');
@@ -48,9 +58,9 @@ it('exports a continuous taper, two planted faces and a flat minimum-width roof'
   expect(blueprint.balconyBands).toEqual([]);
 });
 
-it('merges large planted facades without changing their geometry', async () => {
+it('merges enclosed planted facades without changing their geometry', async () => {
   const wide: BuildingRequest = { ...request, parcel: { ...request.parcel,
-    footprint: [[0, 0], [72, 0], [72, 42], [0, 42]], accessPoint: [36, 0] } };
+    footprint: [[0, 0], [182, 0], [182, 42], [0, 42]], accessPoint: [91, 0] } };
   const named = await new NodeIO().readBinary((await generate(wide, keys)).glb);
   const merged = await new NodeIO().readBinary((await generate({ ...wide, options: { ...wide.options, glb: 'merged' } }, keys)).glb);
   const largest = Math.max(...named.getRoot().listMeshes().flatMap(mesh => mesh.listPrimitives()
@@ -92,4 +102,14 @@ it('rejects a parcel without room for the fixed wings and minimum planted sectio
 it('retains the podium height when checking a tight vertical envelope', async () => {
   await expect(generate({ ...request, parcel: { ...request.parcel, maxHeight: 17.5 } }, keys))
     .rejects.toMatchObject({ code: 'E_ENVELOPE_TOO_LOW' });
+});
+
+it('fits the planted front along the long base and rejects a slender taper', async () => {
+  const rotated = { ...request, parcel: { ...request.parcel, footprint: [[0,0],[42,0],[42,62],[0,62]] as [number, number][], accessPoint: [42,31] } };
+  const { blueprint } = await generate(rotated, keys);
+  const floor = blueprint.floors[1]!;
+  expect(floor.outline[0]![0]).toBeCloseTo(floor.outline[1]![0]);
+  const podium = blueprint.floors[0]!;
+  expect(Math.hypot(podium.outline[1]![0] - podium.outline[0]![0], podium.outline[1]![1] - podium.outline[0]![1])).toBe(61);
+  await expect(generate({ ...request, building: { ...request.building, floors: 25 }, parcel: { ...request.parcel, maxHeight: 112.5 } }, keys)).rejects.toMatchObject({ code: 'E_CORE_PLATE' });
 });

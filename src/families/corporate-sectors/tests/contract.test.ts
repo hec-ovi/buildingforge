@@ -39,6 +39,15 @@ describe('corporate sectors public family', () => {
     const slit = plan.floors[4]!.sections.find(s => s.id.includes(':recessed-slit:'))!;
     expect(slit.windows).toHaveLength(2);
     expect(slit.windows![0]!.sill).toBe(0.3);
+    const facade = plan.floors[4]!.sections.filter(s => s.edge === 0 && !s.id.includes(':end:'));
+    for (let i = 0; i < facade.length; i += 4) {
+      const [wing, middle, spacer, box] = facade.slice(i, i + 4);
+      expect(wing!.width).toBeCloseTo(middle!.width * 2);
+      expect(spacer!.width).toBeCloseTo(middle!.width);
+      expect(box!.width).toBeCloseTo(middle!.width * 3);
+      expect(box!.windows).toHaveLength(2);
+      expect(box!.windows![0]!.offset).toBeGreaterThan(box!.width / 3);
+    }
     expect(plan.floors.every(f => f.balconySections.length === 0)).toBe(true);
   });
 
@@ -48,6 +57,7 @@ describe('corporate sectors public family', () => {
     expect(plan.floors.every(f => JSON.stringify(f.outline) === JSON.stringify(source.rectangle))).toBe(true);
     expect(plan.extent).toEqual({ width: 30, depth: 25 });
     expect(source.floorHeights).toEqual([4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5]);
+    expect(plan.floors[4]!.sections.find(s => s.id.includes(':recessed-slit:'))!.border.depth).toBeCloseTo(2.25);
   });
 
   it('rejects impossible storeys and malformed or undersized plates', () => {
@@ -80,7 +90,7 @@ describe('corporate sectors public family', () => {
         expect(prim.positions[i + 2]! + (part.pivot?.[2] ?? 0)).toBeGreaterThanOrEqual(0);
         expect(prim.positions[i + 2]! + (part.pivot?.[2] ?? 0)).toBeLessThanOrEqual(33);
       }
-      if (part.name === 'corporate:5:0:cladding') for (let i = 0; i < prim.indices.length; i += 3) {
+      if (part.name.startsWith('corporate:5:0:')) for (let i = 0; i < prim.indices.length; i += 3) {
         const vertices = prim.indices.slice(i, i + 3).map(index => [prim.positions[index * 3]! - 1.5, prim.positions[index * 3 + 1]!] as const);
         const overlaps = Math.min(...vertices.map(p => p[0])) < 11.19 && Math.max(...vertices.map(p => p[0])) > 7.81 && Math.min(...vertices.map(p => p[1])) < 26.19 && Math.max(...vertices.map(p => p[1])) > 22.81;
         expect(overlaps).toBe(false);
@@ -95,6 +105,10 @@ describe('corporate sectors public family', () => {
     const builder = new MeshBuilder();
     family.decorate!({ builder, layout: scene, material: role => family.materials![role]! });
     expect(builder.parts.some(p => p.name === 'corporate:portrait-screen')).toBe(false);
+    const wing = builder.parts.find(p => p.name.startsWith('corporate:4:0:large-panel:'))!;
+    const box = builder.parts.find(p => p.name.startsWith('corporate:4:0:cassette:'))!;
+    const faceDepth = (part: typeof wing) => Math.min(...[...part.prims.values()].flatMap(p => p.positions.filter((_, i) => i % 3 === 2)));
+    expect(faceDepth(wing) - faceDepth(box)).toBeCloseTo(0.246, 3);
     for (const part of builder.parts) for (const prim of part.prims.values()) for (let i = 0; i < prim.positions.length; i += 3) {
       expect(prim.positions[i]!).toBeGreaterThanOrEqual(-1e-8);
       expect(prim.positions[i]!).toBeLessThanOrEqual(51 + 1e-8);

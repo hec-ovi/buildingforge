@@ -1,9 +1,9 @@
 import { edgeDir, edgeLength } from '../core/polygon.ts';
-import { GARDEN_WING } from '../sections/garden.ts';
+import { GARDEN_PIER } from '../sections/garden.ts';
 import type { FloorLayout } from '../layout/model.ts';
 import type { MeshBuilder, V3 } from './primitives.ts';
 
-/** One floor's mapping fixes wing widths while its planted centre narrows. */
+/** The central spine stays fixed while the outer glazed wings taper. */
 export function slopePoint(floor: FloorLayout, point: V3): V3 {
   if (!floor.topOutline) return [...point];
   const base = floor.outline, top = floor.topOutline;
@@ -15,8 +15,13 @@ export function slopePoint(floor: FloorLayout, point: V3): V3 {
   const d = depth + (edgeLength(top, 1) - depth) * t;
   const x = (point[0] - cx) * u[0] + (point[2] - cz) * u[1];
   const z = (point[0] - cx) * v[0] + (point[2] - cz) * v[1];
-  const middle = width / 2 - GARDEN_WING, target = w / 2 - GARDEN_WING;
-  const nx = Math.abs(x) >= middle ? Math.sign(x) * (target + Math.abs(x) - middle) : x * target / middle;
+  const spine = floor.assembly?.sections.find(section => section.technique === 'garden-bay');
+  const middle = (spine?.width ?? 0) / 2 + GARDEN_PIER;
+  const wingEnd = width / 2 - GARDEN_PIER, targetEnd = w / 2 - GARDEN_PIER;
+  const absolute = Math.abs(x);
+  const nx = absolute <= middle ? x : Math.sign(x) * (absolute >= wingEnd
+    ? targetEnd + absolute - wingEnd
+    : middle + (absolute - middle) * (targetEnd - middle) / (wingEnd - middle));
   const nz = z * d / depth;
   return [cx + u[0] * nx + v[0] * nz, point[1], cz + u[1] * nx + v[1] * nz];
 }

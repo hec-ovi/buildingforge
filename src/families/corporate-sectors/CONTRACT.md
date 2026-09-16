@@ -10,11 +10,11 @@ Builds a dark corporate tower with grouped panel wings, recessed window channels
 
 Ground has a 6 m entry sector and opaque panels. The first three upper floors have 1.5 m slit-window cells. Upper groups contain 3 to 6 floors where possible; the final group accepts the remaining floors.
 
-A nominal 24 m front repeat contains 6 m solid panels, 6 m recessed slit windows, a 3 m spacer and a 9 m cassette. The cassette contains one opaque third and two covered windows. The repeat scales across complete sections, with 0.5 m end trims. The panel wing has three panel courses across a four-floor group. Side masks step every two floors and partly cover a mechanical strip. The opposite face holds a portrait screen, fitted at 1:2.
+A nominal 28 m front repeat contains an 8 m projecting panel wing, a 4 m recessed window channel, a 4 m setback spacer and one 12 m enclosed cassette. The cassette has a solid left third and two covered right windows, a continuous lower apron, folded lower edge and common top. At 4.5 m pitch its body is 3.3 m high, leaving 1.2 m between boxes. The repeat scales across complete sections, with 0.5 m end trims. Panel wings have full-depth side returns and three panel courses across a four-floor group. Side shields step across two-storey fields, beside paired narrow windows and a partly covered mechanical strip. The opposite face holds a portrait screen, fitted at 1:2.
 
 Floor pitches are supplied, normally 4.5 m. Low windows start at 0.3 m; the upper slit starts 1.18 m below the next floor. The host retains all floor and bridge elevations. Decorative balconies are closed cassettes and publish no traversable balcony doors.
 
-Unbound shells reserve a 1.5 m perimeter for relief up to 1.3 m. Fixed faces keep the exact input corners and place relief inward. Minimum shell face: 17 m. Minimum floors: five. Minimum pitch: 3.5 m. Invalid, nonrectangular or undersized inputs throw `RangeError`.
+Unbound shells reserve a 1.5 m perimeter. Panel wings project 1.2 m, cassette fronts 1.43 m and group rims 1.45 m; the channel and spacer skin sits at 0.06 m. Fixed faces keep the exact input corners and shift the whole upper composition and its glazing recesses inward by 1.45 m. The host structural backing is 1.6 m inward. Minimum shell face: 17 m. Minimum floors: five. Minimum pitch: 3.5 m. Invalid, nonrectangular or undersized inputs throw `RangeError`.
 
 ## Decoration
 
