@@ -8,7 +8,7 @@ Builds two complete corporate feature faces, one screen face and one exposed win
 
 ## Dimensions
 
-The family decoration fits inside the input parcel. The body reserves 3.5 m on every side for projections; both free dimensions fit whole 2 m repeats around 26 m of fixed frontage. Minimum parcel: 35 x 35 m. Fixed connection faces keep their input coordinates, while the visible body and window recesses share the 3.5 m inset. Structural backing is 3.6 m inward. Floor pitches are unchanged, at least 3.5 m; at least five floors are required.
+The family requires a parcel of at least 35 x 35 m and twelve floors, enough for the lower, balcony and upper-panel blocks. Automatic selection skips smaller candidates. The body reserves 3.5 m on every side for projections; both free dimensions fit whole 2 m repeats around 26 m of fixed frontage. Fixed connection faces keep their input coordinates, while the visible body and window recesses share the 3.5 m inset. Structural backing is 3.6 m inward. Floor pitches are unchanged, at least 3.5 m; the default 4.5 m pitches require 54 m for twelve floors.
 
 Ground has an opaque 4.5 m default storey with a 6 m entrance field. The next three floors have 1 m slit-window cells. A single 2 m projecting rim finishes this lower block. All four rim corners meet at shared miters. The entrance canopy projects 3.25 m, covers at least 18 m where the face permits, and carries a continuous cyan LED edge and underside fixtures.
 

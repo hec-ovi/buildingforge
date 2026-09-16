@@ -18,7 +18,7 @@
 - `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
 - `src/mesh/slabOutline.ts`, `slabSpans.ts`: floor edges follow flat and sloped facade profiles, close storey transitions and retain floor-level access corridors.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
-- `src/families/corporate-sectors`: two complete special faces with balcony bands and broad cladding over a window grid, one screen face and one uncovered window/service face; geometry reserves the parcel space for all facade projections.
+- `src/families/corporate-sectors`: two complete special faces with balcony bands and broad cladding over a window grid, one screen face and one uncovered window/service face; candidates require 35 x 35 m and twelve floors, including space for facade projections.
 - `src/mesh/scenicRoom.ts`, `scenicCurve.ts`, `scenicSlope.ts`: rectangular window scenes with a 1 m depth, one rear image, ceiling lights and fitted placement on curved or tapered facades.
 - `src/mesh/scenicLining.ts`, `wallBoundary.ts`: single window returns ending at the glazing plane for authored scenery.
 - `src/mesh/profiledBlind.ts`: formed slats with punched openings, folded lips, support clips and raised stacks.

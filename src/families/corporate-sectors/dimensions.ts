@@ -1,4 +1,6 @@
 export const BODY_MARGIN = 3.5;
+export const BLOCK_FLOORS = 4;
+export const MIN_FLOORS = BLOCK_FLOORS * 3;
 export const CANOPY_DEPTH = 3.25;
 export const RIM_DEPTH = 2;
 export const END = 0.5;

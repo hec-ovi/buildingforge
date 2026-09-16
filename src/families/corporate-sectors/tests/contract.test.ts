@@ -81,8 +81,8 @@ function slabCovers(document: Document, floor: number, x: number, z: number): bo
 function exportedSource(apertures: BuildingRequest['apertures'] = []) {
   return generate({
     seed: input.seed, buildingId: 'corporate-window-plane', theme: 'cyberpunk',
-    parcel: { footprint: input.rectangle, accessPoint: [25, -1], maxHeight: 45 },
-    building: { type: 'corpo', tier: 'rich', floors: 8 }, apertures,
+    parcel: { footprint: input.rectangle, accessPoint: [25, -1], maxHeight: 60 },
+    building: { type: 'corpo', tier: 'rich', floors: 12 }, apertures,
     options: { architecture: 'corporate-sectors', glb: 'named', balconies: 'off', roofArtifacts: 'off', facadeServices: 'off', fireEscape: 'off', adScreens: 'off' },
   }, { textures: { mode: 'keys', source: null } });
 }
@@ -185,22 +185,26 @@ describe('corporate sectors public family', () => {
   });
 
   it('preserves supplied bridge faces and rotation without changing any floor pitch', () => {
-    const source: FamilyInput = { rectangle: [[10, 20], [43.6, 45.2], [20.8, 75.6], [-12.8, 50.4]], floorHeights: [4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5], seed: 'bridge', fixedFaces: true };
+    const source: FamilyInput = { rectangle: [[10, 20], [43.6, 45.2], [20.8, 75.6], [-12.8, 50.4]], floorHeights: [4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5, 4.5, 4.5, 4.5, 4.5, 4.5], seed: 'bridge', fixedFaces: true };
     const plan = family.plan(source);
     expect(plan.floors.every(f => JSON.stringify(f.outline) === JSON.stringify(source.rectangle))).toBe(true);
     expect(plan.extent.width).toBeCloseTo(42);
     expect(plan.extent.depth).toBeCloseTo(38);
-    expect(source.floorHeights).toEqual([4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5]);
+    expect(source.floorHeights).toEqual([4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5, 4.5, 4.5, 4.5, 4.5, 4.5]);
     expect(plan.floors[4]!.sections.find(s => s.id.includes(':recessed-slit:'))!.border.depth).toBeCloseTo(4.68);
   });
 
   it('rejects impossible storeys and malformed or undersized plates', () => {
     for (const override of [
-      { floorHeights: [4.5] }, { floorHeights: [4.5, 4.5, 2, 4.5, 4.5] },
+      { floorHeights: Array(11).fill(4.5) }, { floorHeights: input.floorHeights.map((h, i) => i === 2 ? 2 : h) },
       { rectangle: [[0, 0], [16, 0], [16, 16], [0, 16]] },
+      { rectangle: [[0, 0], [35, 0], [35, 34.5], [0, 34.5]] },
       { rectangle: [[0, 0], [32, 0], [31, 32], [0, 32]] },
       { rectangle: [[0, 0], [0, 32], [32, 32], [32, 0]] },
     ]) expect(() => family.plan({ ...input, ...override } as FamilyInput)).toThrow(RangeError);
+    const minimum = family.plan({ ...input, rectangle: [[0, 0], [35, 0], [35, 35], [0, 35]] });
+    expect(minimum.extent).toEqual({ width: 28, depth: 28 });
+    expect(minimum.groups.map(g => [g.fromFloor, g.toFloor])).toEqual([[0, 3], [4, 7], [8, 11]]);
   });
 
   it('decorates within the parcel, leaves bridge holes clear, and publishes cyan emitters', () => {

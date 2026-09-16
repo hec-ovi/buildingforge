@@ -6,8 +6,8 @@ import { keys } from './support.ts';
 
 function request(architecture: 'garden-taper' | 'corporate-sectors'): BuildingRequest {
   return { seed: 'garden-reference', buildingId: 'lining', theme: 'cyberpunk',
-    parcel: { footprint: [[0, 0], [52, 0], [52, 42], [0, 42]], accessPoint: [26, 0], maxHeight: 32 },
-    building: { type: 'residential', tier: 'rich', floors: architecture === 'garden-taper' ? 4 : 6 },
+    parcel: { footprint: [[0, 0], [52, 0], [52, 42], [0, 42]], accessPoint: [26, 0], maxHeight: architecture === 'garden-taper' ? 32 : 60 },
+    building: { type: 'residential', tier: 'rich', floors: architecture === 'garden-taper' ? 4 : 12 },
     options: { architecture, glb: 'named', balconies: 'off', facadeServices: 'off', roofArtifacts: 'off', adScreens: 'off', fireEscape: 'off', signage: null } };
 }
 

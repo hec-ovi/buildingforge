@@ -8,8 +8,8 @@ function request(architecture: FamilyArchitecture, fixed = false): BuildingReque
   const buildingId = `host-${architecture}`;
   return {
     seed: 'family-host-reference', buildingId, theme: 'cyberpunk',
-    parcel: { footprint: [[0, 0], [44, 0], [44, 36], [0, 36]], accessPoint: [22, 0], maxHeight: 40 },
-    building: { type: 'offices', tier: 'rich', floors: 6 },
+    parcel: { footprint: [[0, 0], [44, 0], [44, 36], [0, 36]], accessPoint: [22, 0], maxHeight: architecture === 'corporate-sectors' ? 60 : 40 },
+    building: { type: 'offices', tier: 'rich', floors: architecture === 'corporate-sectors' ? 12 : 6 },
     options: { architecture, glb: 'named', balconies: 'off', facadeServices: 'off', roofArtifacts: 'off', adScreens: 'off', fireEscape: 'off', signage: null },
     ...(fixed ? { apertures: [{ id: 'bridge', buildingId, floor: 2, face: 1, kind: 'bridge' as const,
       u: 18, base: 9, width: 3, height: 3, shape: 'rect' as const,

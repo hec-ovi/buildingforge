@@ -3,6 +3,7 @@ import { expect, it } from 'vitest';
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { generate } from '../src/index.ts';
+import type { BuildingRequest } from '../src/index.ts';
 import { fixture, keys, glbJson } from './support.ts';
 
 const request = () => {
@@ -84,4 +85,16 @@ it('selects varied fitted luxury families through the automatic public entry', a
     chosen.add(result.blueprint.architectureSelection!.selected);
   }
   expect(chosen.size).toBeGreaterThan(1);
+});
+
+it('requires the complete corporate volume before automatic selection', async () => {
+  const request: BuildingRequest = { seed: 'corporate-volume-4', buildingId: 'volume', theme: 'cyberpunk',
+    parcel: { footprint: [[0, 0], [47, 0], [47, 37.5], [0, 37.5]], accessPoint: [23.5, 0], maxHeight: 60 },
+    building: { type: 'offices', tier: 'rich', floors: 12 }, options: { architecture: 'auto' } };
+  const complete = await generate(request, keys);
+  expect(complete.blueprint.architectureSelection?.selected).toBe('corporate-sectors');
+  expect(complete.blueprint.assembly!.groups.map(g => [g.fromFloor, g.toFloor])).toEqual([[0, 3], [4, 7], [8, 11]]);
+  const shorter = await generate({ ...request, building: { ...request.building, floors: 11 } }, keys);
+  expect(shorter.blueprint.architectureSelection?.selected).not.toBe('corporate-sectors');
+  expect(shorter.blueprint.floors.filter(f => f.index >= 0)).toHaveLength(11);
 });
