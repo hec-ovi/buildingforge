@@ -15,7 +15,8 @@
 - `src/sections/paired.ts`: rounded and rectangular facades assembled from complete two-room sections.
 - `src/sections/garden.ts`: pale podium, fixed planted spine and tapered outer wings with base-relative height limits.
 - `src/mesh/floorSlope.ts`: fits outer wing geometry and emitters to upper outlines while retaining the planted spine.
-- `src/mesh`: shell walls with mitered inward lining, opening returns and closed frame/glazing sections.
+- `src/mesh/wallField.ts`: clips shell faces, lining and opening returns to shared corner miters while retaining opening coordinates.
+- `src/mesh`: closed frame and glazing sections.
 - `src/mesh/slabOutline.ts`, `slabSpans.ts`: floor edges follow flat and sloped facade profiles, close storey transitions and retain floor-level access corridors.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
 - `src/families/corporate-sectors`: two complete special faces with balcony bands and broad cladding over a window grid, one screen face and one uncovered window/service face; candidates require 35 x 35 m and twelve floors, including space for facade projections.

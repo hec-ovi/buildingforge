@@ -23,6 +23,7 @@ import { meshLightFixture } from './lightFixture.ts';
 import { meshFacadeServices } from './facadeServices.ts';
 import { meshFrameRing } from './frameRing.ts';
 import { meshWallLining } from './wallLining.ts';
+import { WallField } from './wallField.ts';
 import { meshSpandrel } from './spandrel.ts';
 import { meshVenetianBlind } from './venetianBlind.ts';
 import { meshCoveringHousing } from './coveringHousing.ts';
@@ -149,10 +150,11 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
       const yOrigin = f.elevation + (vertical?.borders[0] ?? 0);
       const pieces = cutWall(fr.len, f.elevation, f.elevation + f.height, holes);
       const depth = family && f.index >= 0 ? -familyBackingDepth(layout.request) : panel ? -PANEL_JOINT_DEPTH : 0;
+      const wall = new WallField(f.outline, e);
       for (const piece of pieces) {
         const uvs = [piece.bl, piece.br, piece.tr, piece.tl]
           .map(([u, y]) => [u - uOrigin, yOrigin - y] as [number, number]);
-        sink.quadFacing(mat(f.index === 0 ? 'ground' : 'wall'), at(fr, piece.bl, depth), at(fr, piece.br, depth), at(fr, piece.tr, depth), at(fr, piece.tl, depth), n3(fr), uvs);
+        wall.face(sink, mat(f.index === 0 ? 'ground' : 'wall'), [piece.bl, piece.br, piece.tr, piece.tl].map(([u, y]): V3 => [u, y, depth]), n3(fr), uvs);
       }
       const glazedCorner = f.assembly?.sections.some(section => !!section.spans && sectionSpans(section).some(span => span.edge === e));
       meshWallLining(sink, f.outline, e, pieces, depth, mat(glazedCorner ? 'window-frame' : 'inner-wall'), wallThickness,

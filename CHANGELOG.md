@@ -1,5 +1,7 @@
 # Changelog
 
+0.49.0: corporate candidates require three complete facade blocks; deep shell walls and opening returns meet at shared corner miters.
+
 0.49.0: enclosed central garden balconies, base-relative wing tapers, layered corporate sectors, closed facade transitions and one-metre scenic window rooms.
 
 0.49.0: six modular facade families with shared room detail, source-model planting requests and fixed bridge elevations.
