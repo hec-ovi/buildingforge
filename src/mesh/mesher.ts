@@ -100,7 +100,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   for (const f of floors) {
     mb.floor = f.index;
     const sink = mb.part(`floor:${f.index}/slab`, { keepNode: true });
-    const outline = slabOutline(f);
+    const outline = slabOutline(f, floors.find(other => other.index === f.index - 1));
     capUp(sink, mat('floor-slab'), caps, outline, f.elevation);
     capDown(sink, mat('floor-slab'), caps, outline, f.elevation);
   }

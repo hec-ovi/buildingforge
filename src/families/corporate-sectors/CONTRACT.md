@@ -14,6 +14,8 @@ Ground has an opaque 4.5 m default storey with a 6 m entrance field. The next th
 
 Faces 0 and 1 have the complete composition. Their next block has a fixed left wing of two 2 m panel columns in 3 m courses. Central 2 m repeats form one recessed bank: equal 0.32 m-high windows sit 0.3 m from the floor and upper boundary. The bank sits 1 m behind the body plane, with 0.75 m end reveals and a 1.5 m spacer before the balcony.
 
+The lower block has a closed metal top beneath that recess. Published end-reveal profiles keep each upper slab behind its sloped trim.
+
 The right limit has three fixed 6 m pieces sharing an 18 m balcony front, 2.4 m high and projecting 1.25 m. The left third is opaque. The right two thirds have one 11.8 x 1.2 m opening with two glazing panes. The glazed area has no upper cap or deep vertical partitions. A continuous apron has a 0.25 m lower fold and closed end returns; only the opaque left part has a 0.14 m top bevel. The shared window scenery owns the single interior covering; balcony geometry adds no outer blind.
 
 Their upper blocks retain a complete window grid beneath a connected, stepped pale cover. Each four-floor composition spans broad groups of windows, varies the exposed area by row, and has a small deliberate opening in its upper sheet. Cover edges overlap different portions of the 3 m right service strip. Pale panel joints share a 3 x 3 m grid across floor slices and outline steps. Cover panels intentionally occlude windows; doors and connection apertures remain clear.

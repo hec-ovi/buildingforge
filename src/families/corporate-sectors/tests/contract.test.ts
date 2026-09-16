@@ -117,8 +117,13 @@ describe('corporate sectors public family', () => {
     }
     expect(front).toBeCloseTo(floor.outline[0]![1] + 1 - 0.04, 4);
     const middle = floor.outline[0]![0] + section.offset + section.width / 2;
-    expect(slabCovers(document, 4, middle, floor.outline[0]![1] + 0.5)).toBe(false);
+    expect(slabCovers(document, 4, middle, floor.outline[0]![1] + 0.5)).toBe(true);
     expect(slabCovers(document, 4, middle, floor.outline[0]![1] + 1.5)).toBe(true);
+    expect(slabCovers(document, 5, middle, floor.outline[0]![1] + 0.5)).toBe(false);
+    const reveal = blueprint.assembly!.floors[5]!.sections.find(s => s.edge === 0 && s.id.includes(':channel-right:'))!;
+    const revealX = floor.outline[0]![0] + reveal.offset + reveal.width * 0.8;
+    expect(slabCovers(document, 5, revealX, floor.outline[0]![1] + 0.2)).toBe(false);
+    expect(slabCovers(document, 5, revealX, floor.outline[0]![1] + 1.1)).toBe(true);
   });
 
   it('retains walking approaches through an inset shell to fixed bridges and the entrance', async () => {

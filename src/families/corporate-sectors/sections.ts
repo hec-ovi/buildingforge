@@ -1,6 +1,7 @@
 import type { FamilySection, WindowField } from '../api.ts';
 import { END, WINDOW_CELL, PANEL_WING, CASSETTE, CHANNEL_BORDER, CHANNEL_SPACER, CHANNEL_RECESS, FIXED_FRONT, cassetteProfile } from './dimensions.ts';
 import { SCREEN_FACE, SERVICE_WIDTH, specialFace } from './faces.ts';
+import { channelFloorProfile } from './channel.ts';
 
 function windowPair(width: number, height: number, equal = false): WindowField[] {
   return [
@@ -20,6 +21,10 @@ class FaceSections {
     if (width < 1e-8) return;
     this.values.push({ id: `corporate:${this.floor}:${this.edge}:${kind}:${this.values.length}`, technique: windows.length ? 'paired-glass' : 'paired-solid', edge: this.edge, offset: this.offset, width, border: { side: 0.12, bottom: 0.22, top: 0.22, depth: depth + this.inset, surfaceDepth: surfaceDepth + this.inset }, windows });
     this.offset += width;
+  }
+  channel(side: 'left' | 'right', width: number): void {
+    this.add(`channel-${side}`, width);
+    this.values.at(-1)!.border.surfaceProfile = channelFloorProfile(width, side === 'left', this.inset);
   }
 }
 
@@ -46,9 +51,9 @@ export function face(floor: number, group: number, edge: number, length: number,
     const profile = cassetteProfile(height);
     out.add('cassette', CASSETTE, [{ offset: 0.1, width: CASSETTE * 2 / 3 - 0.2, sill: profile.slotBottom, height: profile.slotHeight, panes: { cols: 2, rows: 1 } }], 0.16);
     out.add('channel-spacer', CHANNEL_SPACER);
-    out.add('channel-right', CHANNEL_BORDER + spare);
+    out.channel('right', CHANNEL_BORDER + spare);
     for (let i = 0; i < count; i++) out.add('recessed-slit', WINDOW_CELL, windowPair(WINDOW_CELL, height, true), CHANNEL_RECESS + 0.18, CHANNEL_RECESS);
-    out.add('channel-left', CHANNEL_BORDER + spare);
+    out.channel('left', CHANNEL_BORDER + spare);
     out.add('large-panel', PANEL_WING);
   } else if (edge === SCREEN_FACE) {
     out.add('screen-flank', usable * 0.16, windowPair(usable * 0.16, height));

@@ -217,6 +217,14 @@
                       "minimum": 0,
                       "description": "Inward depth of the visible wall surface; defaults to zero. Straight window casings and opening returns start at this plane."
                     },
+                    "surfaceProfile": {
+                      "type": "array", "minItems": 2,
+                      "description": "Ordered section-local offsets and inward depths for the floor edge, including sloped facade reveals.",
+                      "items": {
+                        "type": "object", "required": ["offset", "depth"], "additionalProperties": false,
+                        "properties": { "offset": { "type": "number", "minimum": 0 }, "depth": { "type": "number", "minimum": 0 } }
+                      }
+                    },
                     "left": {
                       "type": "number",
                       "exclusiveMinimum": 0

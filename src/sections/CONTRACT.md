@@ -10,6 +10,8 @@ Compositions: one rounded corner, two chamfered corners, or straight floor group
 
 Optional `border.surfaceDepth` places the visible wall surface inward from the outline, in metres, default zero. Straight window casings and opening returns start at that surface; `border.depth` retains the absolute glazing recess. The surface stays in front of the glazing.
 
+Optional `border.surfaceProfile` gives ordered `{offset, depth}` points across a section for a sloped floor edge. Offsets run from zero to section width; depths are inward metres. Slabs use the profile and close the lower storey where adjacent facade sections change depth.
+
 Paired compositions (`paired-rounded`, `paired-rectangular`) use 5 m room widths in alternating 10 m glazed and solid sections, 0.5 m end trims and a 10 m rounded corner radius. Their straight extents are `1 + 10n` metres. The rounded form has one broad curved corner and three right-angle corners. Glazed pairs contain four panes; the curved corner contains six broad panes across eighteen geometric slices. Floor rims total 0.5 m of each storey. Ground floors are opaque, with their host entrance.
 
 `garden-taper` places its front on the longer axis. Its straight planted spine uses 10 m pair multiples near one third of the base, with a fixed depth. Only outer glazed wings taper. The flat roof retains 1.5 m wing tips; side inset per vertical metre is at least 0.3. Upper floor outlines remain explicit. The podium is 4.5 m, with a visible 4 m panel field. Required plate: 35 x 25 m and at least three floors; the requested height must fit the base-relative slope.
