@@ -210,7 +210,8 @@
                     },
                     "depth": {
                       "type": "number",
-                      "exclusiveMinimum": 0
+                      "minimum": 0,
+                      "description": "Inward recess from the outline; zero permits a flush opaque section."
                     },
                     "surfaceDepth": {
                       "type": "number",

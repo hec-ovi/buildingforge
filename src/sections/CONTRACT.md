@@ -8,7 +8,7 @@ Metres, CCW XZ, floor zero first. The construction grid is 0.5 m. The catalog ha
 
 Compositions: one rounded corner, two chamfered corners, or straight floor groups with exact 4 m cutbacks and one selected balcony floor. Output section spans partition each actual outline edge exactly. Curve tessellation does not introduce window jambs. Actual footprints can be smaller than the allowance. Group and floor identities remain explicit.
 
-Optional `border.surfaceDepth` places the visible wall surface inward from the outline, in metres, default zero. Straight window casings and opening returns start at that surface; `border.depth` retains the absolute glazing recess. The surface stays in front of the glazing.
+`border.depth` is a nonnegative inward recess from the outline; zero permits a flush opaque section. Optional `border.surfaceDepth` places the visible wall surface inward from the outline, in metres, default zero. Straight window casings and opening returns start at that surface; `border.depth` retains the absolute glazing recess. For windows, the surface stays in front of the glazing.
 
 Optional `border.surfaceProfile` gives ordered `{offset, depth}` points across a section for a sloped floor edge. Offsets run from zero to section width; depths are inward metres. Slabs use the profile and close the lower storey where adjacent facade sections change depth.
 
