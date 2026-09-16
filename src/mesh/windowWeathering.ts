@@ -21,12 +21,14 @@ export function meshWindowWeathering(builder: MeshBuilder, layout: Layout): void
       const tangent = edgeDir(floor.outline, edge);
       const length = edgeLength(floor.outline, edge);
       const sill = floor.elevation + opening.sill;
+      const section = floor.assembly?.sections.find(s => s.id === opening.sectionId);
+      const surfaceDepth = section?.border.surfaceDepth ?? 0;
       const receivers = [
         { kind: 'window-grime-sill', variant: 'runoff', x: opening.offset + opening.width / 2 - 1.5, y: sill - 0.95, width: 3, height: 0.9 },
         { kind: 'window-grime-jamb', variant: 'stain', x: opening.offset - 0.45, y: sill + opening.height - 2.5, width: 0.4, height: 2.5 },
       ];
       for (const receiver of receivers) {
-        const x0 = Math.max(0, receiver.x), x1 = Math.min(length, receiver.x + receiver.width);
+        const x0 = Math.max(surfaceDepth > 0 ? section!.offset : 0, receiver.x), x1 = Math.min(surfaceDepth > 0 ? section!.offset + section!.width : length, receiver.x + receiver.width);
         const y0 = Math.max(floor.elevation, receiver.y), y1 = Math.min(floor.elevation + floor.height, receiver.y + receiver.height);
         if (x1 - x0 < 0.05 || y1 - y0 < 0.05) continue;
         const holes: Hole[] = floor.openings.filter((other) => other.edge === edge).map((other) => {
@@ -37,8 +39,8 @@ export function meshWindowWeathering(builder: MeshBuilder, layout: Layout): void
         for (const cut of layout.carved) if (cut.aperture.face === edge) holes.push({ poly: cut.facePoly });
         const localHoles = holes.map((hole): Hole => ({ poly: hole.poly.map(([u, y]) => [u - x0, y]) }));
         const material = materialSlot(`${layout.theme}/${receiver.kind}/${layout.tier}`, receiver.variant);
-        const point = ([u, y]: [number, number]): V3 => [origin[0] + tangent[0] * (u + x0) + normal[0] * 0.002, y,
-          origin[1] + tangent[1] * (u + x0) + normal[1] * 0.002];
+        const point = ([u, y]: [number, number]): V3 => [origin[0] + tangent[0] * (u + x0) + normal[0] * (0.002 - surfaceDepth), y,
+          origin[1] + tangent[1] * (u + x0) + normal[1] * (0.002 - surfaceDepth)];
         for (const piece of cutWall(x1 - x0, y0, y1, localHoles)) {
           const corners = [piece.bl, piece.br, piece.tr, piece.tl] as const;
           const uv = corners.map(([u, y]): [number, number] => [(u + x0 - receiver.x) / receiver.width,

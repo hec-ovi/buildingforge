@@ -43,6 +43,7 @@ import { materialSlot, withDefaultVariant } from '../materials/slot.ts';
 import { selectedMaterialKey, facadeSurfacePattern } from '../layout/materialPlan.ts';
 import { meshGroundPrivacy, meshExteriorLouvre } from './windowTreatments.ts';
 import { meshWindowWeathering } from './windowWeathering.ts';
+import { slabOutline } from './slabOutline.ts';
 
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
@@ -99,8 +100,9 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   for (const f of floors) {
     mb.floor = f.index;
     const sink = mb.part(`floor:${f.index}/slab`, { keepNode: true });
-    capUp(sink, mat('floor-slab'), caps, f.outline, f.elevation);
-    capDown(sink, mat('floor-slab'), caps, f.outline, f.elevation);
+    const outline = slabOutline(f);
+    capUp(sink, mat('floor-slab'), caps, outline, f.elevation);
+    capDown(sink, mat('floor-slab'), caps, outline, f.elevation);
   }
 
   mb.floor = undefined;
