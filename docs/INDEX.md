@@ -5,6 +5,7 @@
 | [Exterior](../CONTRACT.md) | Builds one shell and its floor/opening blueprint | Atlas parcel, Connections apertures, Interior feasibility, Materials catalog | [Request](../schemas/building-request.schema.json), [blueprint](../schemas/blueprint.schema.json), [result](../src/types.ts) |
 | [Facade sections](../src/sections/CONTRACT.md) | Fits fixed corners, horizontal ribbon facades and floor groups | Caller maximum rectangle and floor heights | [Input](../src/sections/schemas/input.schema.json), [output](../src/sections/schemas/output.schema.json) |
 | [Building families](../src/families/CONTRACT.md) | Fits photographed facade families and their attached details | Facade sections, shared scenic rooms, Materials | [Input/output](../src/families/api.ts) |
+| [Piece kit](../src/kit/CONTRACT.md) | Authors each family once as nine repeated pieces and places them around a lot | Building families, Materials | [Types](../src/kit/types.ts), [module](../src/kit/module.ts) |
 | [Facade services](../src/facade-services/CONTRACT.md) | Fits attached services around reservations | Caller geometry and materials | [Input](../src/facade-services/schema/input.schema.json), [output](../src/facade-services/schema/output.schema.json) |
 | [Preview](../src/ui/CONTRACT.md) | Displays a generated building and inspection controls | Exterior, Materials, Three.js | Request controls, GLB and blueprint |
 
@@ -19,6 +20,8 @@
 - `src/mesh`: closed frame and glazing sections.
 - `src/mesh/slabOutline.ts`, `slabSpans.ts`: floor edges follow flat and sloped facade profiles, close storey transitions and retain floor-level access corridors.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
+- `src/kit/recipes`: one authored piece set per family on the 8 m bay module, with the joint pier and floor ribbon each boundary cuts in half.
+- `src/kit/assemble.ts`: which piece stands where on a lot, plus the floor slabs, entrance and wire anchors that belong to the building rather than a piece.
 - `src/families/corporate-sectors`: two complete special faces with balcony bands and broad cladding over a window grid, one screen face and one uncovered window/service face; candidates require 35 x 35 m and twelve floors, including space for facade projections.
 - `src/mesh/scenicRoom.ts`, `scenicCurve.ts`, `scenicSlope.ts`: rectangular window scenes with a 1 m depth, one rear image, ceiling lights and fitted placement on curved or tapered facades.
 - `src/mesh/scenicLining.ts`, `wallBoundary.ts`: single window returns ending at the glazing plane for authored scenery.

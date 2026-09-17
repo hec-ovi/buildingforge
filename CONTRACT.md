@@ -1,8 +1,8 @@
 # CONTRACT: exterior
 
-Version: 0.55.1.
+Version: 0.56.0.
 
-Generates one deterministic building exterior GLB and the matching floor/opening blueprint.
+Generates one deterministic building exterior GLB and the matching floor/opening blueprint, and authors each family as a set of repeated pieces a consumer assembles.
 
 ## Call and schemas
 
@@ -42,6 +42,10 @@ The `paired-rounded` and `paired-rectangular` architectures use 5 m room widths 
 `garden-taper` builds a pale 4.5 m podium and a straight planted spine between tapering glazed wings. The long parcel axis defines its front. The spine uses complete 10 m pairs near one third of the base width and keeps that width and depth on every floor. Enclosed balcony cassettes have opaque bevelled fronts, side closures and an overhead lip. Upper floors publish `topOutline`; only the outer wings contract. The roof ends with 1.5 m glazed wing tips around the fixed spine. Side setback is at least 0.3 m per metre of rise, so tall requests need a wider base. The footprint needs 35 x 25 m and three floors. Podium panels occupy the 4 m field between 0.25 m rims. Planted bands are exterior ornament: each plant is a trunk and arching fronds, one tapered double-sided blade per frond with the leaflet pattern in the leaf map. Basement apertures retain the original parcel faces.
 
 Paired-family dark windows use opaque reflective black glass and omit scenic rooms. Optional facade light `material`, `color`, `lumens` and `range` fields bind authored podium light surfaces and their emitters.
+
+## Piece kit
+
+Beside the per-parcel call, each of the six registered families is authored once as [a set of nine pieces](src/kit/CONTRACT.md): `corner`, `bay` and `entrance-bay` in a `ground`, `middle` and `crown` band. A bay is 8 m and a corner has two 4 m arms, so an Atlas lot edge of 8N metres is two arms and N-1 bays and nothing is stretched to fit. A middle band repeats any number of times, a bay repeats any number of times between two corners, and `PieceManifest.sections` publishes the outline each piece presents on each boundary so a caller can check two pieces mate before assembling. Signage is never baked: pieces publish sign anchors with position, size and facing. `assembleFromPieces` places the pieces and writes `floor:<index>/slab`, `roof:deck`, `door:<id>/frame`, `door:<id>/leaf:<n>` and `anchor:<id>` in building coordinates, drawing one mesh per distinct piece however many times it repeats. `generate` is unchanged and remains the path a consumer uses today.
 
 The six [registered building families](src/families/CONTRACT.md) select authored facade plans through `options.architecture`. Their material roles override the host, with structural wall backing at `family.wallBackingDepth` (default 0.12 m inward). The lining reserves at least another 0.12 m behind that backing. Ground fields are opaque unless explicit windows are supplied. Apertures reaching above ground fix rectangular parcel faces and exact connection bases; unsupported fixed shapes return `E_SCHEMA`. Basement-only cuts keep their original parcel faces and permit free upper family shapes. Required cuts remain clear. Multiple window rows use floor-relative sills and section-relative horizontal fields. Curved sections keep their authored pane spans, and narrow service windows use appropriately spaced room fixtures.
 
