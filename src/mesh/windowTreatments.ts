@@ -31,12 +31,11 @@ export function meshExteriorLouvre(sink: PartSink, frame: Frame, field: Field, c
   for (const u of [field.u0 + 0.025, field.u1 - 0.025]) {
     sink.box(material, at(u, (field.y0 + field.y1) / 2, center), along(0.025), [0, height / 2, 0], outward(covering.depth / 2), 'along');
   }
-  const count = Math.max(1, Math.floor(height / 0.13));
-  const pitch = height / count;
-  for (let index = 0; index < count; index++) {
-    const y = field.y0 + (index + 0.5) * pitch;
-    sink.box(material, at((field.u0 + field.u1) / 2, y, center), along(Math.max(0.01, width / 2 - 0.05)),
-      [frame.n[0] * (covering.depth / 2 - 0.008), pitch * 0.35, frame.n[1] * (covering.depth / 2 - 0.008)],
-      [-frame.n[0] * 0.008, 0.008, -frame.n[1] * 0.008], 'along');
-  }
+  // The blade field is one panel between the side rails; the 0.13 m pitch is in
+  // the louvre map, so a screen costs a quad instead of a box per blade.
+  const face = covering.standoff + covering.depth - 0.008;
+  const u0 = field.u0 + 0.05, u1 = field.u1 - 0.05;
+  if (u1 - u0 < 0.02) return;
+  sink.quadFacing(material, at(u0, field.y0, face), at(u1, field.y0, face), at(u1, field.y1, face), at(u0, field.y1, face),
+    [frame.n[0], 0, frame.n[1]], [[0, 0], [u1 - u0, 0], [u1 - u0, height], [0, height]]);
 }

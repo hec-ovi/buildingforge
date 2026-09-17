@@ -8,15 +8,23 @@ export interface RoomFrame {
 
 export interface ScenicEmitter { position: V3; color: string; lumens: number; range: number }
 
-/** Housed ceiling fixtures, oriented across room width and into room depth. */
+/**
+ * Ceiling fixtures, oriented across room width and into room depth. A fixture is
+ * seen from the street through its glazing, so it is the lit face plus the
+ * housing collar around it, one downward quad each.
+ */
 export function scenicFixtures(sink: PartSink, frame: RoomFrame, width: number, top: number, front: number, back: number,
   layout: 'strips' | 'spots', light: string, housing: string, level: number, warm: boolean): ScenicEmitter[] {
   const emitters: ScenicEmitter[] = [];
-  const along = (half: number): V3 => [frame.dir[0] * half, 0, frame.dir[1] * half];
-  const inward = (half: number): V3 => [frame.normal[0] * half, 0, frame.normal[1] * half];
+  const down: V3 = [0, -1, 0];
+  const face = (material: string, u: number, z: number, w: number, d: number, y: number) => {
+    const uv: [number, number][] = [[0, 0], [w, 0], [w, d], [0, d]];
+    sink.quadFacing(material, frame.point(u - w / 2, y, z - d / 2), frame.point(u + w / 2, y, z - d / 2),
+      frame.point(u + w / 2, y, z + d / 2), frame.point(u - w / 2, y, z + d / 2), down, uv);
+  };
   const fixture = (u: number, z: number, w: number, d: number) => {
-    sink.box(housing, frame.point(u, top - 0.055, z), along(w / 2 + 0.018), [0, 0.055, 0], inward(d / 2 + 0.018));
-    sink.box(light, frame.point(u, top - 0.113, z), along(w / 2), [0, 0.008, 0], inward(d / 2));
+    face(housing, u, z, w + 0.036, d + 0.036, top - 0.11);
+    face(light, u, z, w, d, top - 0.121);
     emitters.push({ position: frame.point(u, top - 0.13, z), color: warm ? '#f0ffc6' : '#99fff0',
       lumens: (layout === 'strips' ? 2400 : 1200) * level, range: 12 });
   };

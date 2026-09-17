@@ -1,13 +1,12 @@
 import { expect, it } from 'vitest';
-import { NodeIO } from '@gltf-transform/core';
 import { generate } from '../src/index.ts';
-import { fixture, keys } from './support.ts';
+import { fixture, glbIO, keys } from './support.ts';
 
 it.each(['named', 'merged'] as const)('welds and indexes every %s primitive', async glb => {
   const request = fixture('corpo-tower');
   request.building.floors = 6;
   request.options = { ...request.options, glb };
-  const doc = await new NodeIO().readBinary((await generate(request, keys)).glb);
+  const doc = await glbIO().readBinary((await generate(request, keys)).glb);
 
   let checked = 0;
   for (const mesh of doc.getRoot().listMeshes()) {

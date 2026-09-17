@@ -39,3 +39,37 @@ world-metre UVs lands on the real pitch:
 Meanwhile geometry uses the closest existing keys: `paired-blind#surface`,
 `exterior-louvre#metal`, and `curtain/<tier>#slat` for venetian coverings, which
 already carries a blind pattern at 1.5 x 3 m.
+
+Three more repeats moved from geometry into the map in 0.53.0 and need the same
+treatment, again as pattern variants with world-metre tiling:
+
+- `cyberpunk/window-frame/<tier>`: a head-baffle comb at a 0.16 m pitch, for the
+  recessed band above chamfered-corner ribbon glazing.
+- `cyberpunk/ivory-panel/mid`: 22 mm fixing heads inset 45 mm from each corner of
+  the 1.5 m faceted-bays panel module.
+- `cyberpunk/corporate-panel/mid`: the 1 x 1.5 m panel joint, 32 mm wide, so the
+  corporate cladding field reads as panels without a box per panel.
+
+### Interior and Engine: the shell GLB now requires KHR_mesh_quantization (2026-09-17)
+
+Exported normals are normalized signed shorts instead of floats, which is what
+brings a shell inside the 3 MiB budget. `extensionsRequired` lists
+`KHR_mesh_quantization`. three.js reads it natively; a reader built on glTF
+Transform must register `KHRMeshQuantization`, and a strict reader that does not
+support the extension will refuse the file. Positions and UVs stay float, so
+world coordinates read exactly as before.
+
+### Orchestrator: two shells that the published budget refuses (2026-09-17)
+
+Measured keys-only on `engine/out/games/corporate-streets-500`, both need a
+facade-density decision rather than a fix here:
+
+- p18, hotel, 8 floors, 208 windows and 120 two-leaf balcony doors: 73,166
+  triangles against the 50,000 ordinary allowance. Its cost is balcony-door
+  construction (leaf ring, casing, reveal and hardware, 55,000 of 132,519
+  vertices). Generation refuses it, so the city loses that parcel.
+- `corporate-sectors` runs at about 17 triangles per square metre of facade where
+  every other facade runs at 12 to 13, so it only fits the tower allowance up to
+  roughly a 44 x 35 m plate at its minimum twelve floors. Larger parcels fall
+  back to another family. Its 1 x 1.5 m panel relief moved into the map in
+  0.53.0; the wings, rims, piers, cassettes and mechanical bays keep real relief.

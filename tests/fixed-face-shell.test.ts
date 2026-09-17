@@ -1,8 +1,8 @@
 import { expect, it } from 'vitest';
-import { NodeIO, type Node } from '@gltf-transform/core';
+import type { Node } from '@gltf-transform/core';
 import { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { generate, type BuildingRequest } from '../src/index.ts';
-import { keys } from './support.ts';
+import { glbIO, keys } from './support.ts';
 
 function surfaces(node: Node): Mesh[] {
   return node.getMesh()!.listPrimitives().map(primitive => {
@@ -24,7 +24,7 @@ it('miters deep fixed-face wall surfaces while retaining exact connection cuts a
   };
   const { blueprint, glb } = await generate(input, keys);
   expect(blueprint.facade.wallDepth).toBeGreaterThan(4);
-  const doc = await new NodeIO().readBinary(glb);
+  const doc = await glbIO().readBinary(glb);
   for (const floor of blueprint.floors) {
     expect(floor.outline).toEqual(input.parcel.footprint);
     for (let edge = 0; edge < floor.outline.length; edge++) {

@@ -1,8 +1,8 @@
 import { expect, it } from 'vitest';
 import { createHash, type Hash } from 'node:crypto';
-import { NodeIO, type Document } from '@gltf-transform/core';
+import type { Document } from '@gltf-transform/core';
 import { generate, type BuildingRequest } from '../src/index.ts';
-import { keys } from './support.ts';
+import { glbIO, keys, normalsOf } from './support.ts';
 
 const request: BuildingRequest = {
   seed: 'garden-reference', buildingId: 'garden', theme: 'cyberpunk',
@@ -43,7 +43,7 @@ it('exports tapering wings around a straight enclosed planted spine', async () =
   const blackWindows = blueprint.floors.flatMap(f => f.openings).filter(o => o.material === 'cyberpunk/paired-window-black/mid');
   expect(blackWindows.length).toBeGreaterThan(0);
   expect(blackWindows.every(o => !o.scenery)).toBe(true);
-  const document = await new NodeIO().readBinary(glb);
+  const document = await glbIO().readBinary(glb);
   expect(document.getRoot().listMaterials().some(m => m.getName() === 'cyberpunk/paired-window-black/mid')).toBe(true);
   const gardens = document.getRoot().listNodes().filter(n => n.getName().startsWith('garden:'));
   expect(gardens).toHaveLength(6);
@@ -53,20 +53,20 @@ it('exports tapering wings around a straight enclosed planted spine', async () =
     expect(Array.from(positions).every((value, i) => i % 3 === 1 || value >= 0 && value <= (i % 3 === 0 ? 52 : 42))).toBe(true);
   }
   const windowNormals = document.getRoot().listNodes().filter(n => n.getName().startsWith('window:'))
-    .flatMap(n => n.getMesh()!.listPrimitives().flatMap(p => Array.from(p.getAttribute('NORMAL')!.getArray()!).filter((_, i) => i % 3 === 1)));
+    .flatMap(n => n.getMesh()!.listPrimitives().flatMap(p => normalsOf(p).map(normal => normal[1]!)));
   expect(windowNormals.some(y => Math.abs(y) > 0.02 && Math.abs(y) < 0.7)).toBe(true);
   expect(blueprint.balconyBands).toEqual([]);
 });
 
 it('merges enclosed planted facades without changing their geometry', async () => {
   const wide: BuildingRequest = { ...request, parcel: { ...request.parcel,
-    footprint: [[0, 0], [182, 0], [182, 42], [0, 42]], accessPoint: [91, 0] } };
-  const named = await new NodeIO().readBinary((await generate(wide, keys)).glb);
-  const merged = await new NodeIO().readBinary((await generate({ ...wide, options: { ...wide.options, glb: 'merged' } }, keys)).glb);
+    footprint: [[0, 0], [80, 0], [80, 42], [0, 42]], accessPoint: [40, 0] } };
+  const named = await glbIO().readBinary((await generate(wide, keys)).glb);
+  const merged = await glbIO().readBinary((await generate({ ...wide, options: { ...wide.options, glb: 'merged' } }, keys)).glb);
   const largest = Math.max(...named.getRoot().listMeshes().flatMap(mesh => mesh.listPrimitives()
     .filter(primitive => gardenMaterials.includes(primitive.getMaterial()!.getName()))
     .map(primitive => primitive.getAttribute('POSITION')!.getArray()!.length)));
-  expect(largest).toBeGreaterThan(150_000);
+  expect(largest).toBeGreaterThan(10_000);
   const expected = gardenGeometry(named);
   expect(Object.keys(expected).sort()).toEqual([...gardenMaterials].sort());
   expect(gardenGeometry(merged)).toEqual(expected);

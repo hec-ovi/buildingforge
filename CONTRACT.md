@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.52.0.
+Version: 0.53.0.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint.
 
@@ -15,7 +15,9 @@ Generates one deterministic building exterior GLB and the matching floor/opening
 
 ## Geometry and ownership
 
-Metres, +Y up, XZ ground, right-handed; CCW rings without a repeated endpoint. Every exported primitive is welded and indexed: attributes snap to a 1e-5 grid and identical position/normal/UV triples collapse to one vertex, with 16-bit indices below 65,536 vertices and 32-bit above. Output shares the request footprint frame, with the ground walking surface at Y=0. Same request, catalog and texture options produce identical blueprint JSON and GLB bytes. Only CLI/preview seed resolution uses randomness.
+Metres, +Y up, XZ ground, right-handed; CCW rings without a repeated endpoint. Every exported primitive is welded and indexed: attributes snap to a 1e-5 grid and identical position/normal/UV triples collapse to one vertex, with 16-bit indices below 65,536 vertices and 32-bit above. Positions and UVs are floats; normals are normalized signed shorts, so the GLB declares `KHR_mesh_quantization` in `extensionsRequired` and a reader must register it.
+
+Every shell is measured against a published geometry budget and refused above it. An ordinary shell gets 50,000 triangles and 3 MiB; a tower of nine floors or more gets three times both. The measurement is the runtime packing, one welded primitive per material slot plus the nodes a consumer addresses, so it does not change with `options.glb`. `blueprint.geometry` publishes the face count and the budget it was checked against. Over budget returns `E_GEOMETRY_BUDGET`; under `architecture: auto` that rejection moves to the next recipe and finally to ordinary geometry. Output shares the request footprint frame, with the ground walking surface at Y=0. Same request, catalog and texture options produce identical blueprint JSON and GLB bytes. Only CLI/preview seed resolution uses randomness.
 
 The parcel limits massing. Auto uses construction-grid rectangles. Explicit rounded-box, octagon, cylinder, pyramid and setback forms fit where possible, with box fallback for core/parcel constraints. Aperture-bound parcels keep their exact faces; traversable cuts pin floor elevations to their absolute bases. Wire anchors are attachments. Building type and supplied floor programs retain their incoming vocabulary.
 
@@ -35,7 +37,7 @@ The GLB wall body reaches the opening/housing depth measured against each vertex
 
 The `paired-rounded` and `paired-rectangular` architectures use 5 m room widths in alternating 10 m glazed and solid pairs. Extents fit complete pairs with 0.5 m end trims. The rounded form has one 10 m radius corner; its other corners remain rectangular. Floor rims use 0.22 m below glazing and 0.28 m above it. Ground entries occupy a centered 3 m passage. Basement apertures keep their original parcel faces; above-ground aperture constraints reject these recipes. Upper openings publish `scenery` with a node, depth, fixture layout and light state. Its removable `scenery:<floor>` node contains rectangular 1 m-deep room surfaces, a single rear image cropped from its 2:1 source, ceiling strips or fitted spot arrays, and one fitted blind panel per covered pane between a head rail and a bottom rail. Blade travel keeps the 0.14 m pitch; the blade pattern comes from the blind map, so a covering costs one quad rather than a slat stack. Ground floors are opaque and retain their main entrance. Optional `scenery.lights` publishes one emitter per real fixture with its world position, color, flux and range: 2,400 lm per strip or 1,200 lm per spot, a 12 m range, 15 percent power in dim rooms and zero in dark rooms. Engine feeds these records into its fixed light pool, renders the authored nodes and omits generated room replacements. Upper glazing uses the paired clear-glass key; upper facade and frame surfaces use the paired metal keys.
 
-`garden-taper` builds a pale 4.5 m podium and a straight planted spine between tapering glazed wings. The long parcel axis defines its front. The spine uses complete 10 m pairs near one third of the base width and keeps that width and depth on every floor. Enclosed balcony cassettes have opaque bevelled fronts, side closures and an overhead lip. Upper floors publish `topOutline`; only the outer wings contract. The roof ends with 1.5 m glazed wing tips around the fixed spine. Side setback is at least 0.3 m per metre of rise, so tall requests need a wider base. The footprint needs 35 x 25 m and three floors. Podium panels occupy the 4 m field between 0.25 m rims. Planted bands are exterior ornament. Basement apertures retain the original parcel faces.
+`garden-taper` builds a pale 4.5 m podium and a straight planted spine between tapering glazed wings. The long parcel axis defines its front. The spine uses complete 10 m pairs near one third of the base width and keeps that width and depth on every floor. Enclosed balcony cassettes have opaque bevelled fronts, side closures and an overhead lip. Upper floors publish `topOutline`; only the outer wings contract. The roof ends with 1.5 m glazed wing tips around the fixed spine. Side setback is at least 0.3 m per metre of rise, so tall requests need a wider base. The footprint needs 35 x 25 m and three floors. Podium panels occupy the 4 m field between 0.25 m rims. Planted bands are exterior ornament: each plant is a trunk and arching fronds, one tapered double-sided blade per frond with the leaflet pattern in the leaf map. Basement apertures retain the original parcel faces.
 
 Paired-family dark windows use opaque reflective black glass and omit scenic rooms. Optional facade light `material`, `color`, `lumens` and `range` fields bind authored podium light surfaces and their emitters.
 
@@ -67,6 +69,7 @@ Family decoration owns screen and mechanical details, while the host retains req
 | `E_CORE_PLATE` | Published circulation feasibility rejects the plate or openings |
 | `E_DOOR_FIT` | Required entrance or complete pocket assembly cannot fit |
 | `E_MATERIAL_UNRESOLVED` | Required material, variant or embedded map is unavailable |
+| `E_GEOMETRY_BUDGET` | Exported shell exceeds the published triangle or byte allowance |
 | `E_INVARIANT` | Generated output or a dependency fails a consistency check |
 
 Runtime guards protect openings and geometry; tests exercise the public surface. Optional detail can be omitted when it cannot fit.

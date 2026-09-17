@@ -1,7 +1,6 @@
 import { expect, it } from 'vitest';
-import { NodeIO } from '@gltf-transform/core';
 import { generate } from '../src/index.ts';
-import { fixture, keys } from './support.ts';
+import { fixture, glbIO, keys } from './support.ts';
 
 /** One extruded ring: 8 mitred front corners, 8 back, and 16 per return skirt. */
 const RING_VERTICES = 48;
@@ -12,7 +11,7 @@ it('frames every opening with one welded extruded ring, wound outward', async ()
   const request = fixture('ordinary-office');
   request.options = { ...request.options, glb: 'named' };
   const { glb, blueprint } = await generate(request, keys);
-  const doc = await new NodeIO().readBinary(glb);
+  const doc = await glbIO().readBinary(glb);
   const meshes = new Map(doc.getRoot().listNodes().filter(n => n.getMesh()).map(n => [n.getName(), n.getMesh()!]));
 
   const windows = blueprint.floors.flatMap(f => f.openings.filter(o => o.kind === 'window' && o.glazing));

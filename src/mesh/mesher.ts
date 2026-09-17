@@ -450,12 +450,10 @@ function doorLeaves(
       meshDoorRibs(sink, fr, a, b, yb, yt, assembly, mat('window-frame'));
       continue;
     }
-    // Stiles and rails carry the leaf; the pane sits inside them, thinner, so no
-    // two faces of the leaf ever land on one plane.
-    slab(a, a + stile, yb, yt, -assembly.recessDepth, t, frameMat);
-    slab(b - stile, b, yb, yt, -assembly.recessDepth, t, frameMat);
-    slab(a + stile, b - stile, yb, yb + rail, -assembly.recessDepth, t, frameMat);
-    slab(a + stile, b - stile, yt - rail, yt, -assembly.recessDepth, t, frameMat);
+    // Stiles and rails are one welded ring; the pane sits inside them, thinner,
+    // so no two faces of the leaf ever land on one plane.
+    meshFrameRing(sink, fr, { u0: a, u1: b, y0: yb, y1: yt },
+      { u0: a + stile, u1: b - stile, y0: yb + rail, y1: yt - rail }, -assembly.recessDepth, t, frameMat);
     slab(a + stile, b - stile, yb + rail, yt - rail, -assembly.recessDepth - (t - DOOR.paneThickness) / 2, DOOR.paneThickness, glassMat);
   }
 }

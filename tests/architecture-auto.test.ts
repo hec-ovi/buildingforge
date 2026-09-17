@@ -1,10 +1,9 @@
 import { createHash } from 'node:crypto';
 import { expect, it } from 'vitest';
-import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { generate } from '../src/index.ts';
 import type { BuildingRequest } from '../src/index.ts';
-import { fixture, keys, glbJson } from './support.ts';
+import { fixture, glbIO, glbJson, keys } from './support.ts';
 
 const request = () => {
   const r = fixture('architecture-01-rounded-corner');
@@ -25,7 +24,7 @@ it('selects the reviewed rounded shell with identical inward/outward geometry an
   expect(automatic.blueprint.materialVariants[roof.key]).toBe(roof.variantId);
   const geometricFloors = (floors: unknown) => JSON.parse(JSON.stringify(floors, (key, value) => key === 'material' ? undefined : value));
   expect(geometricFloors(automatic.blueprint.floors)).toEqual(geometricFloors(explicit.blueprint.floors));
-  const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
+  const io = glbIO().registerExtensions(ALL_EXTENSIONS);
   const [a, e] = await Promise.all([io.readBinary(automatic.glb), io.readBinary(explicit.glb)]);
   const geometry = (doc: typeof a) => doc.getRoot().listNodes().map(n => ({ name: n.getName(), triangles: n.getMesh()?.listPrimitives().flatMap(p => {
     const indices = p.getIndices()!.getArray()!, triangles: string[] = [];

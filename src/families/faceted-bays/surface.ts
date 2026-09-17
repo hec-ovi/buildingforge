@@ -41,7 +41,8 @@ export class Surface {
       && Math.min(...poly.map(p => p[1])) < y1);
   }
 
-  solid(sink: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front = this.front, thickness = 0.09): void {
+  /** `seated` blocks sit on the closed wall field, so their rear face is dropped. */
+  solid(sink: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front = this.front, thickness = 0.09, seated = false): void {
     if (u1 <= u0 || y1 <= y0) return;
     const holes = this.holes.map(({ poly }) => ({ poly: poly.map(([u, y]): Point => [u - u0, y]) }));
     for (const local of cutWall(u1 - u0, y0, y1, holes)) {
@@ -52,7 +53,7 @@ export class Surface {
       const at = ([u, y]: Point, d: number) => this.field.point(u, y, d);
       const n: V3 = [this.field.normal[0], 0, this.field.normal[1]];
       sink.quadFacing(material, at(p.bl, front), at(p.br, front), at(p.tr, front), at(p.tl, front), n, uv);
-      sink.quadFacing(material, at(p.bl, front - thickness), at(p.br, front - thickness), at(p.tr, front - thickness), at(p.tl, front - thickness), [-n[0], 0, -n[2]], uv);
+      if (!seated) sink.quadFacing(material, at(p.bl, front - thickness), at(p.br, front - thickness), at(p.tr, front - thickness), at(p.tl, front - thickness), [-n[0], 0, -n[2]], uv);
       for (let i = 0; i < 4; i++) {
         const a = coords[i]!, b = coords[(i + 1) % 4]!;
         const dx = b[0] - a[0], dy = b[1] - a[1];

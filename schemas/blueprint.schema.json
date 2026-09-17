@@ -29,6 +29,17 @@
       }
     },
     "version": { "type": "string", "description": "Generator package version; absent on older stored blueprints." },
+    "geometry": {
+      "type": "object", "additionalProperties": false, "required": ["triangles", "budget"],
+      "description": "Exported shell face count and the budget it was checked against. Same in both GLB modes. Absent on older stored blueprints.",
+      "properties": {
+        "triangles": { "type": "integer", "minimum": 0 },
+        "budget": {
+          "type": "object", "additionalProperties": false, "required": ["triangles", "bytes"],
+          "properties": { "triangles": { "type": "integer" }, "bytes": { "type": "integer" } }
+        }
+      }
+    },
     "buildingId": { "type": "string" },
     "coreFrame": {
       "type": "object", "required": ["anglesDeg"], "additionalProperties": false,

@@ -33,13 +33,8 @@ export class FacetedBayDecoration {
     for (let row = 0; row < rows; row++) for (let col = 0; col < columns; col++) {
       const u0 = col * w + 0.016, u1 = Math.min(field.length, (col + 1) * w) - 0.016;
       const y0 = floorBottom + row * h + 0.016, y1 = Math.min(floorTop, floorBottom + (row + 1) * h) - 0.016;
-      surface.solid(sink, skin, u0, u1, y0, y1, surface.front - 0.05, 0.04);
-      if (floor.index === 0 || u1 - u0 < 0.12 || y1 - y0 < 0.12) continue;
-      for (const u of [u0 + 0.045, u1 - 0.045]) for (const y of [y0 + 0.045, y1 - 0.045]) {
-        if (!surface.clear(u - 0.014, u + 0.014, y - 0.014, y + 0.014)) continue;
-        field.solid(sink, context.material('window-frame'), u - 0.011, u + 0.011, y - 0.011, y + 0.011,
-          surface.front - 0.045, surface.front - 0.05);
-      }
+      // The 22 mm fixing heads at each panel corner live in the panel map.
+      surface.solid(sink, skin, u0, u1, y0, y1, surface.front - 0.05, 0.04, true);
     }
   }
 
@@ -49,11 +44,11 @@ export class FacetedBayDecoration {
     const top = floor.elevation + floor.height;
     const height = floor.index === 0 ? 0.38 : atCap ? D.separator : 0.055;
     surface.solid(sink, context.material(atCap || floor.index === 0 ? 'wall-trim' : 'window-frame'),
-      0, surface.field.length, top - height, top, surface.front, atCap ? 0.22 : 0.06);
+      0, surface.field.length, top - height, top, surface.front, atCap ? 0.22 : 0.06, true);
     for (const section of floor.assembly!.sections.filter(s => s.edge === surface.edge && s.id.endsWith(':slit'))) {
       const left = section.offset, right = left + section.width;
       for (const u of [left + 0.075, right - 0.12]) surface.solid(sink, context.material('column'), u, u + 0.045,
-        floor.elevation + 0.1, top - 0.1, surface.front, 0.15);
+        floor.elevation + 0.1, top - 0.1, surface.front, 0.15, true);
     }
   }
 

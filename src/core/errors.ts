@@ -11,6 +11,7 @@ export type ErrorCode =
   | 'E_CORE_PLATE'
   | 'E_DOOR_FIT'
   | 'E_MATERIAL_UNRESOLVED'
+  | 'E_GEOMETRY_BUDGET'
   | 'E_INVARIANT';
 
 export class ExteriorError extends Error {

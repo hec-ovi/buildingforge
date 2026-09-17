@@ -1,9 +1,8 @@
 import { expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
-import { NodeIO } from '@gltf-transform/core';
 import { generate } from '../src/index.ts';
 import type { BuildingRequest } from '../src/index.ts';
-import { keys } from './support.ts';
+import { glbIO, keys } from './support.ts';
 
 it.each(['paired-rounded', 'paired-rectangular'] as const)('exports the %s facade and authored room nodes', async architecture => {
   const request: BuildingRequest = {
@@ -24,7 +23,7 @@ it.each(['paired-rounded', 'paired-rectangular'] as const)('exports the %s facad
       expect(row.map(s => s.technique)).toEqual(row.map((_, i) => i % 2 ? 'paired-solid' : 'paired-glass'));
     }
   }
-  const document = await new NodeIO().readBinary(result.glb);
+  const document = await glbIO().readBinary(result.glb);
   const nodes = document.getRoot().listNodes();
   const nodeNames = new Set(nodes.map(n => n.getName()));
   expect(nodeNames.size).toBe(nodes.length);

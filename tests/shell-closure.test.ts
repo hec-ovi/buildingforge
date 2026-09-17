@@ -1,14 +1,13 @@
 import { expect, it } from 'vitest';
-import { NodeIO } from '@gltf-transform/core';
 import { generate } from '../src/index.ts';
-import { fixture, keys } from './support.ts';
+import { fixture, glbIO, keys } from './support.ts';
 
 it('exports inward wall faces and closed intact glazing through the public generator', async () => {
   const request = fixture('corpo-tower');
   request.building.floors = 3;
   request.options = { ...request.options, shape: 'rounded-box', glb: 'named', facadeServices: 'off' };
   const { glb, blueprint } = await generate(request, keys);
-  const doc = await new NodeIO().readBinary(glb);
+  const doc = await glbIO().readBinary(glb);
   for (const floor of blueprint.floors) {
     for (let edge = 0; edge < floor.outline.length; edge++) {
       const node = doc.getRoot().listNodes().find(n => n.getName() === `wall:${floor.index}/${edge}`)!;

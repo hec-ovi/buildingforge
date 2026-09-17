@@ -1,8 +1,7 @@
 import { sectionSpans, sectionRoles, spanField } from '../src/sections/index.ts';
 import { expect, it } from 'vitest';
-import { NodeIO } from '@gltf-transform/core';
 import { generate } from '../src/index.ts';
-import { fixture, keys } from './support.ts';
+import { fixture, glbIO, keys, normalsOf } from './support.ts';
 
 it.each(['architecture-01-rounded-corner', 'architecture-02-chamfered-corners', 'architecture-03-terrace-blocks'])
   ('builds the complete %s composition and exact opening fields', async (name) => {
@@ -35,7 +34,7 @@ it.each(['architecture-01-rounded-corner', 'architecture-02-chamfered-corners', 
       expect(opening.width).toBeCloseTo(field.width, 7);
     }
   }
-  const doc = await new NodeIO().readBinary(first.glb);
+  const doc = await glbIO().readBinary(first.glb);
   const parts = doc.getRoot().listNodes().filter(n => n.getName().startsWith('section:'));
   expect(parts).toHaveLength(assembly.floors.reduce((count, floor) => count + floor.sections.length, 0));
   for (const node of parts) for (const primitive of node.getMesh()!.listPrimitives()) {
@@ -48,10 +47,9 @@ it.each(['architecture-01-rounded-corner', 'architecture-02-chamfered-corners', 
     const terraces = doc.getRoot().listNodes().filter(n => n.getName().startsWith('terrace:'));
     expect(terraces.map(n => n.getName())).toEqual(['terrace:3', 'terrace:6']);
     for (const terrace of terraces) {
-      const directions = new Set(terrace.getMesh()!.listPrimitives().flatMap(p =>
-        Array.from(p.getAttribute('NORMAL')!.getArray()!).filter((_, i) => i % 3 === 1)));
-      expect(directions.has(-1)).toBe(true);
-      expect(directions.has(1)).toBe(true);
+      const directions = terrace.getMesh()!.listPrimitives().flatMap(p => normalsOf(p).map(n => n[1]!));
+      expect(directions.some(y => y < -0.99)).toBe(true);
+      expect(directions.some(y => y > 0.99)).toBe(true);
     }
   } else {
     expect(assembly.extent).toEqual({ width: 34, depth: 30 });

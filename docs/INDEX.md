@@ -22,10 +22,13 @@
 - `src/families/corporate-sectors`: two complete special faces with balcony bands and broad cladding over a window grid, one screen face and one uncovered window/service face; candidates require 35 x 35 m and twelve floors, including space for facade projections.
 - `src/mesh/scenicRoom.ts`, `scenicCurve.ts`, `scenicSlope.ts`: rectangular window scenes with a 1 m depth, one rear image, ceiling lights and fitted placement on curved or tapered facades.
 - `src/mesh/scenicLining.ts`, `wallBoundary.ts`: single window returns ending at the glazing plane for authored scenery.
-- `src/mesh/profiledBlind.ts`: formed slats with punched openings, folded lips, support clips and raised stacks.
-- `src/families/api.ts`: shared geometry helpers, including formed louvers for family-owned exterior coverings.
+- `src/mesh/profiledBlind.ts`: a covering as fitted panels between head and bottom rail, with the blade pitch in the blind map.
+- `src/families/api.ts`: shared geometry helpers, including the shared blind for family-owned exterior coverings.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.
+- `src/mesh/frameProfile.ts`, `frameRing.ts`: one welded extruded ring per opening, built once per size.
 - `src/glb`, `src/materials`: GLB output and material resolution.
+- `src/glb/weld.ts`: attribute snapping, vertex welding, 16-bit indices and quantized normals.
+- `src/rules/geometryBudget.ts`: the published per-shell triangle and byte allowance.
 - `src/layout/validateLayout.ts`: final geometry and opening guards.
 - [Preview layout](../src/ui/views/preview.json): control definitions rendered by the shared Form component.
 - `vite.config.ts`: preview serving and source watching, excluding generated output trees.

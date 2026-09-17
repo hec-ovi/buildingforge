@@ -4,7 +4,7 @@
 
 import { Document, type Material } from '@gltf-transform/core';
 import {
-  KHRMaterialsEmissiveStrength, KHRMaterialsIOR, KHRMaterialsTransmission, KHRTextureTransform,
+  KHRMaterialsEmissiveStrength, KHRMaterialsIOR, KHRMaterialsTransmission, KHRMeshQuantization, KHRTextureTransform,
 } from '@gltf-transform/extensions';
 import { createMaterials, type TextureMode, type TextureOptions } from '../materials/apply.ts';
 import { NativeFinishes } from '../materials/native/NativeFinishes.ts';
@@ -13,21 +13,24 @@ import { buildResolver } from '../materials/theme.ts';
 import { selectMaterialVariant } from '../materials/variant.ts';
 import { autoSource } from '../materials/autoSource.ts';
 import { writeBinaryWithUris } from './pack.ts';
-import { weld, UINT16_LIMIT } from './weld.ts';
+import { weld, quantizedNormals, UINT16_LIMIT, VERTEX_BYTES } from './weld.ts';
 import type { MeshBuilder, Prim } from '../mesh/primitives.ts';
 import type { Layout } from '../layout/model.ts';
 import { buildingMaterialVariants } from '../layout/materialPlan.ts';
 
-const EXTENSIONS = [KHRTextureTransform, KHRMaterialsTransmission, KHRMaterialsIOR, KHRMaterialsEmissiveStrength];
+const EXTENSIONS = [KHRTextureTransform, KHRMaterialsTransmission, KHRMaterialsIOR, KHRMaterialsEmissiveStrength, KHRMeshQuantization];
 
 export interface GlbOutput {
   glb: Uint8Array;
   textures: { mode: TextureMode; reason?: string };
+  /** welded geometry actually written, for the shell budget */
+  geometry: { vertices: number; triangles: number; bytes: number };
 }
 
 export async function writeGlb(layout: Layout, mb: MeshBuilder, options: TextureOptions = {}): Promise<GlbOutput> {
   const doc = new Document();
   const buffer = doc.createBuffer('data');
+  doc.createExtension(KHRMeshQuantization).setRequired(true);
   const scene = doc.createScene('scene');
   const root = doc.createNode(`building:${layout.request.buildingId}`);
   scene.addChild(root);
@@ -55,15 +58,16 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
   const addPrim = (mesh: ReturnType<Document['createMesh']>, key: string, raw: Prim) => {
     const prim = weld(raw);
     const count = prim.positions.length / 3;
+    const short = count < UINT16_LIMIT;
     const position = doc.createAccessor()
       .setType('VEC3').setArray(new Float32Array(prim.positions)).setBuffer(buffer);
     const normal = doc.createAccessor()
-      .setType('VEC3').setArray(new Float32Array(prim.normals)).setBuffer(buffer);
+      .setType('VEC3').setArray(quantizedNormals(prim.normals)).setNormalized(true).setBuffer(buffer);
     const uv = doc.createAccessor()
       .setType('VEC2').setArray(new Float32Array(prim.uvs)).setBuffer(buffer);
     const indices = doc.createAccessor()
       .setType('SCALAR')
-      .setArray(count < UINT16_LIMIT ? new Uint16Array(prim.indices) : new Uint32Array(prim.indices))
+      .setArray(short ? new Uint16Array(prim.indices) : new Uint32Array(prim.indices))
       .setBuffer(buffer);
     mesh.addPrimitive(
       doc.createPrimitive()
@@ -104,24 +108,8 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
     // Runtime mode: everything concatenated into one mesh per material slot,
     // except the parts a consumer addresses by node (swinging leaves, wire
     // anchors, the floor slabs the interior replaces), which keep their own.
-    const kept = new Set<string>();
-    for (const part of mb.parts) if (part.pivot || part.keepNode) kept.add(part.name);
-    for (const part of mb.parts) if (part.parent && kept.has(part.parent)) kept.add(part.name);
-
-    const byMaterial = new Map<string, Prim>();
-    for (const part of mb.parts) {
-      if (kept.has(part.name)) continue;
-      for (const [key, prim] of part.prims) {
-        if (prim.indices.length === 0) continue;
-        let g = byMaterial.get(key);
-        if (!g) { g = { positions: [], normals: [], uvs: [], indices: [] }; byMaterial.set(key, g); }
-        const base = g.positions.length / 3;
-        for (const position of prim.positions) g.positions.push(position);
-        for (const normal of prim.normals) g.normals.push(normal);
-        for (const uv of prim.uvs) g.uvs.push(uv);
-        for (const i of prim.indices) g.indices.push(base + i);
-      }
-    }
+    const kept = keptParts(mb);
+    const byMaterial = groupByMaterial(mb.parts.filter((p) => !kept.has(p.name)));
     for (const key of [...byMaterial.keys()].sort()) {
       const mesh = doc.createMesh(`merged:${key}`);
       addPrim(mesh, key, byMaterial.get(key)!);
@@ -137,5 +125,52 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
   const io = typeof process !== 'undefined' && process.versions?.node ? new mod.NodeIO() : new mod.WebIO();
   io.registerExtensions(EXTENSIONS);
   const glb = await writeBinaryWithUris(io, doc, plan.imageUris);
-  return { glb, textures: { mode: plan.mode, ...(plan.reason ? { reason: plan.reason } : {}) } };
+  return { glb, textures: { mode: plan.mode, ...(plan.reason ? { reason: plan.reason } : {}) }, geometry: measureRuntime(mb) };
+}
+
+/**
+ * The size the runtime GLB occupies: one welded primitive per material slot,
+ * the packing the engine loads. The inspection mode keeps parts apart and
+ * therefore packs larger, so the budget is always measured on this one.
+ */
+function measureRuntime(mb: MeshBuilder): { vertices: number; triangles: number; bytes: number } {
+  const kept = keptParts(mb);
+  const prims = [...groupByMaterial(mb.parts.filter((p) => !kept.has(p.name))).values()];
+  for (const part of mb.parts) if (kept.has(part.name)) prims.push(...part.prims.values());
+  const geometry = { vertices: 0, triangles: 0, bytes: 0 };
+  for (const prim of prims) {
+    if (prim.indices.length === 0) continue;
+    const welded = weld(prim);
+    const count = welded.positions.length / 3;
+    geometry.vertices += count;
+    geometry.triangles += welded.indices.length / 3;
+    geometry.bytes += count * VERTEX_BYTES + welded.indices.length * (count < UINT16_LIMIT ? 2 : 4);
+  }
+  return geometry;
+}
+
+/** Parts a consumer addresses by node: moving leaves, anchors, replaceable slabs, and their children. */
+function keptParts(mb: MeshBuilder): Set<string> {
+  const kept = new Set<string>();
+  for (const part of mb.parts) if (part.pivot || part.keepNode) kept.add(part.name);
+  for (const part of mb.parts) if (part.parent && kept.has(part.parent)) kept.add(part.name);
+  return kept;
+}
+
+/** Concatenate every part's geometry into one primitive per material slot. */
+function groupByMaterial(parts: MeshBuilder['parts']): Map<string, Prim> {
+  const byMaterial = new Map<string, Prim>();
+  for (const part of parts) {
+    for (const [key, prim] of part.prims) {
+      if (prim.indices.length === 0) continue;
+      let g = byMaterial.get(key);
+      if (!g) { g = { positions: [], normals: [], uvs: [], indices: [] }; byMaterial.set(key, g); }
+      const base = g.positions.length / 3;
+      for (const position of prim.positions) g.positions.push(position);
+      for (const normal of prim.normals) g.normals.push(normal);
+      for (const uv of prim.uvs) g.uvs.push(uv);
+      for (const i of prim.indices) g.indices.push(base + i);
+    }
+  }
+  return byMaterial;
 }

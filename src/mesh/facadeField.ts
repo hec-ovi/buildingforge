@@ -31,7 +31,20 @@ export class FacadeField {
     return [p[0] + this.dir[0] * u + this.normal[0] * depth, y, p[1] + this.dir[1] * u + this.normal[1] * depth];
   }
 
-  solid(sink: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front: number, back: number, mapU: [number, number] = [0, 1], ends = { start: true, end: true }, worldUv = false): void {
+  /** One outward plate on the field plane: a stud, a cover, a lit panel. */
+  plate(sink: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, depth: number, worldUv = false): void {
+    if (u1 - u0 < 1e-8 || y1 - y0 < 1e-8) return;
+    const uv: P2[] = worldUv ? [[u0, -y0], [u1, -y0], [u1, -y1], [u0, -y1]] : [[0, 1], [1, 1], [1, 0], [0, 0]];
+    sink.quadFacing(material, this.point(u0, y0, depth), this.point(u1, y0, depth),
+      this.point(u1, y1, depth), this.point(u0, y1, depth), [this.normal[0], 0, this.normal[1]], uv);
+  }
+
+  /**
+   * A closed block on the field: front, back, the two u-ends and the two caps.
+   * `ends.back` drops the rear face for a block seated on a closed wall field,
+   * where that face can only be seen through the wall it sits on.
+   */
+  solid(sink: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front: number, back: number, mapU: [number, number] = [0, 1], ends: { start: boolean; end: boolean; back?: boolean } = { start: true, end: true }, worldUv = false): void {
     if (u1 - u0 < 1e-8 || y1 - y0 < 1e-8) return;
     const point = (u: number, y: number, d: number) => this.point(u, y, d);
     const n: V3 = [this.normal[0], 0, this.normal[1]], d: V3 = [this.dir[0], 0, this.dir[1]];
@@ -40,7 +53,7 @@ export class FacadeField {
     const sideUv: P2[] = worldUv ? [[front, -y0], [front, -y1], [back, -y1], [back, -y0]] : uv;
     const capUv: P2[] = worldUv ? [[u0, front], [u1, front], [u1, back], [u0, back]] : uv;
     sink.quadFacing(material, point(u0, y0, front), point(u1, y0, front), point(u1, y1, front), point(u0, y1, front), n, uv);
-    sink.quadFacing(material, point(u0, y0, back), point(u1, y0, back), point(u1, y1, back), point(u0, y1, back), [-n[0], 0,-n[2]], uv);
+    if (ends.back !== false) sink.quadFacing(material, point(u0, y0, back), point(u1, y0, back), point(u1, y1, back), point(u0, y1, back), [-n[0], 0,-n[2]], uv);
     if (ends.start) sink.quadFacing(material, point(u0, y0, front), point(u0, y1, front), point(u0, y1, back), point(u0, y0, back), [-d[0], 0,-d[2]], sideUv);
     if (ends.end) sink.quadFacing(material, point(u1, y0, front), point(u1, y1, front), point(u1, y1, back), point(u1, y0, back), d, sideUv);
     sink.quadFacing(material, point(u0, y0, front), point(u1, y0, front), point(u1, y0, back), point(u0, y0, back), [0, -1, 0],capUv);

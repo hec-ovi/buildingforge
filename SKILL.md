@@ -3,7 +3,7 @@ name: exterior
 description: Generate one seeded building exterior GLB and its floor/opening blueprint through the Exterior library or CLI.
 ---
 
-# Exterior 0.52.0
+# Exterior 0.53.0
 
 Builds one deterministic building shell with replaceable slabs, 1 m-deep window scenery and its exact opening blueprint.
 
@@ -35,7 +35,7 @@ The promise returns `{glb: Uint8Array, blueprint, textures: {mode, reason?}}`. T
 
 Texture modes are `external`, `embed` and `keys`. External mode can return `keys` with a reason if its catalog is unavailable. Embedded mode requires maps. Check the returned mode before presenting a textured result.
 
-Errors are `ExteriorError {code, message, details?}`. The closed set is `E_SCHEMA`, `E_FOOTPRINT_INVALID`, `E_FOOTPRINT_TOO_SMALL`, `E_ENVELOPE_TOO_LOW`, `E_FLOORKINDS_MISMATCH`, `E_APERTURE_UNREACHABLE`, `E_APERTURE_INVALID`, `E_APERTURE_OVERLAP`, `E_SIGNAGE_TEXT_TOO_LONG`, `E_CORE_PLATE`, `E_DOOR_FIT`, `E_MATERIAL_UNRESOLVED`, `E_INVARIANT`; meanings are in the contract. Preserve the failing request for reproduction.
+Errors are `ExteriorError {code, message, details?}`. The closed set is `E_SCHEMA`, `E_FOOTPRINT_INVALID`, `E_FOOTPRINT_TOO_SMALL`, `E_ENVELOPE_TOO_LOW`, `E_FLOORKINDS_MISMATCH`, `E_APERTURE_UNREACHABLE`, `E_APERTURE_INVALID`, `E_APERTURE_OVERLAP`, `E_SIGNAGE_TEXT_TOO_LONG`, `E_CORE_PLATE`, `E_DOOR_FIT`, `E_MATERIAL_UNRESOLVED`, `E_GEOMETRY_BUDGET`, `E_INVARIANT`; meanings are in the contract. Preserve the failing request for reproduction.
 
 Copy from this repo root:
 

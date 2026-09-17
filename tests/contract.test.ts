@@ -1,8 +1,7 @@
 import { expect, it } from 'vitest';
-import { NodeIO } from '@gltf-transform/core';
 import { generate } from '../src/index.ts';
 import schema from '../schemas/building-request.schema.json' with { type: 'json' };
-import { fixture, keys } from './support.ts';
+import { fixture, glbIO, keys } from './support.ts';
 
 it('returns reproducible versioned floors, materials and a replaceable GLB shell', async () => {
   const request = fixture('corpo-tower');
@@ -15,7 +14,7 @@ it('returns reproducible versioned floors, materials and a replaceable GLB shell
   const changed = await generate({ ...request, seed: 'another-city' }, keys);
   expect(Buffer.from(first.glb).equals(Buffer.from(changed.glb))).toBe(false);
   const bp = first.blueprint;
-  expect(bp.version).toBe('0.52.0');
+  expect(bp.version).toBe('0.53.0');
   expect(bp).toMatchObject({ buildingId: request.buildingId, seed: request.seed });
   expect(bp.floors).toHaveLength(request.building.floors + (request.building.basements ?? 0));
   expect(bp.floors.find(f => f.index === 0)!.elevation).toBe(0);
@@ -23,7 +22,7 @@ it('returns reproducible versioned floors, materials and a replaceable GLB shell
   const merged = await generate({ ...request, options: { ...request.options, glb: 'merged' } }, keys);
   expect(merged.blueprint).toEqual(bp);
   for (const output of [first, merged]) {
-    const doc = await new NodeIO().readBinary(output.glb);
+    const doc = await glbIO().readBinary(output.glb);
     const names = doc.getRoot().listNodes().map(node => node.getName());
     for (const floor of bp.floors) {
       expect(names).toContain(`floor:${floor.index}/slab`);
@@ -45,7 +44,7 @@ it('preserves floor programs and exact link reservations, including anchor ident
   request.building.floorKinds = Array.from({ length: request.building.floors }, (_, i) => i === 0 ? 'coffee_shop' : 'offices');
   const { blueprint, glb } = await generate(request, keys);
   expect(blueprint.floors.filter(f => f.index >= 0).map(f => f.kind)).toEqual(request.building.floorKinds);
-  const nodes = (await new NodeIO().readBinary(glb)).getRoot().listNodes().map(n => n.getName());
+  const nodes = (await glbIO().readBinary(glb)).getRoot().listNodes().map(n => n.getName());
   for (const aperture of request.apertures!) {
     if (aperture.kind === 'wire-anchor') {
       expect(blueprint.anchors.some(a => a.id === aperture.id)).toBe(true);
@@ -136,7 +135,7 @@ it('fits fire escapes, service routes, clothes and explicit damage around openin
     const opening = bp.floors.find(f => f.index === damage.face.floor)!.openings.find(o => o.id === damage.openingId)!;
     expect(opening.damage).toMatchObject({ pane: damage.pane, variant: damage.variant, collision: damage.collision });
   }
-  expect((await new NodeIO().readBinary(glb)).getRoot().listNodes().some(n => n.getName() === 'facade-services')).toBe(true);
+  expect((await glbIO().readBinary(glb)).getRoot().listNodes().some(n => n.getName() === 'facade-services')).toBe(true);
 });
 
 it('keeps ground privacy removable, permanent exterior louvres separate, and curtain overrides exact', async () => {
@@ -152,7 +151,7 @@ it('keeps ground privacy removable, permanent exterior louvres separate, and cur
   expect(window.curtain!.closurePercent).toBe(70);
   expect(window.exteriorCovering).toMatchObject({ style: 'metal-louvre', placement: 'exterior' });
   expect(window.windowTreatment).toMatchObject({ privacy: 'shell-only' });
-  const nodes = (await new NodeIO().readBinary(result.glb)).getRoot().listNodes();
+  const nodes = (await glbIO().readBinary(result.glb)).getRoot().listNodes();
   expect(nodes.some(n => n.getName() === window.windowTreatment!.nodeId)).toBe(true);
 });
 
@@ -165,7 +164,7 @@ it('publishes repeated pocket cassettes with their clear passages', async () => 
   const { blueprint: bp, glb } = await generate(request, keys);
   const doors = bp.floors.find(f => f.index === 0)!.openings.filter(o => o.door?.motion.kind === 'pocket');
   expect(doors.length).toBeGreaterThan(1);
-  const names = (await new NodeIO().readBinary(glb)).getRoot().listNodes().map(n => n.getName());
+  const names = (await glbIO().readBinary(glb)).getRoot().listNodes().map(n => n.getName());
   for (const door of doors) {
     expect(door.door!.clearance).toMatchObject({ width: door.width, height: door.height });
     expect(door.door!.cassette!.width).toBeGreaterThan(door.width);

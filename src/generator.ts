@@ -35,6 +35,7 @@ import type { Layout } from './layout/model.ts';
 import type { BuildingRequest, GenerateOptions, GenerateResult } from './types.ts';
 
 import { checkInvariants } from './layout/validateLayout.ts';
+import { geometryBudget, overBudget } from './rules/geometryBudget.ts';
 
 export async function generate(raw: unknown, options: GenerateOptions = {}): Promise<GenerateResult> {
   try {
@@ -131,7 +132,17 @@ async function generateBuilding(raw: unknown, options: GenerateOptions, canonica
   const blueprint = buildBlueprint(layout, mb);
   identity?.blueprint(blueprint);
   fitBuildingCore(blueprint);
-  const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
+  const { glb, textures, geometry } = await writeGlb(layout, mb, options.textures ?? {});
+  const budget = geometryBudget(req);
+  // The blueprint publishes the face count, which both GLB modes share; the
+  // packed size belongs to the export the caller asked for.
+  blueprint.geometry = { triangles: geometry.triangles, budget };
+  const measured = { ...geometry, budget };
+  if (overBudget(measured)) {
+    throw new ExteriorError('E_GEOMETRY_BUDGET',
+      `shell geometry is over budget: ${measured.triangles} triangles and ${measured.bytes} bytes against ${budget.triangles} and ${budget.bytes}`,
+      measured);
+  }
   return { glb, blueprint, textures };
 }
 
@@ -145,7 +156,7 @@ async function generateAutomatic(request: BuildingRequest, options: GenerateOpti
       result.blueprint.architectureSelection = selection;
       return result;
     } catch (error) {
-      if (!(error instanceof ExteriorError) || !['E_SCHEMA', 'E_CORE_PLATE', 'E_DOOR_FIT', 'E_SIGNAGE_TEXT_TOO_LONG', 'E_ENVELOPE_TOO_LOW', 'E_APERTURE_UNREACHABLE', 'E_APERTURE_INVALID'].includes(error.code)) throw error;
+      if (!(error instanceof ExteriorError) || !['E_SCHEMA', 'E_CORE_PLATE', 'E_DOOR_FIT', 'E_SIGNAGE_TEXT_TOO_LONG', 'E_ENVELOPE_TOO_LOW', 'E_APERTURE_UNREACHABLE', 'E_APERTURE_INVALID', 'E_GEOMETRY_BUDGET'].includes(error.code)) throw error;
       candidateError = { code: error.code, message: error.message };
     }
   }

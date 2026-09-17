@@ -5,6 +5,7 @@ import type { Architecture, Assembly } from './sections/index.ts';
 import type { AtlasType, Tier } from './rules/families.ts';
 import type { TextureMode, TextureOptions } from './materials/apply.ts';
 import type { FacadeServicesOutput, WindowDamage } from './facade-services/index.ts';
+import type { GeometryReport } from './rules/geometryBudget.ts';
 
 export type P2 = [number, number];
 export type P3 = [number, number, number];
@@ -319,6 +320,8 @@ export interface ArchitectureSelection {
 }
 
 export interface Blueprint {
+  /** welded shell geometry actually exported, with the budget it was checked against */
+  geometry?: GeometryReport;
   modelInstances?: ModelInstance[];
   architectureSelection?: ArchitectureSelection;
   assembly?: Assembly;

@@ -47,10 +47,16 @@ function fixtures(floor: FloorLayout, section: FamilySection, sink: PartSink,
   const state = opening?.scenery?.state ?? (opening?.material?.includes('window-black') ? 'dark' : 'lit');
   const intensity = state === 'dark' ? 0 : state === 'dim' ? 0.15 : 1;
   const material = intensity ? finishes.light : finishes.lightOff;
+  // A soffit luminaire is read from below: the lit face and its collar, one quad each.
+  const face = (key: string, u: number, half: number, front: number, back: number, y: number) => {
+    const uv: [number, number][] = [[0, 0], [half * 2, 0], [half * 2, front - back], [0, front - back]];
+    sink.quadFacing(key, field.point(u - half, y, back), field.point(u + half, y, back),
+      field.point(u + half, y, front), field.point(u - half, y, front), [0, -1, 0], uv);
+  };
   for (let i = 0; i < 4; i++) {
     const u = u0 + (u1 - u0) * (i + 0.5) / 4;
-    field.solid(sink, finishes.frame, u - 0.08, u + 0.08, ceiling - 0.065, ceiling, 1.75, 0.25);
-    field.solid(sink, material, u - 0.035, u + 0.035, ceiling - 0.076, ceiling - 0.065, 1.70, 0.30);
+    face(finishes.frame, u, 0.08, 1.75, 0.25, ceiling - 0.065);
+    face(material, u, 0.035, 1.70, 0.30, ceiling - 0.076);
     if (opening?.scenery && intensity) {
       opening.scenery.lights ??= [];
       opening.scenery.lights.push({ position: field.point(u, ceiling - 0.12, 1), color: '#99fff0', lumens: 1200 * intensity, range: 12 });

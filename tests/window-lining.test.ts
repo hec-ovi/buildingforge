@@ -1,12 +1,12 @@
 import { expect, it } from 'vitest';
-import { NodeIO, type Document } from '@gltf-transform/core';
+import type { Document } from '@gltf-transform/core';
 import { BufferAttribute, BufferGeometry, DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 import { generate, type BuildingRequest, type Blueprint } from '../src/index.ts';
-import { keys } from './support.ts';
+import { glbIO, keys } from './support.ts';
 
 function request(architecture: 'garden-taper' | 'corporate-sectors'): BuildingRequest {
   return { seed: 'garden-reference', buildingId: 'lining', theme: 'cyberpunk',
-    parcel: { footprint: [[0, 0], [52, 0], [52, 42], [0, 42]], accessPoint: [26, 0], maxHeight: architecture === 'garden-taper' ? 32 : 60 },
+    parcel: { footprint: [[0, 0], [44, 0], [44, 35], [0, 35]], accessPoint: [22, 0], maxHeight: architecture === 'garden-taper' ? 32 : 60 },
     building: { type: 'residential', tier: 'rich', floors: architecture === 'garden-taper' ? 4 : 12 },
     options: { architecture, glb: 'named', balconies: 'off', facadeServices: 'off', roofArtifacts: 'off', adScreens: 'off', fireEscape: 'off', signage: null } };
 }
@@ -47,7 +47,7 @@ it('joins window returns to one rectangular room surface ending one metre behind
   expect(blueprint.facade.wallDepth).toBeLessThanOrEqual(deepestGlass + 0.03);
   const floor = blueprint.floors.find(f => f.index > 0 && f.openings.some(o => o.edge === 1 && o.offset > 5 && o.scenery && o.glazing!.glassDepth < 0.3))!;
   const opening = floor.openings.find(o => o.edge === 1 && o.offset > 5 && o.scenery && o.glazing!.glassDepth < 0.3)!;
-  const meshes = surfaces(await new NodeIO().readBinary(glb));
+  const meshes = surfaces(await glbIO().readBinary(glb));
   const candidates = meshes.filter(mesh => mesh.name === `wall:${floor.index}/1` || mesh.name === `window:${opening.id}` || mesh.name === `scenery:${floor.index}`);
   const glass = opening.glazing!.glassDepth;
   expect(opening.scenery!.depth).toBe(1);
@@ -95,7 +95,7 @@ it('cuts both corporate window rows through the full wall body', async () => {
   const lower = floor.openings.find(o => o.edge === 1 && floor.openings.some(other => other.id !== o.id && other.edge === 1
     && Math.abs(other.offset - o.offset) < 1e-7 && other.sill > o.sill))!;
   const upper = floor.openings.find(o => o.id !== lower.id && o.edge === 1 && Math.abs(o.offset - lower.offset) < 1e-7)!;
-  const meshes = surfaces(await new NodeIO().readBinary(glb));
+  const meshes = surfaces(await glbIO().readBinary(glb));
   const walls = meshes.filter(mesh => mesh.name === `wall:${floor.index}/1`);
   for (const window of [lower, upper]) {
     const origin = eastPoint(floor, window.offset + window.width * 0.41, floor.elevation + window.sill + window.height * 0.43, -0.4);
@@ -106,7 +106,7 @@ it('cuts both corporate window rows through the full wall body', async () => {
 
 it('reserves housing depth without counting the taper of a broad, short tower', async () => {
   const input = request('garden-taper');
-  input.parcel = { ...input.parcel, footprint: [[0, 0], [182, 0], [182, 42], [0, 42]], accessPoint: [91, 0] };
+  input.parcel = { ...input.parcel, footprint: [[0, 0], [80, 0], [80, 35], [0, 35]], accessPoint: [40, 0] };
   const { blueprint } = await generate(input, keys);
   const glass = blueprint.floors.flatMap(f => f.openings.flatMap(o => o.glazing ? [o.glazing.glassDepth] : []));
   const deepest = Math.max(...glass);

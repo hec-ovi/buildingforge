@@ -55,12 +55,14 @@ export class Surface {
     return !this.holes.some(h => rect[0] < h[1] && rect[1] > h[0] && rect[2] < h[3] && rect[3] > h[2]);
   }
   point(u: number, y: number, depth: number): V3 { return this.skin.point(u - this.start, y, depth); }
-  solid(part: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front = 0.1, back = 0, worldUv = true): void {
+  /** `seated` blocks sit on the closed wall field, so their rear face is dropped. */
+  solid(part: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front = 0.1, back = 0, worldUv = true, seated = false): void {
     u0 = Math.max(u0, this.start); u1 = Math.min(u1, this.end);
     if (u1 <= u0 || y1 <= y0) return;
     let pieces: Rect[] = [[u0, u1, y0, y1]];
     for (const hole of this.holes) pieces = pieces.flatMap(p => subtract(p, hole));
-    for (const [a, b, c, d] of pieces) this.skin.solid(part, material, a - this.start, b - this.start, c, d, front, back, [0, 1], undefined, worldUv);
+    const ends = { start: true, end: true, back: !seated };
+    for (const [a, b, c, d] of pieces) this.skin.solid(part, material, a - this.start, b - this.start, c, d, front, back, [0, 1], ends, worldUv);
   }
   ramp(part: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front0: number, front1: number, back: number): void {
     const width = u1 - u0, slope = (front1 - front0) / width;
@@ -87,7 +89,7 @@ export class Surface {
       const a = Math.max(u0, left + 0.016), b = Math.min(u1, right - 0.016);
       for (let row = firstRow; originY + row * panelHeight < y1 - 1e-6; row++) {
         const low = originY + row * panelHeight, high = low + panelHeight;
-        this.solid(part, material, a, b, Math.max(y0, low + 0.018), Math.min(y1, high - 0.018), front, front - 0.12);
+        this.solid(part, material, a, b, Math.max(y0, low + 0.018), Math.min(y1, high - 0.018), front, front - 0.12, true, true);
       }
     }
   }

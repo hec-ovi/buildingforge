@@ -28,6 +28,6 @@ Upper groups cover four floors; the final group takes the remainder. Decorative 
 
 Door cassettes and bridge cuts remain clear in both cladding and services. A bridge intersecting the screen suppresses it. Existing sources provide two ornamental trees where entrance planters fit. Cyan emitters publish 1,200 lm at the base and 1,800 lm beneath the canopy, each with a 10 m range. Original floor and bridge elevations remain authoritative.
 
-Materials use `cyberpunk/<name>/mid`: `corporate-panel#native`, `ivory-panel#cool-grey` for upper shields, `paired-frame-metal#surface`, `paired-cladding-metal#surface`, `paired-light-cool#surface` and `corporate-screen#native`. Geometry owns panel joints and folds.
+Materials use `cyberpunk/<name>/mid`: `corporate-panel#native`, `ivory-panel#cool-grey` for upper shields, `paired-frame-metal#surface`, `paired-cladding-metal#surface`, `paired-light-cool#surface` and `corporate-screen#native`. Geometry owns folds, the wing, cassette, channel and mechanical relief, and the rims; the flat cladding fields carry their panel joint in the map.
 
 Check: `npm test -- src/families/corporate-sectors/tests/contract.test.ts`.

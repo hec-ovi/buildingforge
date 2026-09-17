@@ -20,8 +20,8 @@ export function decorateFloors(context: DecorationContext): void {
       const sink = builder.part(`corporate:${floor.index}:${edge}:cladding`);
       const y = floor.elevation, top = y + floor.height;
       if (group.id === 0) {
-        surface.solid(sink, panel, surface.start, surface.end, y, top, 0.02, -0.1);
-        surface.panels(sink, panel, surface.start, surface.end, y, top, 1, 1.5, 0, 0.15);
+        surface.solid(sink, panel, surface.start, surface.end, y, top, 0.02, -0.1, true, true);
+        // Podium joints come from the panel map; the rim and the entrance keep their relief.
         if (floor.index === group.toFloor) {
           const rim = builder.part(`corporate:podium-rim:${edge}`, { keepNode: true });
           surface.solid(rim, trim, surface.start, surface.end, top - 0.35, top, RIM_DEPTH, -CHANNEL_RECESS);
@@ -32,14 +32,14 @@ export function decorateFloors(context: DecorationContext): void {
         if (section.edge !== edge) continue;
         const u = section.offset, end = u + section.width;
         if (section.id.includes(':recessed-slit:')) {
-          surface.solid(sink, panel, u, end, y, top, -CHANNEL_RECESS, -CHANNEL_RECESS - 0.12);
+          surface.solid(sink, panel, u, end, y, top, -CHANNEL_RECESS, -CHANNEL_RECESS - 0.12, true, true);
           continue;
         }
         if (section.id.includes(':channel-left:') || section.id.includes(':channel-right:')) {
           channelLimit(surface, sink, trim, section, floor);
           continue;
         }
-        surface.solid(sink, panel, u, end, y, top, 0.02, -0.1);
+        surface.solid(sink, panel, u, end, y, top, 0.02, -0.1, true, true);
         if (section.id.includes(':large-panel:')) {
           const wing = builder.part(`${section.id}:wing`, { keepNode: true });
           surface.solid(wing, panel, u + 0.015, end - 0.015, y, top, 1.08, 0.03);
@@ -49,10 +49,10 @@ export function decorateFloors(context: DecorationContext): void {
         } else if (section.id.includes(':mechanical:')) {
           mechanics(surface, builder.part(`corporate:${floor.index}:${edge}:services`, { keepNode: true }), metal, trim, section, floor);
         } else if (section.id.includes(':upper-window:') || section.id.includes(':upper-border:')) {
-          surface.solid(sink, panel, u, end, y, top, 0.06, -0.06);
-        } else {
-          surface.panels(sink, panel, u, end, y, top, 1, 1.5, 0, 0.06);
+          surface.solid(sink, panel, u, end, y, top, 0.06, -0.06, true, true);
         }
+        // Plain sections carry their joints in the panel map. The large-panel
+        // wings, cassettes, channels and mechanical bays keep real relief.
       }
       if (specialFace(edge) && group.id >= 2) coverGrid(context, floor, edge);
     }

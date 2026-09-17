@@ -15,6 +15,20 @@ const GRID = 1e5;
 /** Primitives above this vertex count keep 32-bit indices. */
 export const UINT16_LIMIT = 65536;
 
+/** Packed bytes per vertex: float position, normalized short normal, float UV. */
+export const VERTEX_BYTES = 4 * 3 + 2 * 3 + 4 * 2;
+
+/**
+ * Normals as normalized signed shorts, the KHR_mesh_quantization encoding.
+ * A flat architectural face lands within 0.002 degrees of its float normal and
+ * the attribute costs six bytes instead of twelve.
+ */
+export function quantizedNormals(normals: number[]): Int16Array<ArrayBuffer> {
+  const out = new Int16Array(new ArrayBuffer(normals.length * 2));
+  for (let i = 0; i < normals.length; i++) out[i] = Math.round(Math.max(-1, Math.min(1, normals[i]!)) * 32767);
+  return out;
+}
+
 const FIELDS = 8;
 
 export function weld(prim: Prim): Prim {

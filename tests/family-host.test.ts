@@ -6,14 +6,18 @@ import { keys, glbJson } from './support.ts';
 
 function request(architecture: FamilyArchitecture, fixed = false): BuildingRequest {
   const buildingId = `host-${architecture}`;
+  // The corporate volume needs twelve floors, so it takes a narrower plate to
+  // stay inside the published tower geometry budget.
+  const tall = architecture === 'corporate-sectors';
+  const [width, depth] = tall ? [35, 35] : [44, 36];
   return {
     seed: 'family-host-reference', buildingId, theme: 'cyberpunk',
-    parcel: { footprint: [[0, 0], [44, 0], [44, 36], [0, 36]], accessPoint: [22, 0], maxHeight: architecture === 'corporate-sectors' ? 60 : 40 },
-    building: { type: 'offices', tier: 'rich', floors: architecture === 'corporate-sectors' ? 12 : 6 },
+    parcel: { footprint: [[0, 0], [width, 0], [width, depth], [0, depth]], accessPoint: [width / 2, 0], maxHeight: tall ? 60 : 40 },
+    building: { type: 'offices', tier: 'rich', floors: tall ? 12 : 6 },
     options: { architecture, glb: 'named', balconies: 'off', facadeServices: 'off', roofArtifacts: 'off', adScreens: 'off', fireEscape: 'off', signage: null },
     ...(fixed ? { apertures: [{ id: 'bridge', buildingId, floor: 2, face: 1, kind: 'bridge' as const,
-      u: 18, base: 9, width: 3, height: 3, shape: 'rect' as const,
-      cut: { polygon: [[44, 9, 16.5], [44, 9, 19.5], [44, 12, 19.5], [44, 12, 16.5]] as [number, number, number][], axisDir: [1, 0, 0] as [number, number, number] }, linkId: 'link' }] } : {}),
+      u: 16.5, base: 9, width: 3, height: 3, shape: 'rect' as const,
+      cut: { polygon: [[width, 9, 16.5], [width, 9, 19.5], [width, 12, 19.5], [width, 12, 16.5]] as [number, number, number][], axisDir: [1, 0, 0] as [number, number, number] }, linkId: 'link' }] } : {}),
   };
 }
 
