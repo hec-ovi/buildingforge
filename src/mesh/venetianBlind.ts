@@ -1,9 +1,14 @@
 import type { P2 } from '../core/polygon.ts';
+import { withDefaultVariant } from '../materials/slot.ts';
 import type { PartSink, V3 } from './primitives.ts';
 
 interface Frame { v: P2; dir: P2; n: P2 }
 
-/** One fitted slat profile, repeated at fixed pitch for every compatible window. */
+/**
+ * A venetian covering: head cassette, one fitted panel over the closed travel
+ * and the bottom rail that ends it. The slat pitch is in the blind map, so the
+ * covering costs four vertices instead of one box per blade.
+ */
 export function meshVenetianBlind(
   sink: PartSink, frame: Frame, u0: number, u1: number, y0: number, y1: number,
   front: number, closurePercent: number, frameMaterial: string, curtainMaterial: string,
@@ -24,24 +29,11 @@ export function meshVenetianBlind(
   if (closurePercent <= 0) return;
 
   const bottom = y1 - height * closurePercent / 100;
-  const pitch = 0.065;
-  const slatHeight = 0.057;
-  // The lowest slat trims to the exact travel; no geometry extends below it.
-  for (let top = y1; top > bottom + 1e-8; top -= pitch) {
-    const h = Math.min(slatHeight, top - bottom);
-    const halfThickness = Math.min(0.001, h / 4);
-    const rise = h / 2 - halfThickness * 0.6;
-    const reach = rise * 0.75;
-    sink.box(curtainMaterial, point(center, top - h / 2, front - 0.025), along(width / 2),
-      [frame.n[0] * reach, rise, frame.n[1] * reach],
-      [-frame.n[0] * halfThickness * 0.8, halfThickness * 0.6, -frame.n[1] * halfThickness * 0.8]);
-  }
-  const rail = Math.min(0.024, y1 - bottom);
+  const slats = withDefaultVariant(curtainMaterial, 'slat');
+  const covered = y1 - bottom;
+  const z = front - 0.025;
+  sink.quadFacing(slats, point(u0, bottom, z), point(u1, bottom, z), point(u1, y1, z), point(u0, y1, z),
+    [frame.n[0], 0, frame.n[1]], [[0, 0], [width, 0], [width, covered], [0, covered]]);
+  const rail = Math.min(0.024, covered);
   box(center, bottom + rail / 2, width, rail, 0.032, front - 0.024);
-  // Ladder tapes support the same slat assembly at each window's fitted width.
-  const tapes = Math.max(2, Math.ceil(width / 1.2));
-  for (let index = 0; index < tapes; index++) {
-    const u = u0 + width * (index + 0.5) / tapes;
-    box(u, (bottom + y1) / 2, 0.009, y1 - bottom, 0.004, front - 0.05);
-  }
 }

@@ -13,7 +13,7 @@ export { capUp, capDown, capFrame } from '../mesh/caps.ts';
 export { cutWall, rectHole } from '../mesh/wallcut.ts';
 export { meshPanelField } from '../mesh/panelField.ts';
 export { ProfiledBlind } from '../mesh/profiledBlind.ts';
-export type { BlindFrame } from '../mesh/blindSlat.ts';
+export type { BlindFrame } from '../mesh/profiledBlind.ts';
 
 export type { WindowField } from '../sections/types.ts';
 import type { WindowField } from '../sections/types.ts';

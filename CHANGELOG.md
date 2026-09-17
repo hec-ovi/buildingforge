@@ -1,5 +1,7 @@
 # Changelog
 
+0.50.0: window coverings are one fitted panel between head and bottom rail, with the blade pitch in the blind map. Measured keys-only on `engine/out/games/corporate-streets-500`: p0 (offices, 13 floors) 833,874 -> 124,534 vertices, 415,656 -> 60,986 triangles, 31,775,428 -> 4,820,100 bytes; p21 (residential, 8 floors) 287,258 -> 114,282 vertices, 139,774 -> 53,286 triangles, 10.40 -> 4.13 MB. Twelve-parcel sweep: 435.0 -> 51.6 MB, 5,945,106 -> 656,286 triangles, 5.9 -> 2.0 s.
+
 0.49.0: corporate candidates require three complete facade blocks; deep shell walls and opening returns meet at shared corner miters.
 
 0.49.0: enclosed central garden balconies, base-relative wing tapers, layered corporate sectors, closed facade transitions and one-metre scenic window rooms.

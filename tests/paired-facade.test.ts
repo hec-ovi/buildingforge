@@ -4,7 +4,6 @@ import { NodeIO } from '@gltf-transform/core';
 import { generate } from '../src/index.ts';
 import type { BuildingRequest } from '../src/index.ts';
 import { keys } from './support.ts';
-import { BufferAttribute, BufferGeometry, DoubleSide, Mesh, MeshBasicMaterial, Raycaster, Vector3 } from 'three';
 
 it.each(['paired-rounded', 'paired-rectangular'] as const)('exports the %s facade and authored room nodes', async architecture => {
   const request: BuildingRequest = {
@@ -37,26 +36,15 @@ it.each(['paired-rounded', 'paired-rectangular'] as const)('exports the %s facad
   expect(blueprint.facade.materialPlan.field.key).toBe('cyberpunk/paired-cladding-metal/mid');
   expect(blueprint.facade.groundMaterial!.key).toBe('cyberpunk/paired-cladding/mid');
   expect(blueprint.materials).toContain('cyberpunk/paired-blind/mid');
+  // A covered pane is one fitted panel, not a slat stack: four vertices per
+  // covered pane plus the raised stack, never thousands.
   const blindPrimitive = nodes.find(n => n.getName() === 'scenery:1')!.getMesh()!.listPrimitives()
     .find(p => p.getMaterial()!.getName() === 'cyberpunk/paired-blind/mid')!;
-  const geometry = new BufferGeometry().setAttribute('position', new BufferAttribute(new Float32Array(blindPrimitive.getAttribute('POSITION')!.getArray()!), 3));
-  geometry.setIndex(Array.from(blindPrimitive.getIndices()!.getArray()!));
-  const material = new MeshBasicMaterial({ side: DoubleSide });
-  const mesh = new Mesh(geometry, material);
   const floor = blueprint.floors[1]!;
-  let perforationProved = false;
-  for (const opening of floor.openings.filter(o => o.kind === 'window' && o.edge === 0)) {
-    const g = opening.glazing!, paneWidth = g.width / 4;
-    const y = floor.elevation + g.sill + g.height - 0.14 - 0.095 + 0.046;
-    const hit = (u: number) => new Raycaster(new Vector3(floor.outline[0]![0] + u, y, floor.outline[0]![1] - 0.5), new Vector3(0, 0, 1), 0, 1)
-      .intersectObject(mesh, false).length > 0;
-    for (let pane = 0; pane < 4; pane++) {
-      const support = g.offset + paneWidth * pane + 0.025 + (paneWidth - 0.05) * 0.18;
-      if (hit(support - 0.07) && !hit(support - 0.025)) perforationProved = true;
-    }
-  }
-  expect(perforationProved).toBe(true);
-  geometry.dispose(); material.dispose();
+  const panes = floor.openings.filter(o => o.kind === 'window' && o.glazing).length * 4;
+  const blindVertices = blindPrimitive.getAttribute('POSITION')!.getCount();
+  expect(blindVertices).toBeGreaterThan(0);
+  expect(blindVertices).toBeLessThanOrEqual(panes * 28);
   const emitting = scenery.filter(o => o.scenery!.lights?.length);
   expect(emitting.length).toBeGreaterThan(0);
   for (const opening of emitting) {
