@@ -1,5 +1,7 @@
 # Changelog
 
+0.53.1: door handle backplates are drawn as their visible face, so hardware costs 80 vertices a leaf instead of 120. Measured keys-only on `engine/out/games/corporate-streets-500` p18 (hotel, 120 two-leaf balcony doors): 132,519 -> 122,859 vertices, 73,166 -> 68,336 triangles; leaf hardware 28,560 -> 19,040 vertices.
+
 0.53.0: a machine-checked geometry budget, reported per shell in `blueprint.geometry` and enforced with `E_GEOMETRY_BUDGET`: 50,000 triangles and 3 MiB for an ordinary shell, three times both for a tower of nine floors or more, measured on the runtime packing. Normals export as normalized shorts under `KHR_mesh_quantization`. Coverings, louvres, head baffles, garden fronds, scenic and soffit luminaires and facade fixing heads carry their repeat in the material map; panels seated on a closed wall field drop their buried rear face. Measured keys-only over the 77 parcels of `engine/out/games/corporate-streets-500`: 326.5 -> 189.7 MB and 4,982,110 -> 3,298,976 triangles, median 1.72 MB and 31,544 triangles, largest 8.40 MB and 143,014 triangles. One parcel (p18, an eight-floor hotel with 328 openings) measures 73,166 triangles and is refused.
 
 0.52.0: every exported primitive is welded and indexed, with attributes snapped to a 1e-5 grid and 16-bit indices below 65,536 vertices. Measured keys-only on `engine/out/games/corporate-streets-500`: p0 118,774 -> 90,688 vertices, 4.39 -> 3.20 MB; p21 71,882 -> 61,543 vertices, 2.64 -> 2.12 MB. Twelve-parcel sweep: 45.9 -> 38.4 MB at the same 590,302 triangles.
