@@ -73,3 +73,36 @@ parcel at full detail:
 `schemas/geometry-budget.json` gives an authored family its own allowance from
 these figures, so no parcel loses its architecture. The largest shell in the city
 is a corporate-sectors tower at 308,760 triangles and 17.28 MB.
+
+### Engine and Interior: the piece path is ready to consume (2026-09-17)
+
+`assembleFromPieces` is live beside `generate`, which is unchanged. Engine's
+current per-parcel consumption keeps working; nothing has to move yet.
+
+What a consumer needs to know before adopting it:
+
+- A lot edge must be a whole number of 8 m bays, at least two. Atlas lot sizes
+  (16, 24, 32, 40, 56 m) all qualify. An edge of 8N metres is two 4 m corner
+  arms and N-1 bays; a building of F floors is one ground band, F-2 middle
+  bands and one crown, so F is at least three.
+- `planAssembly` returns the placements without building geometry: a piece id,
+  a floor, a translation and a turn about +Y. Engine can draw those instanced
+  from nine meshes per family and skip the assembled GLB entirely.
+- `floor:<index>/slab`, `roof:deck`, `door:<id>/frame`, `door:<id>/leaf:<n>` and
+  `anchor:<id>` belong to the building, not to a piece. `assembleFromPieces`
+  writes them in building coordinates; a consumer that places pieces itself has
+  to write them itself, or call the assembler for them.
+- Signage is not baked. `AssemblyResult.signAnchors` gives each sign field a
+  position, a width and height on its facing plane, and an outward normal.
+- Measured keys-only at 0.56.0: a family's complete set is 66.8 KiB
+  (mirror-frame) to 145.3 KiB (mirror-shutters), 631 KiB for all six, against
+  the 3.53 MB mean per-parcel shell. A 56 x 40 m tower of 20 floors is 480
+  instances of 9 pieces: mirror-frame 698 unique triangles and 0.12 MB against
+  98,688 triangles and 6.53 MB from `generate`, corporate-sectors 880 and
+  0.14 MB against 353,348 and 21.86 MB.
+- `KitCatalog.js` grouping has nothing left to group once buildings assemble
+  from bays, as the kit design note says. Its lot frame math still applies.
+
+Open for Interior: one interior per band kind is the next step, and the bands
+are `ground`, `middle` and `crown` at 4.5 m (white-grid's ground is 5 m). The
+piece manifest publishes each band's height and shell thickness.
