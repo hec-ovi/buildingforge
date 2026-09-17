@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.54.0.
+Version: 0.55.0.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint.
 
@@ -17,7 +17,9 @@ Generates one deterministic building exterior GLB and the matching floor/opening
 
 Metres, +Y up, XZ ground, right-handed; CCW rings without a repeated endpoint. Every exported primitive is welded and indexed: attributes snap to a 1e-5 grid and identical position/normal/UV triples collapse to one vertex, with 16-bit indices below 65,536 vertices and 32-bit above. Positions and UVs are floats; normals are normalized signed shorts, so the GLB declares `KHR_mesh_quantization` in `extensionsRequired` and a reader must register it.
 
-Every shell is measured against a published geometry budget and refused above it. An ordinary shell gets 50,000 triangles and 3 MiB; a tower of nine floors or more gets three times both. The measurement is the runtime packing, one welded primitive per material slot plus the nodes a consumer addresses, so it does not change with `options.glb`. `blueprint.geometry` publishes the face count and the budget it was checked against. Over budget returns `E_GEOMETRY_BUDGET`; under `architecture: auto` that rejection moves to the next recipe and finally to ordinary geometry. Output shares the request footprint frame, with the ground walking surface at Y=0. Same request, catalog and texture options produce identical blueprint JSON and GLB bytes. Only CLI/preview seed resolution uses randomness.
+Every shell is measured against a published [geometry budget](schemas/geometry-budget.json): 50,000 triangles and 3 MiB for an ordinary shell, three times both for a tower of nine floors or more, never below the shell's own facade area at 13 triangles per square metre, and multiplied by the selected architecture's own factor. An authored composition carries piers, cassettes, wings and slots a plain facade does not, so it is allowed to cost more. The measurement is the runtime packing, one welded primitive per material slot plus the nodes a consumer addresses, so it does not change with `options.glb`.
+
+Over budget, a shell sheds repeat detail until it fits, in the published order: door and bracket fittings, window weathering, covering housings, scenic ceiling fixtures, coverings. Form is never shed. Massing, bays, piers, cassettes, wings, slots, ribbons, chamfers, curved corners, setbacks, tapers, openings, frames, mullions and glazing are what the building is, and a parcel never loses its selected architecture to a budget. `blueprint.geometry` publishes the face count, the budget it was checked against and `simplified`, the steps taken. `E_GEOMETRY_BUDGET` is returned only when the simplest detail still does not fit. Output shares the request footprint frame, with the ground walking surface at Y=0. Same request, catalog and texture options produce identical blueprint JSON and GLB bytes. Only CLI/preview seed resolution uses randomness.
 
 The parcel limits massing. Auto uses construction-grid rectangles. Explicit rounded-box, octagon, cylinder, pyramid and setback forms fit where possible, with box fallback for core/parcel constraints. Aperture-bound parcels keep their exact faces; traversable cuts pin floor elevations to their absolute bases. Wire anchors are attachments. Building type and supplied floor programs retain their incoming vocabulary.
 
@@ -69,7 +71,7 @@ Family decoration owns screen and mechanical details, while the host retains req
 | `E_CORE_PLATE` | Published circulation feasibility rejects the plate or openings |
 | `E_DOOR_FIT` | Required entrance or complete pocket assembly cannot fit |
 | `E_MATERIAL_UNRESOLVED` | Required material, variant or embedded map is unavailable |
-| `E_GEOMETRY_BUDGET` | Exported shell exceeds the published triangle or byte allowance |
+| `E_GEOMETRY_BUDGET` | Shell exceeds its published allowance with every repeat detail already shed |
 | `E_INVARIANT` | Generated output or a dependency fails a consistency check |
 
 Runtime guards protect openings and geometry; tests exercise the public surface. Optional detail can be omitted when it cannot fit.

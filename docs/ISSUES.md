@@ -59,17 +59,17 @@ Transform must register `KHRMeshQuantization`, and a strict reader that does not
 support the extension will refuse the file. Positions and UVs stay float, so
 world coordinates read exactly as before.
 
-### Orchestrator: two shells that the published budget refuses (2026-09-17)
+### Orchestrator: facade density by family, for the record (2026-09-17)
 
-Measured keys-only on `engine/out/games/corporate-streets-500`, both need a
-facade-density decision rather than a fix here:
+Measured keys-only on `engine/out/games/corporate-streets-500` at 0.55.0, every
+parcel at full detail:
 
-- p18, hotel, 8 floors, 208 windows and 120 two-leaf balcony doors: 73,166
-  triangles against the 50,000 ordinary allowance. Its cost is balcony-door
-  construction (leaf ring, casing, reveal and hardware, 55,000 of 132,519
-  vertices). Generation refuses it, so the city loses that parcel.
-- `corporate-sectors` runs at about 17 triangles per square metre of facade where
-  every other facade runs at 12 to 13, so it only fits the tower allowance up to
-  roughly a 44 x 35 m plate at its minimum twelve floors. Larger parcels fall
-  back to another family. Its 1 x 1.5 m panel relief moved into the map in
-  0.53.0; the wings, rims, piers, cassettes and mechanical bays keep real relief.
+| family | triangles per square metre of facade |
+| --- | --- |
+| ordinary, paired, balcony-grid | 5 to 9 |
+| faceted-bays | 13 |
+| corporate-sectors | 20 to 22 |
+
+`schemas/geometry-budget.json` gives an authored family its own allowance from
+these figures, so no parcel loses its architecture. The largest shell in the city
+is a corporate-sectors tower at 308,760 triangles and 17.28 MB.

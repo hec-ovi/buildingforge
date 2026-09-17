@@ -60,7 +60,7 @@ it('exports tapering wings around a straight enclosed planted spine', async () =
 
 it('merges enclosed planted facades without changing their geometry', async () => {
   const wide: BuildingRequest = { ...request, parcel: { ...request.parcel,
-    footprint: [[0, 0], [80, 0], [80, 42], [0, 42]], accessPoint: [40, 0] } };
+    footprint: [[0, 0], [182, 0], [182, 42], [0, 42]], accessPoint: [91, 0] } };
   const named = await glbIO().readBinary((await generate(wide, keys)).glb);
   const merged = await glbIO().readBinary((await generate({ ...wide, options: { ...wide.options, glb: 'merged' } }, keys)).glb);
   const largest = Math.max(...named.getRoot().listMeshes().flatMap(mesh => mesh.listPrimitives()

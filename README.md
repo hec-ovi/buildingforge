@@ -1,6 +1,6 @@
 # Exterior
 
-Version 0.54.0. Generates a building exterior GLB and its floor/opening blueprint from a seeded request. Floors default to 4 m clear height with the slab/ceiling zone additional; ordinary facades use broad glazing. Each floor includes a contained rectangular room envelope. Optional section compositions build rounded or chamfered corners and grouped floors with selected balconies. The shell carries windows, doors, curtains, balconies, facade services and materials, with replaceable floor slabs.
+Version 0.55.0. Generates a building exterior GLB and its floor/opening blueprint from a seeded request. Floors default to 4 m clear height with the slab/ceiling zone additional; ordinary facades use broad glazing. Each floor includes a contained rectangular room envelope. Optional section compositions build rounded or chamfered corners and grouped floors with selected balconies. The shell carries windows, doors, curtains, balconies, facade services and materials, with replaceable floor slabs.
 
 See [SKILL.md](SKILL.md) for a copyable call, [CONTRACT.md](CONTRACT.md) for the interface, and [docs/INDEX.md](docs/INDEX.md) for the box map.
 

@@ -28,7 +28,7 @@
 - `src/mesh/frameProfile.ts`, `frameRing.ts`: one welded extruded ring per opening, built once per size.
 - `src/glb`, `src/materials`: GLB output and material resolution.
 - `src/glb/weld.ts`: attribute snapping, vertex welding, 16-bit indices and quantized normals.
-- `src/rules/geometryBudget.ts`: the published per-shell triangle and byte allowance.
+- `src/rules/geometryBudget.ts`, `simplification.ts`: the [per-shell allowance](../schemas/geometry-budget.json) and the order a shell sheds repeat detail to fit it.
 - `src/layout/validateLayout.ts`: final geometry and opening guards.
 - [Preview layout](../src/ui/views/preview.json): control definitions rendered by the shared Form component.
 - `vite.config.ts`: preview serving and source watching, excluding generated output trees.

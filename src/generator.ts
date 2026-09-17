@@ -131,7 +131,11 @@ async function generateBuilding(raw: unknown, options: GenerateOptions, canonica
   // Build at full detail, measure, and shed one step of detail at a time until
   // the shell fits its budget. Openings, frames and glazing are rebuilt with the
   // shell every pass, so the blueprint always describes what was exported.
-  const budget = geometryBudget(req);
+  const perimeter = massing.groundOutline.reduce((sum, point, index, ring) => {
+    const next = ring[(index + 1) % ring.length]!;
+    return sum + Math.hypot(next[0] - point[0], next[1] - point[1]);
+  }, 0);
+  const budget = geometryBudget(req, perimeter * stack.top);
   let mb = buildMesh(layout, openingMesh);
   let step = 0;
   const shed = () => { layout.detail = simplifiedTo(++step); mb = buildMesh(layout); };
@@ -166,12 +170,11 @@ async function generateAutomatic(request: BuildingRequest, options: GenerateOpti
   for (const selection of choices.filter(choice => choice.selected !== 'ordinary')) {
     try {
       const candidate: BuildingRequest = { ...request, options: { ...request.options, architecture: selection.selected as Exclude<typeof selection.selected, 'ordinary'>, balconies: 'off', facadeServices: 'off' } };
-      // A recipe that only fits after shedding detail gives way to one that fits whole.
-      const result = await generateBuilding(candidate, options, true, false);
+      const result = await generateBuilding(candidate, options, true);
       result.blueprint.architectureSelection = selection;
       return result;
     } catch (error) {
-      if (!(error instanceof ExteriorError) || !['E_SCHEMA', 'E_CORE_PLATE', 'E_DOOR_FIT', 'E_SIGNAGE_TEXT_TOO_LONG', 'E_ENVELOPE_TOO_LOW', 'E_APERTURE_UNREACHABLE', 'E_APERTURE_INVALID', 'E_GEOMETRY_BUDGET'].includes(error.code)) throw error;
+      if (!(error instanceof ExteriorError) || !['E_SCHEMA', 'E_CORE_PLATE', 'E_DOOR_FIT', 'E_SIGNAGE_TEXT_TOO_LONG', 'E_ENVELOPE_TOO_LOW', 'E_APERTURE_UNREACHABLE', 'E_APERTURE_INVALID'].includes(error.code)) throw error;
       candidateError = { code: error.code, message: error.message };
     }
   }

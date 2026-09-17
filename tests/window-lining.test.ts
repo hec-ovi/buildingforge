@@ -6,7 +6,7 @@ import { glbIO, keys } from './support.ts';
 
 function request(architecture: 'garden-taper' | 'corporate-sectors'): BuildingRequest {
   return { seed: 'garden-reference', buildingId: 'lining', theme: 'cyberpunk',
-    parcel: { footprint: [[0, 0], [44, 0], [44, 35], [0, 35]], accessPoint: [22, 0], maxHeight: architecture === 'garden-taper' ? 32 : 60 },
+    parcel: { footprint: [[0, 0], [52, 0], [52, 42], [0, 42]], accessPoint: [26, 0], maxHeight: architecture === 'garden-taper' ? 32 : 60 },
     building: { type: 'residential', tier: 'rich', floors: architecture === 'garden-taper' ? 4 : 12 },
     options: { architecture, glb: 'named', balconies: 'off', facadeServices: 'off', roofArtifacts: 'off', adScreens: 'off', fireEscape: 'off', signage: null } };
 }
@@ -106,7 +106,7 @@ it('cuts both corporate window rows through the full wall body', async () => {
 
 it('reserves housing depth without counting the taper of a broad, short tower', async () => {
   const input = request('garden-taper');
-  input.parcel = { ...input.parcel, footprint: [[0, 0], [80, 0], [80, 35], [0, 35]], accessPoint: [40, 0] };
+  input.parcel = { ...input.parcel, footprint: [[0, 0], [182, 0], [182, 42], [0, 42]], accessPoint: [91, 0] };
   const { blueprint } = await generate(input, keys);
   const glass = blueprint.floors.flatMap(f => f.openings.flatMap(o => o.glazing ? [o.glazing.glassDepth] : []));
   const deepest = Math.max(...glass);

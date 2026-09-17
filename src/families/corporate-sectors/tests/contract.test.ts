@@ -5,7 +5,7 @@ import { generate, type BuildingRequest } from '../../../index.ts';
 import type { Document } from '@gltf-transform/core';
 import { glbIO } from '../../../../tests/support.ts';
 
-const input: FamilyInput = { rectangle: [[0, 0], [44, 0], [44, 35], [0, 35]], floorHeights: Array(12).fill(4.5), seed: 'corporate-contract' };
+const input: FamilyInput = { rectangle: [[0, 0], [51, 0], [51, 39], [0, 39]], floorHeights: Array(12).fill(4.5), seed: 'corporate-contract' };
 type Part = MeshBuilder['parts'][number];
 
 function bounds(parts: Part[]) {
@@ -26,9 +26,9 @@ function expectInsideParcel(parts: Part[]) {
   const geometry = bounds(parts);
   expect(geometry.invalid).toEqual([]);
   expect(geometry.min[0]).toBeGreaterThanOrEqual(-1e-8);
-  expect(geometry.max[0]).toBeLessThanOrEqual(44 + 1e-8);
+  expect(geometry.max[0]).toBeLessThanOrEqual(51 + 1e-8);
   expect(geometry.min[2]).toBeGreaterThanOrEqual(-1e-8);
-  expect(geometry.max[2]).toBeLessThanOrEqual(35 + 1e-8);
+  expect(geometry.max[2]).toBeLessThanOrEqual(39 + 1e-8);
 }
 
 function panelJoints(part: Part, edge: number) {
@@ -82,7 +82,7 @@ function slabCovers(document: Document, floor: number, x: number, z: number): bo
 function exportedSource(apertures: BuildingRequest['apertures'] = []) {
   return generate({
     seed: input.seed, buildingId: 'corporate-window-plane', theme: 'cyberpunk',
-    parcel: { footprint: input.rectangle, accessPoint: [22, -1], maxHeight: 60 },
+    parcel: { footprint: input.rectangle, accessPoint: [25, -1], maxHeight: 60 },
     building: { type: 'corpo', tier: 'rich', floors: 12 }, apertures,
     options: { architecture: 'corporate-sectors', glb: 'named', balconies: 'off', roofArtifacts: 'off', facadeServices: 'off', fireEscape: 'off', adScreens: 'off' },
   }, { textures: { mode: 'keys', source: null } });
@@ -129,17 +129,17 @@ describe('corporate sectors public family', () => {
 
   it('retains walking approaches through an inset shell to fixed bridges and the entrance', async () => {
     const { blueprint, glb } = await exportedSource([{ id: 'bridge', buildingId: 'corporate-window-plane', floor: 2, face: 1, kind: 'bridge', u: 18, base: 9, width: 3, height: 3, shape: 'rect',
-      cut: { polygon: [[44, 9, 16.5], [44, 9, 19.5], [44, 12, 19.5], [44, 12, 16.5]], axisDir: [1, 0, 0] }, linkId: 'link' }]);
+      cut: { polygon: [[51, 9, 16.5], [51, 9, 19.5], [51, 12, 19.5], [51, 12, 16.5]], axisDir: [1, 0, 0] }, linkId: 'link' }]);
     const document = await glbIO().readBinary(glb);
-    expect(slabCovers(document, 2, 43.5, 18)).toBe(true);
-    expect(slabCovers(document, 2, 43.5, 24)).toBe(false);
+    expect(slabCovers(document, 2, 50.5, 18)).toBe(true);
+    expect(slabCovers(document, 2, 50.5, 24)).toBe(false);
     const entrance = blueprint.floors[0]!.openings.find(o => o.kind === 'door')!;
     expect(slabCovers(document, 0, entrance.offset + entrance.width / 2, 0.5)).toBe(true);
   });
   it('fits fixed face limits around complete two-metre window repeats and distinct upper blocks', () => {
     const plan = family.plan(input);
     expect(plan).toEqual(family.plan(input));
-    expect(plan.extent).toEqual({ width: 36, depth: 28 });
+    expect(plan.extent).toEqual({ width: 44, depth: 32 });
     expect(plan.groups.map(g => [g.fromFloor, g.toFloor])).toEqual([[0, 3], [4, 7], [8, 11]]);
     for (const floor of plan.floors) for (let edge = 0; edge < 4; edge++) {
       let end = 0;
@@ -170,7 +170,7 @@ describe('corporate sectors public family', () => {
     expect(box.windows![0]!.panes?.cols).toBe(2);
     expect(box.windows![0]!.offset + box.windows![0]!.width).toBeLessThan(12);
     expect(facade.filter(s => s.id.includes(':recessed-slit:')).every(s => s.width === 2)).toBe(true);
-    const wider = family.plan({ ...input, rectangle: [[0, 0], [56, 0], [56, 35], [0, 35]] });
+    const wider = family.plan({ ...input, rectangle: [[0, 0], [63, 0], [63, 39], [0, 39]] });
     const expanded = wider.floors[4]!.sections.filter(s => s.edge === 0);
     expect(expanded.filter(s => s.id.includes(':large-panel:')).map(s => s.width)).toEqual([4]);
     expect(expanded.filter(s => s.id.includes(':cassette:')).map(s => s.width)).toEqual([18]);

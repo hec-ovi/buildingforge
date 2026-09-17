@@ -31,9 +31,13 @@
     "version": { "type": "string", "description": "Generator package version; absent on older stored blueprints." },
     "geometry": {
       "type": "object", "additionalProperties": false, "required": ["triangles", "budget"],
-      "description": "Exported shell face count and the budget it was checked against. Same in both GLB modes. Absent on older stored blueprints.",
+      "description": "Exported shell face count, the budget it was checked against, and any repeat detail it shed to fit. Same in both GLB modes. Absent on older stored blueprints.",
       "properties": {
         "triangles": { "type": "integer", "minimum": 0 },
+        "simplified": {
+          "type": "array", "items": { "enum": ["fittings", "weathering", "housings", "fixtures", "coverings"] },
+          "description": "Repeat detail dropped, in the order it was dropped. Absent when the shell fits at full detail."
+        },
         "budget": {
           "type": "object", "additionalProperties": false, "required": ["triangles", "bytes"],
           "properties": { "triangles": { "type": "integer" }, "bytes": { "type": "integer" } }

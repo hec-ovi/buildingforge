@@ -1,8 +1,10 @@
 // The published size a shell is allowed to occupy, and the measurement taken
-// against it. A shell over budget is not exported: the caller gets an error
-// naming the measurement, and `architecture: auto` moves to the next recipe.
+// against it. Over budget, a shell sheds repeat detail until it fits; it never
+// changes its architecture and it is never refused for being detailed.
 
+import POLICY from '../../schemas/geometry-budget.json' with { type: 'json' };
 import type { BuildingRequest } from '../types.ts';
+import type { DetailStep } from './simplification.ts';
 
 export interface GeometryBudget {
   triangles: number;
@@ -13,24 +15,42 @@ export interface GeometryBudget {
 export interface GeometryReport {
   triangles: number;
   budget: GeometryBudget;
+  /** Repeat detail shed to fit, in the order it was shed; absent at full detail. */
+  simplified?: DetailStep[];
 }
 
-/** What the export is checked on, including the packing the chosen GLB mode produced. */
+/** What the export is checked on, including the packing the runtime GLB produces. */
 export interface GeometryMeasurement extends GeometryReport {
   vertices: number;
   bytes: number;
 }
 
-const ORDINARY: GeometryBudget = { triangles: 50_000, bytes: 3 * 1024 * 1024 };
+const ARCHITECTURES = POLICY.architectures as Record<string, number | string>;
 
 /** Nine floors at the 4.5 m default pitch clears 40 m: a tower, on the tall allowance. */
-export const TALL_TOWER_FLOORS = 9;
-const TALL_MULTIPLE = 3;
+export const TALL_TOWER_FLOORS = POLICY.tower.fromFloors;
 
-export function geometryBudget(request: BuildingRequest): GeometryBudget {
-  return request.building.floors >= TALL_TOWER_FLOORS
-    ? { triangles: ORDINARY.triangles * TALL_MULTIPLE, bytes: ORDINARY.bytes * TALL_MULTIPLE }
-    : ORDINARY;
+/**
+ * The allowance for one shell: the ordinary figure, raised threefold for a
+ * tower, never below the shell's own facade area at the published rate, and
+ * multiplied by the architecture's own factor. An authored composition carries
+ * piers, cassettes, wings and slots a plain facade does not, so it is allowed to
+ * cost more; [the policy](../../schemas/geometry-budget.json) states each one.
+ *
+ * `facadeArea` is the ground outline perimeter times the total height, in square
+ * metres; pass 0 where the massing is not known yet.
+ */
+export function geometryBudget(request: BuildingRequest, facadeArea = 0): GeometryBudget {
+  const size = request.building.floors >= POLICY.tower.fromFloors ? POLICY.tower.multiple : 1;
+  const architecture = request.options?.architecture;
+  const authored = architecture && architecture !== 'auto' ? ARCHITECTURES[architecture] : undefined;
+  const triangles = Math.max(POLICY.ordinary.triangles * size,
+    Math.round(facadeArea * POLICY.facadeRate.trianglesPerSquareMetre));
+  const scale = (typeof authored === 'number' ? authored : 1) * triangles / POLICY.ordinary.triangles;
+  return {
+    triangles: Math.round(POLICY.ordinary.triangles * scale),
+    bytes: Math.round(POLICY.ordinary.bytes * scale),
+  };
 }
 
 export function overBudget(measured: GeometryMeasurement): boolean {

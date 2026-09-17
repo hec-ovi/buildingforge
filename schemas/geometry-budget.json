@@ -1,0 +1,28 @@
+{
+  "$comment": "Published geometry allowance per shell. Triangles and bytes are the welded runtime packing: one primitive per material slot plus the nodes a consumer addresses by name.",
+  "ordinary": { "triangles": 50000, "bytes": 3145728 },
+  "facadeRate": {
+    "$comment": "Triangles per square metre of facade (ground outline perimeter times total height). A long or tall shell is allowed its area at this rate when that is more than the ordinary allowance.",
+    "trianglesPerSquareMetre": 13
+  },
+  "tower": {
+    "$comment": "Nine floors at the 4.5 m default pitch clears 40 m.",
+    "fromFloors": 9,
+    "multiple": 3
+  },
+  "architectures": {
+    "$comment": "An authored composition may cost more than a plain facade by design. The multiple applies to the allowance the shell would otherwise get; absent means 1.",
+    "corporate-sectors": 2,
+    "faceted-bays": 1.5,
+    "balcony-grid": 1.5,
+    "white-grid": 1.5,
+    "mirror-shutters": 1.5,
+    "mirror-frame": 1.5,
+    "garden-taper": 1.5,
+    "paired-rounded": 1.5,
+    "paired-rectangular": 1.5,
+    "rounded-corner": 1.5,
+    "chamfered-corners": 1.5,
+    "terrace-blocks": 1.5
+  }
+}

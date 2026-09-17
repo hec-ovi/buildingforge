@@ -194,7 +194,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
     }
   }
 
-  if (!layout.detail.has('relief')) meshFacadeRelief(mb, layout, above, top, mat);
+  meshFacadeRelief(mb, layout, above, top, mat);
   meshRoofArtifacts(mb, layout, top, mat);
   meshFacadeArtifacts(mb, layout, mat);
   meshAcUnits(mb, layout, mat);
@@ -510,7 +510,7 @@ function windowUnit(
   if (headBand > 0) meshSpandrel(sink, fr, { u0, u1, y0: headY, y1: yt }, proud, panelBack, mat('column'));
   meshFrameRing(sink, fr, outer, inner, proud, depth, frameMat);
 
-  const { cols, rows } = detail.has('mullions') ? { cols: 1, rows: 1 } : o.panes ?? paneGrid(u1 - u0, gt - gb, g);
+  const { cols, rows } = o.panes ?? paneGrid(u1 - u0, gt - gb, g);
   const mw = Math.min(g.mullionWidth, (g1 - g0) / (cols * 2), (gt - gb) / (rows * 2));
   const mProud = g.frameProud * 0.7 + z;
   const mDepth = g.frameProud * 0.7 + g.glassInset;

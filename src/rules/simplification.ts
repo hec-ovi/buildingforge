@@ -1,25 +1,22 @@
 // The order a shell sheds detail when it does not fit its geometry budget.
 //
-// Every step removes a feature that repeats per module, cheapest to the eye
-// first, so a dense building keeps its massing, openings, frames and glazing and
-// loses fittings before it loses architecture. The blueprint records which steps
-// were taken.
+// Every step removes repeat detail, cheapest to the eye first. Form is never on
+// this list: massing, bays, piers, cassettes, wings, slots, ribbons, chamfers,
+// curved corners, setbacks, tapers, openings, frames, mullions and glazing are
+// what the building is, and they stay whatever the shell costs. The blueprint
+// records which steps were taken.
 
 export const SIMPLIFICATION = [
-  /** Door handles, AC brackets and grille housings, small facade artifacts. */
+  /** Door handles and AC bracket struts. */
   'fittings',
   /** Sill and jamb grime strips. */
   'weathering',
   /** The closed return around a window covering and its rails. */
   'housings',
-  /** The mullion grid inside a glazed field: the pane becomes one light. */
-  'mullions',
+  /** Ceiling fixtures inside scenic rooms; the room keeps its surfaces and its emitters. */
+  'fixtures',
   /** Blinds, curtains and exterior louvre screens. */
   'coverings',
-  /** Ceiling fixtures inside scenic rooms; the room keeps its surfaces. */
-  'fixtures',
-  /** Facade relief bands, ribs and panel divisions. */
-  'relief',
 ] as const;
 
 export type DetailStep = typeof SIMPLIFICATION[number];

@@ -1,6 +1,6 @@
 # CONTRACT: exterior preview
 
-Version: 0.54.0.
+Version: 0.55.0.
 
 Displays one generated exterior and exposes request and inspection controls.
 

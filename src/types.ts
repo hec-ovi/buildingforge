@@ -320,7 +320,7 @@ export interface ArchitectureSelection {
 }
 
 export interface Blueprint {
-  /** welded shell geometry actually exported, with the budget it was checked against */
+  /** exported shell face count, its budget, and any repeat detail shed to fit */
   geometry?: GeometryReport;
   modelInstances?: ModelInstance[];
   architectureSelection?: ArchitectureSelection;
