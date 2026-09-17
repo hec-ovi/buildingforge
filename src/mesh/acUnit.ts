@@ -48,6 +48,7 @@ export function meshAcUnits(
       at(fr, u0, y1, grilleFront + 0.001), [fr.n[0], 0, fr.n[1]], [[0, 1], [1, 1], [1, 0], [0, 0]]);
     sink.box(metal, at(fr, centerU, base - bracket.shelf / 2, back + depth / 2),
       across(width / 2), [0, bracket.shelf / 2, 0], outward(depth / 2), 'along');
+    if (layout.detail.has('fittings')) continue;
     for (const side of [-1, 1]) {
       const u = centerU + side * (width / 2 - bracket.strut);
       sink.slantedBox(metal,

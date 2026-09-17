@@ -73,6 +73,10 @@ function buildRing(size: RingSize): RingProfile {
     }
     for (let k = 0; k < 4; k++) {
       const next = (k + 1) % 4;
+      const [a, b] = [outer[k]!, outer[next]!];
+      const [c, d] = [inner[next]!, inner[k]!];
+      // A member with no width, where the hole meets the outer edge, is not drawn.
+      if (area(a, b, c, d) < 1e-9) continue;
       quad(indices, base + k, base + next, base + 4 + next, base + 4 + k, flip);
     }
   }
@@ -96,6 +100,17 @@ function buildRing(size: RingSize): RingProfile {
     }
   }
   return { vertices, indices };
+}
+
+/** Absolute area of a planar quad given in (u, y). */
+function area(a: Corner, b: Corner, c: Corner, d: Corner): number {
+  const ring = [a, b, c, d];
+  let sum = 0;
+  for (let i = 0; i < 4; i++) {
+    const p = ring[i]!, q = ring[(i + 1) % 4]!;
+    sum += p[0] * q[1] - q[0] * p[1];
+  }
+  return Math.abs(sum) / 2;
 }
 
 function quad(indices: number[], a: number, b: number, c: number, d: number, flip: boolean): void {

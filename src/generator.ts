@@ -36,6 +36,8 @@ import type { BuildingRequest, GenerateOptions, GenerateResult } from './types.t
 
 import { checkInvariants } from './layout/validateLayout.ts';
 import { geometryBudget, overBudget } from './rules/geometryBudget.ts';
+import { FULL_DETAIL, SIMPLIFICATION, simplifiedTo } from './rules/simplification.ts';
+import { countTriangles, measureRuntime } from './glb/measure.ts';
 
 export async function generate(raw: unknown, options: GenerateOptions = {}): Promise<GenerateResult> {
   try {
@@ -49,7 +51,7 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   }
 }
 
-async function generateBuilding(raw: unknown, options: GenerateOptions, canonicalNative = false): Promise<GenerateResult> {
+async function generateBuilding(raw: unknown, options: GenerateOptions, canonicalNative = false, simplify = true): Promise<GenerateResult> {
   let req = validateRequest(raw);
   const family = FAMILY[req.building.type];
   const tier = req.building.tier;
@@ -97,7 +99,7 @@ async function generateBuilding(raw: unknown, options: GenerateOptions, canonica
   if (corePlate.error) throw corePlate.error;
   const coreFrame = constructionCoreFrame(corePlate.axis, massing.rectangular);
   const { floors, mesh: measuredOpenings, stair: coreStair } = planCoreOpenings({
-    request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved,
+    request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved, detail: FULL_DETAIL,
   }, coreFrame);
   facades.floors = floors;
   const relief = buildRelief(style, facades.floors, facades.carved);
@@ -112,37 +114,49 @@ async function generateBuilding(raw: unknown, options: GenerateOptions, canonica
     lights: features.lights, fireEscape: features.fireEscape,
   });
   const openingMesh = facadeServices.damagedWindows.length > 0
-    ? buildOpeningMesh({ request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved })
+    ? buildOpeningMesh({ request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved, detail: FULL_DETAIL })
     : measuredOpenings;
   const roof = buildRoof(req, family, style, facades.floors, coreStair);
 
   const layout: Layout = {
     ...(coreFrame ? { coreFrame } : {}),
     ...(massing.assembly ? { assembly: massing.assembly } : {}),
-    request: req, family, tier, theme: req.theme, style, relief,
+    request: req, family, tier, theme: req.theme, style, relief, detail: FULL_DETAIL,
     floors: facades.floors, balconyBands, carved: facades.carved, anchors,
     facadeServices, roof,
     ...features,
   };
   checkInvariants(layout, obstacles);
 
-  const mb = buildMesh(layout, openingMesh);
+  // Build at full detail, measure, and shed one step of detail at a time until
+  // the shell fits its budget. Openings, frames and glazing are rebuilt with the
+  // shell every pass, so the blueprint always describes what was exported.
+  const budget = geometryBudget(req);
+  let mb = buildMesh(layout, openingMesh);
+  let step = 0;
+  const shed = () => { layout.detail = simplifiedTo(++step); mb = buildMesh(layout); };
+  // Faces are free to count, so the descent runs on them first and only welds
+  // once the face count fits, then keeps going if the packed size still does not.
+  while (simplify && step < SIMPLIFICATION.length && countTriangles(mb) > budget.triangles) shed();
+  let measured = { ...measureRuntime(mb), budget };
+  while (simplify && step < SIMPLIFICATION.length && overBudget(measured)) {
+    shed();
+    measured = { ...measureRuntime(mb), budget };
+  }
   const identity = canonicalNative ? new CanonicalNativeMaterials(req) : undefined;
   identity?.apply(mb);
   const blueprint = buildBlueprint(layout, mb);
   identity?.blueprint(blueprint);
   fitBuildingCore(blueprint);
-  const { glb, textures, geometry } = await writeGlb(layout, mb, options.textures ?? {});
-  const budget = geometryBudget(req);
   // The blueprint publishes the face count, which both GLB modes share; the
   // packed size belongs to the export the caller asked for.
-  blueprint.geometry = { triangles: geometry.triangles, budget };
-  const measured = { ...geometry, budget };
+  blueprint.geometry = { triangles: measured.triangles, budget, ...(layout.detail.size ? { simplified: [...layout.detail] } : {}) };
   if (overBudget(measured)) {
     throw new ExteriorError('E_GEOMETRY_BUDGET',
-      `shell geometry is over budget: ${measured.triangles} triangles and ${measured.bytes} bytes against ${budget.triangles} and ${budget.bytes}`,
+      `shell geometry is over budget at the simplest detail: ${measured.triangles} triangles and ${measured.bytes} bytes against ${budget.triangles} and ${budget.bytes}`,
       measured);
   }
+  const { glb, textures } = await writeGlb(layout, mb, options.textures ?? {});
   return { glb, blueprint, textures };
 }
 
@@ -152,7 +166,8 @@ async function generateAutomatic(request: BuildingRequest, options: GenerateOpti
   for (const selection of choices.filter(choice => choice.selected !== 'ordinary')) {
     try {
       const candidate: BuildingRequest = { ...request, options: { ...request.options, architecture: selection.selected as Exclude<typeof selection.selected, 'ordinary'>, balconies: 'off', facadeServices: 'off' } };
-      const result = await generateBuilding(candidate, options, true);
+      // A recipe that only fits after shedding detail gives way to one that fits whole.
+      const result = await generateBuilding(candidate, options, true, false);
       result.blueprint.architectureSelection = selection;
       return result;
     } catch (error) {

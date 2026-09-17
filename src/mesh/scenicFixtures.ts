@@ -13,13 +13,13 @@ export interface ScenicEmitter { position: V3; color: string; lumens: number; ra
  * seen from the street through its glazing, so it is the lit face plus the
  * housing collar around it, one downward quad each.
  */
-export function scenicFixtures(sink: PartSink, frame: RoomFrame, width: number, top: number, front: number, back: number,
+export function scenicFixtures(sink: PartSink | undefined, frame: RoomFrame, width: number, top: number, front: number, back: number,
   layout: 'strips' | 'spots', light: string, housing: string, level: number, warm: boolean): ScenicEmitter[] {
   const emitters: ScenicEmitter[] = [];
   const down: V3 = [0, -1, 0];
   const face = (material: string, u: number, z: number, w: number, d: number, y: number) => {
     const uv: [number, number][] = [[0, 0], [w, 0], [w, d], [0, d]];
-    sink.quadFacing(material, frame.point(u - w / 2, y, z - d / 2), frame.point(u + w / 2, y, z - d / 2),
+    sink?.quadFacing(material, frame.point(u - w / 2, y, z - d / 2), frame.point(u + w / 2, y, z - d / 2),
       frame.point(u + w / 2, y, z + d / 2), frame.point(u - w / 2, y, z + d / 2), down, uv);
   };
   const fixture = (u: number, z: number, w: number, d: number) => {

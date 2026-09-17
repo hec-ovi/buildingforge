@@ -6,6 +6,8 @@ export const SCENIC_DEPTH = 1;
 export interface ScenicRoomInput {
   width: number; bottom: number; top: number; front: number; depth: number;
   lights: 'strips' | 'spots'; state: 'lit' | 'dim' | 'dark'; warm: boolean;
+  /** A simplified shell publishes the emitters without drawing the fixtures. */
+  fixtures?: boolean;
 }
 
 /** A rectangular shallow box with one rear image and ceiling fixtures. */
@@ -26,7 +28,7 @@ export function scenicRoom(sink: PartSink, frame: RoomFrame, room: ScenicRoomInp
     [(1 + cropU) / 2, (1 - cropV) / 2], [(1 - cropU) / 2, (1 - cropV) / 2]];
   sink.quadFacing(materialSlot(`cyberpunk/paired-room-${state}/mid`, 'lounge'),
     point(0, bottom, back), point(width, bottom, back), point(width, top, back), point(0, top, back), normal, imageUv);
-  return scenicFixtures(sink, frame, width, top, front, back, room.lights,
+  return scenicFixtures(room.fixtures === false ? undefined : sink, frame, width, top, front, back, room.lights,
     key(state === 'dark' ? 'light-off' : room.warm ? 'light-warm' : 'light-cool'), 'cyberpunk/paired-frame-metal/mid#surface',
     state === 'dark' ? 0 : state === 'dim' ? 0.15 : 1, room.warm);
 }

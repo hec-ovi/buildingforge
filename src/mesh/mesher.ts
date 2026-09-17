@@ -37,6 +37,7 @@ import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
 import { BALCONY, DOORS, FACADE, FIRE_ESCAPE, ROOF_ACCESS, SIGNAGE } from '../rules/tables.ts';
 import { glyphKind, glyphUv, isBlank } from '../rules/glyphs.ts';
 import { paneGrid } from '../layout/glazing.ts';
+import { FULL_DETAIL, type DetailSet } from '../rules/simplification.ts';
 import { fixedPanelAxis } from '../layout/module.ts';
 import type { Layout, FloorLayout, Style } from '../layout/model.ts';
 import type { BalconyBand, Blueprint, DoorAssembly, Opening } from '../types.ts';
@@ -66,7 +67,7 @@ const DEFAULT_DOOR: DoorAssembly = {
 
 interface Frame { v: P2; dir: P2; n: P2; len: number }
 
-export type OpeningLayout = Pick<Layout, 'floors' | 'style' | 'carved' | 'theme' | 'tier' | 'request'>;
+export type OpeningLayout = Pick<Layout, 'floors' | 'style' | 'carved' | 'theme' | 'tier' | 'request' | 'detail'>;
 
 /** Opening parts establish the exact glazing fields and inward shell depth. */
 export function buildOpeningMesh(layout: OpeningLayout): MeshBuilder {
@@ -193,7 +194,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
     }
   }
 
-  meshFacadeRelief(mb, layout, above, top, mat);
+  if (!layout.detail.has('relief')) meshFacadeRelief(mb, layout, above, top, mat);
   meshRoofArtifacts(mb, layout, top, mat);
   meshFacadeArtifacts(mb, layout, mat);
   meshAcUnits(mb, layout, mat);
@@ -202,7 +203,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   meshFeatures(mb, layout, mat);
   meshFireEscape(mb, layout, above, mat);
 
-  meshWindowWeathering(mb, layout);
+  if (!layout.detail.has('weathering')) meshWindowWeathering(mb, layout);
   meshPairedWindows(mb, layout);
   meshGardenFacade(mb, layout);
   const decoration = family?.decorate?.({ builder: mb, layout, material: mat });
@@ -302,8 +303,8 @@ function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: 
     }
     const style = section ? { ...layout.style, facade: { ...layout.style.facade, windowRecess: section.border.depth },
       glazing: { ...layout.style.glazing, frameWidth: Math.min(0.08, section.border.side), frameProud: 0.04, glassInset: 0.02 } } : layout.style;
-    o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, style, mat, privacy, section?.border.surfaceDepth ?? 0);
-    if (layout.request.options?.architecture === 'chamfered-corners') meshRibbonLouvres(sink, f, o, mat);
+    o.glazing = windowUnit(sink, fr, u0, u1, yb, yt, o, style, mat, privacy, section?.border.surfaceDepth ?? 0, layout.detail);
+    if (layout.request.options?.architecture === 'chamfered-corners' && !layout.detail.has('coverings')) meshRibbonLouvres(sink, f, o, mat);
     return;
   }
   if (o.kind === 'door' || o.kind === 'balconyDoor') {
@@ -321,8 +322,8 @@ function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: 
       doorCasing(frame, fr, u0, u1, yb, yt, frameMaterial, assembly.frameWidth, assembly.frameDepth);
     }
     doorFrameDetails(frame, fr, u0, u1, yb, yt, assembly, mat);
-    doorLeaves(mb, base, fr, u0, u1, yb, yt, o, assembly, mat);
-    if (o.curtain) {
+    doorLeaves(mb, base, fr, u0, u1, yb, yt, o, assembly, mat, layout.detail);
+    if (o.curtain && !layout.detail.has('coverings')) {
       const stile = Math.min(DOOR.stile, (u1 - u0) / Math.max(3, o.leaves ?? 1));
       const rail = Math.min(DOOR.rail, (yt - yb) / 4);
       const covering = o.curtain.style === 'venetian-blind' ? meshVenetianBlind : rollerShade;
@@ -341,7 +342,7 @@ function meshOpening(mb: MeshBuilder, layout: OpeningLayout, f: FloorLayout, o: 
       delete light.spandrel;
       delete light.curtain;
       delete light.state;
-      windowUnit(frame, fr, u0, u1, tb, tb + o.transom, light, layout.style, mat);
+      windowUnit(frame, fr, u0, u1, tb, tb + o.transom, light, layout.style, mat, undefined, 0, layout.detail);
     }
     return;
   }
@@ -370,15 +371,10 @@ function doorCasing(
   sink: PartSink, fr: Frame, u0: number, u1: number, yb: number, yt: number,
   material: string, w: number, d: number,
 ): void {
-  const boxOn = (a: number, b: number, y0: number, y1: number) => {
-    sink.box(material, at(fr, [(a + b) / 2, (y0 + y1) / 2], d / 2),
-      [fr.dir[0] * (b - a) / 2, 0, fr.dir[1] * (b - a) / 2],
-      [0, (y1 - y0) / 2, 0],
-      [fr.n[0] * d / 2, 0, fr.n[1] * d / 2], 'along');
-  };
-  boxOn(u0 - w, u0, yb, yt + w);
-  boxOn(u1, u1 + w, yb, yt + w);
-  boxOn(u0, u1, yt, yt + w);
+  // The same welded extruded ring the windows use. Its bottom member has no
+  // height, so the threshold stays clear and costs nothing.
+  meshFrameRing(sink, fr, { u0: u0 - w, u1: u1 + w, y0: yb, y1: yt + w },
+    { u0, u1, y0: yb, y1: yt }, d, d, material);
 }
 
 /** Fixed details that distinguish the small coordinated frame family without changing the opening. */
@@ -419,7 +415,7 @@ function doorFrameDetails(
  */
 function doorLeaves(
   mb: MeshBuilder, base: string, fr: Frame, u0: number, u1: number, yb: number, yt: number,
-  o: Opening, assembly: DoorAssembly, mat: (k: string) => string,
+  o: Opening, assembly: DoorAssembly, mat: (k: string) => string, detail: DetailSet = FULL_DETAIL,
 ): void {
   const count = Math.max(1, o.leaves ?? 1);
   const leafW = (u1 - u0) / count;
@@ -436,7 +432,7 @@ function doorLeaves(
     const b = a + leafW;
     const hinge = i < count / 2 ? a : b;
     const sink = mb.part(`${base}/leaf:${i}`, { parent: base, pivot: at(fr, [hinge, yb], back + t / 2) });
-    meshDoorHardware(sink, fr, a, b, yb, yt, hinge, assembly, mat('window-frame'));
+    if (!detail.has('fittings')) meshDoorHardware(sink, fr, a, b, yb, yt, hinge, assembly, mat('window-frame'));
     const slab = (uA: number, uB: number, y0: number, y1: number, front: number, depth: number, material: string) => {
       if (uB - uA < 1e-6 || y1 - y0 < 1e-6) return;
       sink.box(material, at(fr, [(uA + uB) / 2, (y0 + y1) / 2], front - depth / 2),
@@ -454,7 +450,12 @@ function doorLeaves(
     // so no two faces of the leaf ever land on one plane.
     meshFrameRing(sink, fr, { u0: a, u1: b, y0: yb, y1: yt },
       { u0: a + stile, u1: b - stile, y0: yb + rail, y1: yt - rail }, -assembly.recessDepth, t, frameMat);
-    slab(a + stile, b - stile, yb + rail, yt - rail, -assembly.recessDepth - (t - DOOR.paneThickness) / 2, DOOR.paneThickness, glassMat);
+    const paneFront = -assembly.recessDepth - (t - DOOR.paneThickness) / 2;
+    for (const [z, outward] of [[paneFront, 1], [paneFront - DOOR.paneThickness, -1]] as const) {
+      sink.quadFacing(glassMat, at(fr, [a + stile, yb + rail], z), at(fr, [b - stile, yb + rail], z),
+        at(fr, [b - stile, yt - rail], z), at(fr, [a + stile, yt - rail], z),
+        [fr.n[0] * outward, 0, fr.n[1] * outward], faceUv(b - a - 2 * stile, yt - yb - 2 * rail));
+    }
   }
 }
 
@@ -470,6 +471,7 @@ function windowUnit(
   o: Opening, style: Style, mat: (k: string) => string,
   privacy?: PartSink,
   surfaceDepth = 0,
+  detail: DetailSet = FULL_DETAIL,
 ): NonNullable<Opening['glazing']> {
   const g = style.glazing;
   const fw = Math.min(g.frameWidth, (u1 - u0) / 4, (yt - yb) / 4);
@@ -508,7 +510,7 @@ function windowUnit(
   if (headBand > 0) meshSpandrel(sink, fr, { u0, u1, y0: headY, y1: yt }, proud, panelBack, mat('column'));
   meshFrameRing(sink, fr, outer, inner, proud, depth, frameMat);
 
-  const { cols, rows } = o.panes ?? paneGrid(u1 - u0, gt - gb, g);
+  const { cols, rows } = detail.has('mullions') ? { cols: 1, rows: 1 } : o.panes ?? paneGrid(u1 - u0, gt - gb, g);
   const mw = Math.min(g.mullionWidth, (g1 - g0) / (cols * 2), (gt - gb) / (rows * 2));
   const mProud = g.frameProud * 0.7 + z;
   const mDepth = g.frameProud * 0.7 + g.glassInset;
@@ -533,15 +535,15 @@ function windowUnit(
       glassZ, glassZ - 0.006, o.material ?? mat('window-glass'), 'exact');
   }
 
-  if (o.curtain) {
+  if (o.curtain && !detail.has('coverings')) {
     const covering = o.curtain.style === 'venetian-blind' ? meshVenetianBlind : rollerShade;
     covering(sink, fr, g0, g1, gb, gt, glassZ - 0.035,
       o.curtain.closurePercent, frameMat, mat('curtain'));
-    meshCoveringHousing(sink, fr, field, glassZ, glassZ - 0.09, frameMat);
+    if (!detail.has('housings')) meshCoveringHousing(sink, fr, field, glassZ, glassZ - 0.09, frameMat);
   }
   const fieldBounds = { u0: g0, u1: g1, y0: gb, y1: gt };
   if (privacy) meshGroundPrivacy(privacy, fr, fieldBounds, glassZ, materialSlot(mat('curtain'), 'slat'), frameMat);
-  if (o.exteriorCovering) meshExteriorLouvre(sink, fr, fieldBounds, o.exteriorCovering);
+  if (o.exteriorCovering && !detail.has('coverings')) meshExteriorLouvre(sink, fr, fieldBounds, o.exteriorCovering);
   return {
     offset: g0, sill: o.sill + gb - yb, width: g1 - g0, height: gt - gb,
     glassDepth: -glassZ, housingBackDepth: -glassZ + (o.curtain ? 0.09 : 0),

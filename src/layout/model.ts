@@ -1,5 +1,6 @@
 import type { ModelInstance } from '../families/api.ts';
 import type { Assembly, FloorAssembly } from '../sections/index.ts';
+import type { DetailSet } from '../rules/simplification.ts';
 // Internal layout model: everything the mesher and blueprint builder consume.
 
 import type { P2, P3, Opening, Blueprint, BuildingRequest, Aperture, BalconyBand } from '../types.ts';
@@ -75,6 +76,8 @@ export interface CarvedAperture {
 
 export interface Layout {
   modelInstances?: ModelInstance[];
+  /** Detail this build has shed to fit its geometry budget. */
+  detail: DetailSet;
   assembly?: Assembly;
   coreFrame?: Blueprint['coreFrame'];
   request: BuildingRequest;

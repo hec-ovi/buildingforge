@@ -36,7 +36,7 @@ export function meshDoorHardware(
   };
   if (assembly.set === 'plain' || assembly.set === 'industrial-ribbed') {
     plate(u, y, front + 0.01, 0.045, 0.16);
-    box(u, y + 0.035, front + 0.025, 0.024, 0.024, 0.03);
+    plate(u, y + 0.035, front + 0.027, 0.024, 0.024);
     const length = Math.min(0.12, width * 0.3);
     box(u + (fromLeft ? -1 : 1) * (length - 0.024) / 2,
       y + 0.035, front + 0.045, length, 0.024, 0.02);
@@ -46,7 +46,7 @@ export function meshDoorHardware(
   for (const end of [-1, 1]) {
     const cy = y + end * (length / 2 - 0.025);
     plate(u, cy, front + 0.008, 0.045, 0.05);
-    box(u, cy, front + 0.026, 0.025, 0.025, 0.036);
+    plate(u, cy, front + 0.03, 0.025, 0.025);
   }
   box(u, y, front + 0.055, 0.028, length, 0.022);
 }

@@ -55,7 +55,8 @@ export function meshPairedWindows(mb: MeshBuilder, layout: Layout): void {
       const fitScenery = scenicSlope(floor, field.point(g.offset, 0, glass), field.normal);
       const sink = scenery!.mapped(fitScenery);
       const panes = curved ? 1 : opening.panes?.cols ?? 4;
-      for (let pane = 0; pane < panes && top - bottom > 0.5 && g.width > 0.2 && (!curved || opening.sectionSpan === 0); pane++) {
+      const covered = !layout.detail.has('coverings');
+      for (let pane = 0; covered && pane < panes && top - bottom > 0.5 && g.width > 0.2 && (!curved || opening.sectionSpan === 0); pane++) {
         const paneRng = new Rng(layout.request.seed, `paired-blind:${floor.index}:${section.id}:${pane}`);
         const closure = paneRng.chance(0.45) ? 0 : [25, 45, 75, 100][paneRng.int(0, 3)]!;
         const width = g.width / panes;
@@ -73,7 +74,7 @@ export function meshPairedWindows(mb: MeshBuilder, layout: Layout): void {
       } else {
         const origin = field.point(g.offset, 0, glass);
         const roomFrame = roomBasis(origin, field.dir, field.normal);
-        opening.scenery.lights = scenicRoom(sink, roomFrame, { width: g.width, bottom, top, front: 0, depth: SCENIC_DEPTH, lights, state, warm });
+        opening.scenery.lights = scenicRoom(sink, roomFrame, { width: g.width, bottom, top, front: 0, depth: SCENIC_DEPTH, lights, state, warm, fixtures: !layout.detail.has('fixtures') });
       }
       for (const light of opening.scenery.lights ?? []) light.position = fitScenery(light.position);
     }
