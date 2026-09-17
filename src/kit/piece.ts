@@ -1,7 +1,6 @@
 // Builds one piece of a family's set and measures what it costs.
 
 import { MeshBuilder, type V3 } from '../mesh/primitives.ts';
-import { Rng } from '../core/rng.ts';
 import { measureRuntime } from '../glb/measure.ts';
 import { ExteriorError } from '../core/errors.ts';
 import { bayCell, cornerCells, type Cell } from './cell.ts';
@@ -30,8 +29,7 @@ export function buildPieceMesh(request: PieceRequest): BuiltPiece {
   const anchors: SignAnchor[] = [];
   const doors: DoorRecord[] = [];
   const context: PieceContext = {
-    family: recipe.family, band, piece: kind, builder: mb, runs, height,
-    rng: new Rng(seed, `kit/${recipe.family}/${band}/${kind}`),
+    family: recipe.family, band, piece: kind, runs, height,
     material: (role) => {
       const slot = recipe.materials[role];
       if (!slot) throw new ExteriorError('E_MATERIAL_UNRESOLVED', `${recipe.family} has no material role "${role}"`, { role });

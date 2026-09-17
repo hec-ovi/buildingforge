@@ -100,7 +100,6 @@ export interface AssemblyRequest {
   floorHeight?: number;
   /** Wire anchors the connections layer asked for, in lot coordinates. */
   anchors?: { id: string; edge: number; u: number; y: number }[];
-  signage?: { kind: SignAnchor['kind'] }[];
 }
 
 export interface AssemblyResult {

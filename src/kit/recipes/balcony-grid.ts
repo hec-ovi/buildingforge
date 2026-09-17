@@ -120,7 +120,6 @@ export const recipe: KitRecipe = {
   materials: { ...family.materials, glass: finishes.glass, light: finishes.light },
   heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight + CAP },
   backing: RECESS,
-  jointPier: PIER,
   build(context) {
     for (const [index, cell] of context.runs.entries()) {
       if (context.piece === 'corner') cornerArm(context, cell, index);

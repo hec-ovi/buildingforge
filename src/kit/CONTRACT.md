@@ -40,7 +40,7 @@ The entrance-bay ground piece carries `door:<id>/frame` and `door:<id>/leaf:<n>`
 
 Glazing is a host role. A recipe's `materials` are the registered family's own role slots plus the shared `glass` key.
 
-Same family, band, piece and seed give byte-identical geometry and GLB bytes. No randomness is drawn today; the seeded stream is there for per-instance variation later.
+A piece's geometry depends only on its family, band, kind and band height, so the same request gives byte-identical geometry and GLB bytes for any seed. The seed is recorded on the manifest, for a caller keying a cache.
 
 ## What each family's set looks like
 

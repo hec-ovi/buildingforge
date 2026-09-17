@@ -44,8 +44,8 @@ export class Cell {
       [[u0, -y0], [u1, -y0], [u1, -y1], [u0, -y1]]);
   }
 
-  /** A horizontal plate: a soffit when `facing` is -1, a top cap when +1. */
-  cap(sink: PartSink, material: string, u0: number, u1: number, y: number, front: number, back: number, facing: number): void {
+  /** A horizontal plate closing a solid: a soffit when `facing` is -1, a top cap when +1. */
+  private cap(sink: PartSink, material: string, u0: number, u1: number, y: number, front: number, back: number, facing: number): void {
     if (u1 - u0 < 1e-9 || Math.abs(front - back) < 1e-9) return;
     sink.quadFacing(material, this.point(u0, y, front), this.point(u1, y, front),
       this.point(u1, y, back), this.point(u0, y, back), [0, facing, 0],

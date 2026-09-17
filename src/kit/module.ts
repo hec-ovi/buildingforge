@@ -14,12 +14,8 @@ export const KIT = {
   bay: 8,
   /** Each arm of a corner piece, measured along its edge. */
   cornerArm: 4,
-  /** Authoring grid. */
-  grid: 0.5,
   /** Default storey pitch when the caller gives none. */
   floorHeight: 4.5,
-  /** Structural backing behind the family skin. */
-  backing: 0.12,
   /** Total height of the floor ribbon that straddles a band boundary. */
   ribbon: 0.3,
 } as const;
