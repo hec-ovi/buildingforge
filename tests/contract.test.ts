@@ -15,7 +15,7 @@ it('returns reproducible versioned floors, materials and a replaceable GLB shell
   const changed = await generate({ ...request, seed: 'another-city' }, keys);
   expect(Buffer.from(first.glb).equals(Buffer.from(changed.glb))).toBe(false);
   const bp = first.blueprint;
-  expect(bp.version).toBe('0.51.0');
+  expect(bp.version).toBe('0.52.0');
   expect(bp).toMatchObject({ buildingId: request.buildingId, seed: request.seed });
   expect(bp.floors).toHaveLength(request.building.floors + (request.building.basements ?? 0));
   expect(bp.floors.find(f => f.index === 0)!.elevation).toBe(0);

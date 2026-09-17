@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.51.0.
+Version: 0.52.0.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint.
 
@@ -15,7 +15,7 @@ Generates one deterministic building exterior GLB and the matching floor/opening
 
 ## Geometry and ownership
 
-Metres, +Y up, XZ ground, right-handed; CCW rings without a repeated endpoint. Output shares the request footprint frame, with the ground walking surface at Y=0. Same request, catalog and texture options produce identical blueprint JSON and GLB bytes. Only CLI/preview seed resolution uses randomness.
+Metres, +Y up, XZ ground, right-handed; CCW rings without a repeated endpoint. Every exported primitive is welded and indexed: attributes snap to a 1e-5 grid and identical position/normal/UV triples collapse to one vertex, with 16-bit indices below 65,536 vertices and 32-bit above. Output shares the request footprint frame, with the ground walking surface at Y=0. Same request, catalog and texture options produce identical blueprint JSON and GLB bytes. Only CLI/preview seed resolution uses randomness.
 
 The parcel limits massing. Auto uses construction-grid rectangles. Explicit rounded-box, octagon, cylinder, pyramid and setback forms fit where possible, with box fallback for core/parcel constraints. Aperture-bound parcels keep their exact faces; traversable cuts pin floor elevations to their absolute bases. Wire anchors are attachments. Building type and supplied floor programs retain their incoming vocabulary.
 

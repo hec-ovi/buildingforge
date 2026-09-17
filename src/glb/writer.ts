@@ -13,6 +13,7 @@ import { buildResolver } from '../materials/theme.ts';
 import { selectMaterialVariant } from '../materials/variant.ts';
 import { autoSource } from '../materials/autoSource.ts';
 import { writeBinaryWithUris } from './pack.ts';
+import { weld, UINT16_LIMIT } from './weld.ts';
 import type { MeshBuilder, Prim } from '../mesh/primitives.ts';
 import type { Layout } from '../layout/model.ts';
 import { buildingMaterialVariants } from '../layout/materialPlan.ts';
@@ -51,7 +52,9 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
   const plan = createMaterials(doc, slots, layout.theme, layout.request.seed, options, source, selected, native);
   const materialOf = (slot: string): Material => plan.bySlot.get(slot)!;
 
-  const addPrim = (mesh: ReturnType<Document['createMesh']>, key: string, prim: Prim) => {
+  const addPrim = (mesh: ReturnType<Document['createMesh']>, key: string, raw: Prim) => {
+    const prim = weld(raw);
+    const count = prim.positions.length / 3;
     const position = doc.createAccessor()
       .setType('VEC3').setArray(new Float32Array(prim.positions)).setBuffer(buffer);
     const normal = doc.createAccessor()
@@ -59,7 +62,9 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
     const uv = doc.createAccessor()
       .setType('VEC2').setArray(new Float32Array(prim.uvs)).setBuffer(buffer);
     const indices = doc.createAccessor()
-      .setType('SCALAR').setArray(new Uint32Array(prim.indices)).setBuffer(buffer);
+      .setType('SCALAR')
+      .setArray(count < UINT16_LIMIT ? new Uint16Array(prim.indices) : new Uint32Array(prim.indices))
+      .setBuffer(buffer);
     mesh.addPrimitive(
       doc.createPrimitive()
         .setAttribute('POSITION', position)

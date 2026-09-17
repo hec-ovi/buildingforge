@@ -1,5 +1,7 @@
 # Changelog
 
+0.52.0: every exported primitive is welded and indexed, with attributes snapped to a 1e-5 grid and 16-bit indices below 65,536 vertices. Measured keys-only on `engine/out/games/corporate-streets-500`: p0 118,774 -> 90,688 vertices, 4.39 -> 3.20 MB; p21 71,882 -> 61,543 vertices, 2.64 -> 2.12 MB. Twelve-parcel sweep: 45.9 -> 38.4 MB at the same 590,302 triangles.
+
 0.51.0: opening frames are one welded extruded ring, mitred at the corners, with openings of the same size sharing one built profile. One ring drops from 128 to 48 vertices. Measured keys-only on `engine/out/games/corporate-streets-500`: p21 (residential, 260 windows) 114,282 -> 71,882 vertices, 53,286 -> 36,326 triangles, 4.13 -> 2.64 MB; p13 (commerce) 14,198 -> 11,398 vertices, 0.53 -> 0.43 MB; p0 (offices) 124,534 -> 118,774 vertices. Twelve-parcel sweep: 51.6 -> 45.9 MB, 656,286 -> 590,302 triangles.
 
 0.50.0: window coverings are one fitted panel between head and bottom rail, with the blade pitch in the blind map. Measured keys-only on `engine/out/games/corporate-streets-500`: p0 (offices, 13 floors) 833,874 -> 124,534 vertices, 415,656 -> 60,986 triangles, 31,775,428 -> 4,820,100 bytes; p21 (residential, 8 floors) 287,258 -> 114,282 vertices, 139,774 -> 53,286 triangles, 10.40 -> 4.13 MB. Twelve-parcel sweep: 435.0 -> 51.6 MB, 5,945,106 -> 656,286 triangles, 5.9 -> 2.0 s.
