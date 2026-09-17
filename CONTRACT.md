@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.50.0.
+Version: 0.51.0.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint.
 
@@ -29,7 +29,7 @@ Every generated floor publishes `roomEnvelope`: four CCW corners, origin, perpen
 
 Windows carry clear glazing dimensions, housing depth and exact curtain coverage (`0` open, `100` closed). Ground `windowTreatment` identifies removable `ground-privacy:<id>` nodes for shells without real interiors. Permanent exterior louvres remain separate. Pocket door `cassette` reserves the full opaque assembly; `clearance` is the usable passage and inward lining plane. Translate each pocket leaf along face U by `travelU * openFraction`; swing and roller motion retain their existing metadata.
 
-The GLB wall body reaches the opening/housing depth measured against each vertex's same-height facade plane (at least 0.12 m), with mitered inward faces, one finished surface per window return and closed glazing/frame sections. Shared strip boundaries stay internal. Scenic rooms start at their window glazing and extend 1 m inward with rectangular side walls, one rear image and ceiling fixtures. Curved panes receive their own shallow rectangular scenes. Tapered facade placement preserves room depth in world metres. Coverings retain their glass-relative position. It has one replaceable, two-sided slab per floor, fitted frames, facade attachments, materials and roof access. Named mode preserves parts; merged mode groups material slots while retaining slabs, moving door leaves, anchors and ground privacy. Consumers rely on `floor:<index>/slab`, `door:<id>/frame`, `door:<id>/leaf:<n>` and `anchor:<id>`. Interior replaces its slabs; Engine renders one version of each slab.
+The GLB wall body reaches the opening/housing depth measured against each vertex's same-height facade plane (at least 0.12 m), with mitered inward faces, one finished surface per window return and closed glazing/frame sections. Every opening frame is one welded extruded ring, mitred at its corners, and openings of the same size share a single built profile. Shared strip boundaries stay internal. Scenic rooms start at their window glazing and extend 1 m inward with rectangular side walls, one rear image and ceiling fixtures. Curved panes receive their own shallow rectangular scenes. Tapered facade placement preserves room depth in world metres. Coverings retain their glass-relative position. It has one replaceable, two-sided slab per floor, fitted frames, facade attachments, materials and roof access. Named mode preserves parts; merged mode groups material slots while retaining slabs, moving door leaves, anchors and ground privacy. Consumers rely on `floor:<index>/slab`, `door:<id>/frame`, `door:<id>/leaf:<n>` and `anchor:<id>`. Interior replaces its slabs; Engine renders one version of each slab.
 
 `blueprint.version` identifies the generator package. `version` and `roomEnvelope` are optional in stored-data types/schemas for compatibility, present on every new output. Full provenance and consumer policy proposals are in [docs/ISSUES.md](docs/ISSUES.md).
 

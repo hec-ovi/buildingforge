@@ -110,6 +110,27 @@ export class PartSink {
     return o ? [p[0] - o[0], p[1] - o[1], p[2] - o[2]] : p;
   }
 
+  /**
+   * Welded geometry: vertices carry their own normals, so a corner shared by
+   * two faces of one surface is written once instead of once per face. A mapped
+   * sink re-derives face normals, so it takes the triangle path instead.
+   */
+  indexed(material: string, positions: V3[], normals: V3[], uvs: [number, number][], indices: number[]): void {
+    if (this.mapPoint) {
+      for (let i = 0; i < indices.length; i += 3) {
+        const [a, b, c] = [indices[i] as number, indices[i + 1] as number, indices[i + 2] as number];
+        this.tri(material, positions[a]!, positions[b]!, positions[c]!, [uvs[a]!, uvs[b]!, uvs[c]!]);
+      }
+      return;
+    }
+    const g = this.prim(material);
+    const base = g.positions.length / 3;
+    for (const p of positions) g.positions.push(...this.local(p));
+    for (const n of normals) g.normals.push(n[0], n[1], n[2]);
+    for (const t of uvs) g.uvs.push(t[0], t[1]);
+    for (const i of indices) g.indices.push(base + i);
+  }
+
   /** Raw triangle, vertices CCW from the visible side. uv per vertex. */
   tri(material: string, a: V3, b: V3, c: V3, uv: [number, number][]): void {
     if (this.mapPoint) [a, b, c] = [a, b, c].map(this.mapPoint) as [V3, V3, V3];
