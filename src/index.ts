@@ -10,3 +10,9 @@ export type {
   DoorAssembly, DoorEnvelope, PocketMotion, RoomEnvelope,
 } from './types.ts';
 export type { FacadeServicesOutput } from './facade-services/index.ts';
+export {
+  KIT, BANDS, PIECES, KIT_FAMILIES, baysAcross, bandStack, buildPiece, buildPieceMesh, pieceId, pieceSet,
+} from './kit/index.ts';
+export type {
+  Band, PieceKind, PieceRequest, PieceResult, PieceManifest, SignAnchor, DoorRecord,
+} from './kit/index.ts';
