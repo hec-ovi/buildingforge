@@ -3,9 +3,10 @@
 
 export { KIT, BANDS, PIECES, baysAcross, bandStack, type Band, type PieceKind } from './module.ts';
 export { buildPiece, buildPieceMesh, pieceId } from './piece.ts';
+export { assembleFromPieces, planAssembly, type AssemblyPlan } from './assemble.ts';
 export { KIT_FAMILIES } from './recipes/index.ts';
 export type {
-  DoorRecord, Geometry, PieceManifest, PieceRequest, PieceResult, SignAnchor,
+  AssemblyRequest, AssemblyResult, DoorRecord, Geometry, PieceManifest, PieceRequest, PieceResult, Placement, SignAnchor,
 } from './types.ts';
 
 import { BANDS, PIECES } from './module.ts';

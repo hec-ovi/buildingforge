@@ -12,7 +12,9 @@ export type {
 export type { FacadeServicesOutput } from './facade-services/index.ts';
 export {
   KIT, BANDS, PIECES, KIT_FAMILIES, baysAcross, bandStack, buildPiece, buildPieceMesh, pieceId, pieceSet,
+  assembleFromPieces, planAssembly,
 } from './kit/index.ts';
 export type {
   Band, PieceKind, PieceRequest, PieceResult, PieceManifest, SignAnchor, DoorRecord,
+  AssemblyRequest, AssemblyResult, Placement,
 } from './kit/index.ts';
