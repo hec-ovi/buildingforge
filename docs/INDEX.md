@@ -5,7 +5,7 @@
 | [Exterior](../CONTRACT.md) | Builds one shell and its floor/opening blueprint | Atlas parcel, Connections apertures, Interior feasibility, Materials catalog | [Request](../schemas/building-request.schema.json), [blueprint](../schemas/blueprint.schema.json), [result](../src/types.ts) |
 | [Facade sections](../src/sections/CONTRACT.md) | Fits fixed corners, horizontal ribbon facades and floor groups | Caller maximum rectangle and floor heights | [Input](../src/sections/schemas/input.schema.json), [output](../src/sections/schemas/output.schema.json) |
 | [Building families](../src/families/CONTRACT.md) | Fits photographed facade families and their attached details | Facade sections, shared scenic rooms, Materials | [Input/output](../src/families/api.ts) |
-| [Piece kit](../src/kit/CONTRACT.md) | Publishes nine pieces per family and their lot placements | Building families, Exterior GLB writer, Materials keys | [Input types](../src/kit/types.ts), [kit](../schemas/kit.schema.json), [placements](../schemas/placement.schema.json) |
+| [Piece kit](../src/kit/CONTRACT.md) | Publishes pieces, parcel placements and the shared opening blueprint | Building families, Exterior blueprint helpers and GLB writer, Materials keys | [Request](../schemas/kit-request.schema.json), [kit](../schemas/kit.schema.json), [placements](../schemas/placement.schema.json), [blueprint](../schemas/blueprint.schema.json) |
 | [Facade services](../src/facade-services/CONTRACT.md) | Fits attached services around reservations | Caller geometry and materials | [Input](../src/facade-services/schema/input.schema.json), [output](../src/facade-services/schema/output.schema.json) |
 | [Preview](../src/ui/CONTRACT.md) | Displays a generated building and inspection controls | Exterior, Materials, Three.js | Request controls, GLB and blueprint |
 
@@ -22,7 +22,7 @@
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
 - `src/kit/recipes`: one authored piece set per family on the 8 m bay module, with the joint pier and floor ribbon each boundary cuts in half.
 - `src/kit/cli.ts`, `export.ts`: deterministic piece files and one catalog for selected families.
-- `src/kit/plan.ts`: JSON placements with world space signs and doors.
+- `src/kit/plan.ts`, `request.ts`, `blueprint.ts`: parcel requests, placements and blueprints from piece openings.
 - `src/kit/assemble.ts`: instanced pieces with building slabs, roof, entrance and wire anchors.
 - `src/families/corporate-sectors`: two complete special faces with balcony bands and broad cladding over a window grid, one screen face and one uncovered window/service face; candidates require 35 x 35 m and twelve floors, including space for facade projections.
 - `src/mesh/scenicRoom.ts`, `scenicCurve.ts`, `scenicSlope.ts`: rectangular window scenes with a 1 m depth, one rear image, ceiling lights and fitted placement on curved or tapered facades.

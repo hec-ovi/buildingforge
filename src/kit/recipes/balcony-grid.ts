@@ -36,7 +36,7 @@ function loggia(context: PieceContext, cell: Cell, storey: number, notch: Openin
   const pier = context.material('column');
   const door: Opening = { u0: L0 + 0.7, u1: L1 - 0.7, y0: notch.y0, y1: notch.y1 - 0.4, panes: 2 };
   wall(sink, cell, context.material('inner-wall'), { u0: L0, u1: L1, y0: notch.y0, y1: notch.y1, openings: [door], depth: -DEPTH });
-  glazing(sink, cell, door, { glass: HOST_GLASS, frame: context.material('window-frame'), face: -DEPTH, recess: 0.1 });
+  glazing(context, sink, cell, door, { glass: HOST_GLASS, frame: context.material('window-frame'), face: -DEPTH, recess: 0.1 });
   // Glass infill between metal posts, the reference's loggia rail.
   const rail = notch.y0 + RAIL;
   cell.solid(sink, HOST_GLASS, L0, L1, notch.y0 + 0.12, rail - 0.06, -0.08, -0.12, { start: false, end: false });

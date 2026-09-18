@@ -3,6 +3,7 @@
 
 import type { Band, PieceKind } from './module.ts';
 import type { TextureMode } from '../materials/apply.ts';
+import type { Blueprint, BuildingRequest, Opening } from '../types.ts';
 
 export type P3 = [number, number, number];
 
@@ -29,6 +30,13 @@ export interface DoorRecord {
   facing: P3;
 }
 
+/** Opening dimensions from the mesh author, with its bottom centre in piece space. */
+export interface PieceOpening extends Omit<Opening, 'edge' | 'offset' | 'sill' | 'kind'> {
+  kind: 'window' | 'door';
+  position: P3;
+  facing: P3;
+}
+
 export interface Geometry { vertices: number; triangles: number; bytes: number }
 
 export interface PieceManifest {
@@ -50,6 +58,7 @@ export interface PieceManifest {
   materials: string[];
   signAnchors: SignAnchor[];
   doors: DoorRecord[];
+  openings: PieceOpening[];
   /**
    * Mating sections, as a hash of the sorted (offset, depth, material) of every
    * vertex on the boundary plane. Two runs join without a seam when the end
@@ -85,7 +94,7 @@ export interface Placement {
   position: P3;
   /** Radians about +Y. */
   rotationY: number;
-  /** Lot edge: 0 runs +X, then +Z, -X and -Z. */
+  /** Parcel footprint edge index; legacy lots start with the +X run. */
   face: number;
   /** Zero based bay along the face; null identifies its starting corner. */
   bayIndex: number | null;
@@ -93,6 +102,7 @@ export interface Placement {
 
 /** JSON output described by schemas/placement.schema.json. */
 export interface AssemblyPlan {
+  blueprint: Blueprint;
   family: string;
   bands: { band: Band; floor: number; base: number; height: number }[];
   placements: Placement[];
@@ -100,23 +110,26 @@ export interface AssemblyPlan {
   doors: (DoorRecord & { placement: number })[];
 }
 
-export interface AssemblyRequest {
+interface AssemblyOptions {
   family: string;
   buildingId: string;
   seed?: string;
   theme?: string;
-  /** Lot size in metres on each axis; both are whole numbers of 8 m bays. */
-  lot: { width: number; depth: number };
-  floors: number;
-  /** Edge (0..3) carrying the entrance; 0 is the +X run at z = 0. */
+  /** Parcel edge (0..3) carrying the entrance; otherwise selected from accessPoint. */
   entranceEdge?: number;
   groundHeight?: number;
   floorHeight?: number;
-  /** Wire anchors the connections layer asked for, in lot coordinates. */
+  /** Wire anchors in parcel face coordinates. */
   anchors?: { id: string; edge: number; u: number; y: number }[];
 }
 
+export type AssemblyRequest = AssemblyOptions & (
+  | { parcel: BuildingRequest['parcel']; building: BuildingRequest['building']; lot?: never; floors?: never }
+  | { lot: { width: number; depth: number }; floors: number; parcel?: never; building?: never }
+);
+
 export interface AssemblyResult {
+  blueprint: Blueprint;
   glb: Uint8Array;
   pieces: PieceManifest[];
   placements: Placement[];

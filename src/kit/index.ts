@@ -6,7 +6,7 @@ export { assembleFromPieces } from './assemble.ts';
 export { planAssembly } from './plan.ts';
 export { KIT_FAMILIES } from './recipes/index.ts';
 export type {
-  AssemblyPlan, AssemblyRequest, AssemblyResult, DoorRecord, Geometry, PieceManifest, PieceRequest, PieceResult, Placement, SignAnchor,
+  AssemblyPlan, AssemblyRequest, AssemblyResult, DoorRecord, Geometry, PieceManifest, PieceOpening, PieceRequest, PieceResult, Placement, SignAnchor,
 } from './types.ts';
 
 import { BANDS, PIECES } from './module.ts';

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://urbe.dev/exterior/placement.schema.json",
   "title": "Exterior assembly placements",
-  "description": "planAssembly result. Coordinates are world metres in the supplied lot frame with origin [0,0,0]. Sign and door positions and facing vectors include the placement transform; placement indexes the placements array.",
+  "description": "planAssembly result for kit-request.schema.json. Coordinates use metres in the supplied parcel frame. Sign and door records include placement transforms. blueprint is the shared consumer document.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,7 +10,8 @@
     "bands",
     "placements",
     "signAnchors",
-    "doors"
+    "doors",
+    "blueprint"
   ],
   "properties": {
     "family": {
@@ -87,7 +88,7 @@
             "type": "integer",
             "minimum": 0,
             "maximum": 3,
-            "description": "Lot edge: 0 at z=0 runs +X, then +Z, -X, -Z."
+            "description": "Parcel footprint edge index. Legacy lots run +X, +Z, negative X, negative Z."
           },
           "bayIndex": {
             "type": [
@@ -161,6 +162,14 @@
       },
       "minItems": 1,
       "maxItems": 1
+    },
+    "blueprint": {
+      "$ref": "blueprint.schema.json"
+    }
+  },
+  "$defs": {
+    "request": {
+      "$ref": "kit-request.schema.json"
     }
   }
 }

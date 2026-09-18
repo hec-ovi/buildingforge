@@ -6,9 +6,8 @@
 // wire anchors the connections layer asked for.
 
 import { MeshBuilder, type Part, type Prim, type V3 } from '../mesh/primitives.ts';
-import { ExteriorError } from '../core/errors.ts';
 import { measureRuntime } from '../glb/measure.ts';
-import { lotEdges, prepareAssembly } from './plan.ts';
+import { prepareAssembly } from './plan.ts';
 import { point, spin, type PieceFrame } from './transform.ts';
 import { recipeFor } from './recipes/index.ts';
 import { writeAssemblyGlb } from './glb.ts';
@@ -36,22 +35,25 @@ function transfer(source: MeshBuilder, target: MeshBuilder, names: Set<string>, 
   }
 }
 
-export async function assembleFromPieces(request: AssemblyRequest, options: TextureOptions = {}): Promise<AssemblyResult> {
-  const recipe = recipeFor(request.family);
-  const { plan, pieces } = prepareAssembly(request);
-  const seed = request.seed ?? request.buildingId;
+export async function assembleFromPieces(raw: AssemblyRequest, options: TextureOptions = {}): Promise<AssemblyResult> {
+  const recipe = recipeFor(raw.family);
+  const { plan, pieces, request } = prepareAssembly(raw);
+  const seed = request.seed;
   const kinds = new Map([...pieces].map(([id, built]) => [id, built.mb]));
 
   const building = new MeshBuilder();
   const inset = recipe.backing;
-  const { width, depth } = request.lot;
+  const outline = request.parcel.footprint;
+  const width = Math.hypot(outline[1]![0] - outline[0]![0], outline[1]![1] - outline[0]![1]);
+  const depth = Math.hypot(outline[3]![0] - outline[0]![0], outline[3]![1] - outline[0]![1]);
+  const frame = plan.placements[0]!;
   for (const band of plan.bands) {
     const sink = building.part(`floor:${band.floor}/slab`, { keepNode: true });
-    slab(sink, recipe.materials['inner-wall'] ?? recipe.materials.wall!, inset, width - inset, depth - inset, band.base);
+    slab(sink, recipe.materials['inner-wall'] ?? recipe.materials.wall!, inset, width - inset, depth - inset, band.base, frame);
   }
   const top = plan.bands.at(-1)!;
   slab(building.part('roof:deck', { keepNode: true }), recipe.materials.roof ?? recipe.materials.wall!,
-    inset, width - inset, depth - inset, top.base + top.height, 'up');
+    inset, width - inset, depth - inset, top.base + top.height, frame, 'up');
 
   // The entrance is placed once, so its casing and leaves keep their own nodes.
   const entrance = plan.placements.find(p => p.piece.endsWith('/ground/entrance-bay'));
@@ -59,12 +61,10 @@ export async function assembleFromPieces(request: AssemblyRequest, options: Text
     const source = kinds.get(entrance.piece)!;
     transfer(source, building, new Set(source.parts.filter(p => p.pivot || p.keepNode).map(p => p.name)), entrance);
   }
-  for (const anchor of request.anchors ?? []) {
-    const edge = lotEdges(width, depth)[anchor.edge];
-    if (!edge) throw new ExteriorError('E_SCHEMA', `anchor ${anchor.id} names edge ${anchor.edge}`, { anchor });
+  for (const anchor of plan.blueprint.anchors) {
     const sink = building.part(`anchor:${anchor.id}`, { keepNode: true });
-    const at: V3 = [edge.origin[0] + edge.dir[0] * anchor.u, anchor.y, edge.origin[1] + edge.dir[1] * anchor.u];
-    sink.box(recipe.materials.column ?? recipe.materials.wall!, at, [0.25, 0, 0], [0, 0.25, 0], [0, 0, 0.25]);
+    sink.box(recipe.materials.column ?? recipe.materials.wall!, anchor.position,
+      spin([0.25, 0, 0], frame.rotationY), [0, 0.25, 0], spin([0, 0, 0.25], frame.rotationY));
   }
 
   const { glb, textures } = await writeAssemblyGlb({
@@ -76,6 +76,7 @@ export async function assembleFromPieces(request: AssemblyRequest, options: Text
   const parts = measureRuntime(building);
   return {
     glb,
+    blueprint: plan.blueprint,
     pieces: [...pieces.values()].map(built => built.manifest),
     placements: plan.placements,
     signAnchors: plan.signAnchors, doors: plan.doors,
@@ -91,8 +92,9 @@ export async function assembleFromPieces(request: AssemblyRequest, options: Text
 }
 
 /** One replaceable floor plate, two-sided unless it is the roof deck. */
-function slab(sink: ReturnType<MeshBuilder['part']>, material: string, inset: number, width: number, depth: number, y: number, faces: 'both' | 'up' = 'both'): void {
-  const ring: V3[] = [[inset, y, inset], [width, y, inset], [width, y, depth], [inset, y, depth]];
+function slab(sink: ReturnType<MeshBuilder['part']>, material: string, inset: number, width: number, depth: number, y: number, frame: PieceFrame, faces: 'both' | 'up' = 'both'): void {
+  const local: V3[] = [[inset, y, inset], [width, y, inset], [width, y, depth], [inset, y, depth]];
+  const ring = local.map(p => point(p, frame));
   sink.quadFacing(material, ring[0]!, ring[1]!, ring[2]!, ring[3]!, [0, 1, 0], [[0, 0], [1, 0], [1, 1], [0, 1]]);
   if (faces === 'both') sink.quadFacing(material, ring[0]!, ring[1]!, ring[2]!, ring[3]!, [0, -1, 0], [[0, 0], [1, 0], [1, 1], [0, 1]]);
 }

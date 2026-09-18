@@ -54,7 +54,7 @@ function body(context: PieceContext, cell: Cell, storey: number, openings: Openi
   wall(sink, cell, context.material('inner-wall'), { u0: liningFrom, u1: cell.length, y0: 0, y1: storey, openings, depth: -RECESS, facing: -1 });
   if (!glazed) return;
   for (const opening of openings) {
-    glazing(sink, cell, opening, { glass: HOST_GLASS, frame: context.material('window-frame'), face: -CHANNEL_RECESS, recess: GLASS });
+    glazing(context, sink, cell, opening, { glass: HOST_GLASS, frame: context.material('window-frame'), face: -CHANNEL_RECESS, recess: GLASS });
   }
 }
 

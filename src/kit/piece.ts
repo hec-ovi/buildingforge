@@ -8,7 +8,7 @@ import { KIT, type Band, type PieceKind } from './module.ts';
 import { recipeFor } from './recipes/index.ts';
 import { writePieceGlb } from './glb.ts';
 import type { PieceContext } from './recipe.ts';
-import type { DoorRecord, PieceManifest, PieceRequest, PieceResult, SignAnchor } from './types.ts';
+import type { PieceOpening, PieceManifest, PieceRequest, PieceResult, SignAnchor } from './types.ts';
 import type { TextureOptions } from '../materials/apply.ts';
 
 export interface BuiltPiece { mb: MeshBuilder; manifest: PieceManifest }
@@ -27,7 +27,7 @@ export function buildPieceMesh(request: PieceRequest): BuiltPiece {
   const runs: Cell[] = kind === 'corner' ? cornerCells(KIT.cornerArm) : [bayCell(KIT.bay)];
   const mb = new MeshBuilder();
   const anchors: SignAnchor[] = [];
-  const doors: DoorRecord[] = [];
+  const openings: PieceOpening[] = [];
   const context: PieceContext = {
     family: recipe.family, band, piece: kind, runs, height,
     material: (role) => {
@@ -37,7 +37,13 @@ export function buildPieceMesh(request: PieceRequest): BuiltPiece {
     },
     part: (name, options) => mb.part(name, options ?? {}),
     anchor: (anchor) => anchors.push(anchor),
-    door: (door) => doors.push(door),
+    opening: (opening) => {
+      if (opening.width <= 0 || opening.height <= 0 || opening.position[1] < 0
+        || opening.position[1] + opening.height > height) {
+        throw new ExteriorError('E_SCHEMA', 'piece height cannot contain its openings');
+      }
+      openings.push({ ...opening, id: opening.id ?? `window:${openings.length}` });
+    },
   };
   recipe.build(context);
   const geometry = measureRuntime(mb);
@@ -51,7 +57,10 @@ export function buildPieceMesh(request: PieceRequest): BuiltPiece {
     parts: mb.parts.filter(p => p.prims.size > 0).map(p => p.name).sort(),
     materials: mb.materialSlots(),
     signAnchors: anchors,
-    doors,
+    openings,
+    doors: openings.filter(o => o.kind === 'door').map(o => ({
+      id: o.id, width: o.width, height: o.height, leaves: o.leaves!, position: o.position, facing: o.facing,
+    })),
     sections: sections(mb, runs, kind, height),
   };
   return { mb, manifest };

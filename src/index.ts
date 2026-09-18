@@ -15,6 +15,6 @@ export {
   assembleFromPieces, planAssembly,
 } from './kit/index.ts';
 export type {
-  Band, PieceKind, PieceRequest, PieceResult, PieceManifest, SignAnchor, DoorRecord,
+  Band, PieceKind, PieceRequest, PieceResult, PieceManifest, PieceOpening, SignAnchor, DoorRecord,
   AssemblyPlan, AssemblyRequest, AssemblyResult, Placement,
 } from './kit/index.ts';

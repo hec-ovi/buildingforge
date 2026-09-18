@@ -171,7 +171,8 @@
         "signAnchors",
         "doors",
         "triangles",
-        "bytes"
+        "bytes",
+        "openings"
       ],
       "properties": {
         "id": {
@@ -235,6 +236,12 @@
           "type": "integer",
           "minimum": 1,
           "description": "Complete GLB file length in bytes."
+        },
+        "openings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/opening"
+          }
         }
       },
       "allOf": [
@@ -603,6 +610,60 @@
             }
           },
           "description": "Each lot edge accepts any integer N >= 2 bays: 8N metres, two corner arms and N-1 straight pieces. Floors accept any integer >= 3. Null maximum means unbounded. Atlas lot width and depth are metres; either orientation fits."
+        }
+      }
+    },
+    "opening": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Authored opening with bottom centre and outward normal in piece space. Window position lies on its nominal facade plane, glazing depths locate the glass. Door position is the actual threshold. Glazing offset and sill are relative to the opening. Faceted panes share one shell opening; fixed loggia glazing is a window.",
+      "required": [
+        "id",
+        "kind",
+        "position",
+        "facing",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "blueprint.schema.json#/properties/floors/items/properties/openings/items/properties/id"
+        },
+        "width": {
+          "$ref": "blueprint.schema.json#/properties/floors/items/properties/openings/items/properties/width"
+        },
+        "height": {
+          "$ref": "blueprint.schema.json#/properties/floors/items/properties/openings/items/properties/height"
+        },
+        "panes": {
+          "$ref": "blueprint.schema.json#/properties/floors/items/properties/openings/items/properties/panes"
+        },
+        "glazing": {
+          "$ref": "blueprint.schema.json#/properties/floors/items/properties/openings/items/properties/glazing"
+        },
+        "leaves": {
+          "$ref": "blueprint.schema.json#/properties/floors/items/properties/openings/items/properties/leaves"
+        },
+        "door": {
+          "$ref": "blueprint.schema.json#/properties/floors/items/properties/openings/items/properties/door"
+        },
+        "doorRole": {
+          "$ref": "blueprint.schema.json#/properties/floors/items/properties/openings/items/properties/doorRole"
+        },
+        "material": {
+          "$ref": "blueprint.schema.json#/properties/floors/items/properties/openings/items/properties/material"
+        },
+        "kind": {
+          "enum": [
+            "door",
+            "window"
+          ]
+        },
+        "position": {
+          "$ref": "#/$defs/vector3"
+        },
+        "facing": {
+          "$ref": "#/$defs/vector3"
         }
       }
     }

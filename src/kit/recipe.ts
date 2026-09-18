@@ -4,7 +4,7 @@
 import type { PartSink } from '../mesh/primitives.ts';
 import type { Cell } from './cell.ts';
 import type { Band, PieceKind } from './module.ts';
-import type { DoorRecord, SignAnchor } from './types.ts';
+import type { PieceOpening, SignAnchor } from './types.ts';
 
 export interface PieceContext {
   readonly family: string;
@@ -18,7 +18,7 @@ export interface PieceContext {
   material(role: string): string;
   part(name: string, options?: { parent?: string; pivot?: [number, number, number]; keepNode?: boolean }): PartSink;
   anchor(anchor: SignAnchor): void;
-  door(door: DoorRecord): void;
+  opening(opening: Omit<PieceOpening, 'id'> & { id?: string }): void;
 }
 
 export interface KitRecipe {

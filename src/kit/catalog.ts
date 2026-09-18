@@ -1,6 +1,6 @@
 import { BANDS, KIT, PIECES, type Band, type PieceKind } from './module.ts';
 import type { BuiltPiece } from './piece.ts';
-import type { DoorRecord, P3, SignAnchor } from './types.ts';
+import type { DoorRecord, P3, PieceOpening, SignAnchor } from './types.ts';
 
 export interface KitPieceFile {
   id: string;
@@ -12,6 +12,7 @@ export interface KitPieceFile {
   origin: 'corner-at-floor' | 'run-start-at-floor';
   signAnchors: SignAnchor[];
   doors: DoorRecord[];
+  openings: PieceOpening[];
   triangles: number;
   bytes: number;
 }
@@ -53,7 +54,7 @@ export function pieceFile(built: BuiltPiece, bytes: number): KitPieceFile {
     file: `${manifest.family}/${manifest.band}-${manifest.piece}.glb`,
     size: min.map((v, i) => Number((max[i]! - v).toFixed(5))) as P3,
     origin: manifest.piece === 'corner' ? 'corner-at-floor' : 'run-start-at-floor',
-    signAnchors: manifest.signAnchors, doors: manifest.doors,
+    signAnchors: manifest.signAnchors, doors: manifest.doors, openings: manifest.openings,
     triangles: manifest.geometry.triangles, bytes,
   };
 }

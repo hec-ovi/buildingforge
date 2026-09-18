@@ -240,7 +240,7 @@ function basementElevations(basements: number, basesNeg: number[], basementHeigh
 
 // Floor kind slugs are atlas vocabulary verbatim (interior assigns venue programs
 // by type), plus lobby, entry, basement, bar, executive.
-function floorKinds(req: BuildingRequest, family: Family, tier: Tier, floors: number): string[] {
+export function floorKinds(req: BuildingRequest, family: Family, tier: Tier, floors: number): string[] {
   if (req.building.floorKinds) return req.building.floorKinds;
   const rng = new Rng(req.seed, 'floor-kinds');
   const type = req.building.type;

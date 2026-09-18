@@ -1,6 +1,6 @@
 # CONTRACT: piece kit
 
-Publishes nine facade pieces per family and places them around a rectangular lot.
+Version 0.58.0. Publishes nine facade pieces per family, with openings recorded by their glazing and entrance builders; [requests](../../schemas/kit-request.schema.json) accept parcel, building and seed plus family, or legacy lot and floors.
 
 ## Calls and schemas
 
@@ -34,7 +34,7 @@ F is any integer from three: ground at floor 0, middle at 1 through F-2, crown a
 
 Metres, +Y up, +X along a bay, +Z inward. The local origin is the bay run start or corner junction at the floor; a corner's second arm runs +Z. `size` is the geometry bounds extent including projections, not the tiling step. Signs and doors in kit.json use this local frame.
 
-The lot starts at [0,0,0]. Faces 0 through 3 run +X, +Z, -X, -Z around its perimeter. Placement `rotationY` is radians about +Y. `bayIndex` is zero based along that face, or null for the corner at its start. `piece` matches the catalog's full family/band/kind id. World sign and door records include their index in `placements`; local record ids repeat between instances. Planning constructs piece metadata and returns JSON, with no GLB output.
+Parcel requests retain footprint coordinates and edge order; legacy lots start at [0,0,0]. Rectangles use complete bays, at least three floors, zero basements and heights within maxHeight; accessPoint and streetAccess select the entrance unless entranceEdge overrides it. Both assembly calls return the shared [blueprint](../../schemas/blueprint.schema.json): floors and envelopes from band heights, openings from transformed piece records, door ids matching placements, signs as signage/screens and materials from piece slots; door recessDepth locates recessed thresholds, and fixed loggia glass is a window. Engine writes blueprint unchanged beside placements; local sign ids repeat by placement, window ids identify each instance, and planning emits no GLB.
 
 ## Invariants and ownership
 

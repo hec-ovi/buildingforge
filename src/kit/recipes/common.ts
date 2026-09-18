@@ -70,7 +70,7 @@ export function shellBody(context: PieceContext, cell: Cell, spec: BodySpec): vo
     const face = spec.openingFaces?.[index] ?? 0;
     const glass = spec.openingGlass?.[index] === undefined ? spec.glass ?? HOST_GLASS : spec.openingGlass[index];
     const role = spec.openingFrames?.[index];
-    glazing(sink, cell, opening, {
+    glazing(context, sink, cell, opening, {
       glass, frame: role ? context.material(role) : frame, face, mullion: spec.mullion,
       recess: spec.openingRecess?.[index] ?? spec.recess + face,
       ...(spec.openingEnds?.[index] ? { ends: spec.openingEnds[index]! } : {}),

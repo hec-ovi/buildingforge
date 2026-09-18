@@ -5,12 +5,22 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
+from referencing.jsonschema import DRAFT202012
 
-root = Path(__file__).resolve().parents[1] / 'schemas'
-schemas = {name: json.loads((root / f'{name}.schema.json').read_text())
-           for name in ('kit', 'placement')}
+root = Path(__file__).resolve().parents[1]
+paths = [*root.joinpath('schemas').glob('*.schema.json'),
+         *root.joinpath('src/sections/schemas').glob('*.schema.json'),
+         *root.joinpath('src/facade-services/schema').glob('*.schema.json')]
+documents = {}
+for path in paths:
+    schema = json.loads(path.read_text())
+    schema['$id'] = path.as_uri()
+    documents[path] = schema
+schemas = {name: documents[root / 'schemas' / f'{name}.schema.json']
+           for name in ('kit', 'placement', 'blueprint', 'kit-request')}
 registry = Registry().with_resources(
-    (schema['$id'], Resource.from_contents(schema)) for schema in schemas.values()
+    (schema['$id'], Resource.from_contents(schema, default_specification=DRAFT202012))
+    for schema in documents.values()
 )
 for schema in schemas.values():
     Draft202012Validator.check_schema(schema)

@@ -33,7 +33,7 @@ it('writes all nine original pieces per family, measured metadata and a valid ca
     for (const record of family.pieces) {
       const source = original.find(p => p.id === record.id)!;
       expect(record).toMatchObject({ band: source.band, kind: source.piece, triangles: source.geometry.triangles,
-        signAnchors: source.signAnchors, doors: source.doors });
+        signAnchors: source.signAnchors, doors: source.doors, openings: source.openings });
       const path = join(work, 'all', record.file);
       const bytes = readFileSync(path);
       expect(record.bytes).toBe(statSync(path).size);

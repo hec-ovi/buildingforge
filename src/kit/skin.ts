@@ -10,6 +10,7 @@ import { cutWall, rectHole, type Hole } from '../mesh/wallcut.ts';
 import type { PartSink, V3 } from '../mesh/primitives.ts';
 import type { Cell, Ends } from './cell.ts';
 import type { PieceContext } from './recipe.ts';
+import { splitMaterialSlot } from '../materials/slot.ts';
 
 export interface Opening { u0: number; u1: number; y0: number; y1: number; panes?: number }
 
@@ -39,7 +40,7 @@ export function wall(sink: PartSink, cell: Cell, material: string, spec: WallSpe
  * `ends` drops a jamb reveal where a ribbon runs on across a run boundary.
  */
 export function glazing(
-  sink: PartSink, cell: Cell, opening: Opening,
+  context: PieceContext, sink: PartSink, cell: Cell, opening: Opening,
   o: { glass: string | null; frame: string; face?: number; recess: number; mullion?: number; ends?: Ends },
 ): void {
   const face = o.face ?? 0, back = face - o.recess;
@@ -53,6 +54,12 @@ export function glazing(
   if (o.glass === null) return;
   cell.plate(sink, o.glass, u0, u1, y0, y1, back);
   const count = opening.panes ?? 1;
+  context.opening({
+    kind: 'window', position: cell.point((u0 + u1) / 2, y0), facing: cell.normal,
+    width: u1 - u0, height: y1 - y0, panes: { cols: count, rows: 1 },
+    material: splitMaterialSlot(o.glass)[0],
+    glazing: { offset: 0, sill: 0, width: u1 - u0, height: y1 - y0, glassDepth: -back, housingBackDepth: -back },
+  });
   const bar = o.mullion ?? 0.08;
   for (let i = 1; i < count; i++) {
     const u = u0 + (u1 - u0) * i / count;
@@ -122,7 +129,12 @@ export function entrance(
     cell.solid(sink, o.glass, near, near + leafWidth, 0.02, o.height - 0.02,
       mid + LEAF_THICKNESS / 2, mid - LEAF_THICKNESS / 2, {});
   }
-  context.door({ id: o.id, width: o.width, height: o.height, leaves, position: cell.point(o.u, 0, face), facing: cell.normal });
+  context.opening({
+    id: o.id, kind: 'door', width: o.width, height: o.height, leaves: leaves as 1 | 2,
+    position: cell.point(o.u, 0, face), facing: cell.normal, doorRole: 'main', material: splitMaterialSlot(o.glass)[0],
+    door: { set: 'plain', frameWidth: jamb, frameDepth: depth, recessDepth: face === 0 ? 0 : -face, thresholdHeight: 0,
+      motion: { kind: 'swing', maxTravel: 90, clearDepth: leafWidth + depth } },
+  });
 }
 
 /** A sign field the consumer letters: never geometry, always a published anchor. */
