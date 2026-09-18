@@ -20,7 +20,7 @@ export async function exportKit(out: string, families = KIT_FAMILIES, seed = 'ki
       },
       fits: {
         bays: { minimum: 2, maximum: null, step: 1 },
-        floors: { minimum: 3, maximum: null, step: 1 },
+        floors: { minimum: 2, maximum: null, step: 1 },
         atlasLots: [[16, 32], [24, 32], [24, 40], [40, 40], [40, 56], [56, 56]],
       },
     };

@@ -529,7 +529,7 @@
               }
             }
           },
-          "description": "Zero based floor indices. Middle endpoints are inclusive. Heights are the default piece band heights, including the crown cap."
+          "description": "Zero based floor indices. Middle endpoints are inclusive; two floors have ground at 0 and crown at 1 with no middle band. Heights are the default piece band heights, including the crown cap."
         },
         "fits": {
           "type": "object",
@@ -570,7 +570,7 @@
               ],
               "properties": {
                 "minimum": {
-                  "const": 3
+                  "const": 2
                 },
                 "maximum": {
                   "type": "null"
@@ -609,7 +609,7 @@
               ]
             }
           },
-          "description": "Each lot edge accepts any integer N >= 2 bays: 8N metres, two corner arms and N-1 straight pieces. Floors accept any integer >= 3. Null maximum means unbounded. Atlas lot width and depth are metres; either orientation fits."
+          "description": "Each lot edge accepts any integer N >= 2 bays: 8N metres, two corner arms and N-1 straight pieces. Floors accept any integer >= 2. Null maximum means unbounded. Atlas lot width and depth are metres; either orientation fits."
         }
       }
     },

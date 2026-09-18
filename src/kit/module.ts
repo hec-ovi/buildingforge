@@ -34,8 +34,8 @@ export function baysAcross(metres: number): number {
   return n;
 }
 
-/** The three bands of a building of `floors` storeys, top to bottom counts. */
+/** Band counts from ground to crown; two floors have no middle band. */
 export function bandStack(floors: number): { ground: 1; middle: number; crown: 1 } {
-  if (!Number.isInteger(floors) || floors < 3) throw new RangeError(`a kit building needs at least three floors: ${floors}`);
+  if (!Number.isInteger(floors) || floors < 2) throw new RangeError(`a kit building needs at least two floors: ${floors}`);
   return { ground: 1, middle: floors - 2, crown: 1 };
 }

@@ -28,7 +28,7 @@ export interface KitFamily {
   fits: {
     /** N for an edge of 8N metres, containing N-1 straight pieces. */
     bays: { minimum: 2; maximum: null; step: 1 };
-    floors: { minimum: 3; maximum: null; step: 1 };
+    floors: { minimum: 2; maximum: null; step: 1 };
     atlasLots: [number, number][];
   };
 }

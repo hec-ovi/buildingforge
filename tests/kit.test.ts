@@ -147,7 +147,7 @@ it('refuses incomplete bays and requests outside the kit envelope', () => {
   expect(() => planAssembly({ family: 'nowhere', buildingId: 'p3', lot: { width: 24, depth: 24 }, floors: 4 }))
     .toThrow(ExteriorError);
   const request = { family: 'mirror-frame', buildingId: 'p2', lot: { width: 24, depth: 24 }, floors: 4 };
-  expect(() => planAssembly({ ...request, floors: 2 })).toThrow(RangeError);
+  expect(() => planAssembly({ ...request, floors: 1 })).toThrow(RangeError);
   expect(() => planAssembly({ ...request, entranceEdge: 4 })).toThrow(ExteriorError);
   expect(() => planAssembly({ ...request, floorHeight: Infinity })).toThrow(ExteriorError);
   const parcelRequest: AssemblyRequest = { family: 'mirror-frame', buildingId: 'parcel-errors',

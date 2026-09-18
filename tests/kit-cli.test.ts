@@ -27,6 +27,7 @@ it('writes all nine original pieces per family, measured metadata and a valid ca
   expect(catalog.module).toEqual({ ...KIT, bands: BANDS, pieces: PIECES });
   expect(catalog.families.map(f => f.id)).toEqual(KIT_FAMILIES);
   const io = glbIO();
+  const cases: Parameters<typeof validateKitSchemas>[0] = [];
   for (const family of catalog.families) {
     const original = pieceSet(family.id, catalog.seed);
     expect(readdirSync(join(work, 'all', family.id))).toEqual(family.pieces.map(p => p.file.split('/')[1]!).sort());
@@ -64,9 +65,34 @@ it('writes all nine original pieces per family, measured metadata and a valid ca
       for (let axis = 0; axis < 3; axis++) expect(record.size[axis]).toBeCloseTo(max[axis]! - min[axis]!, 4);
     }
     const { bands, fits } = family;
+    expect(fits.floors.minimum).toBe(2);
     for (const [width, depth] of fits.atlasLots) {
-      const plan = planAssembly({ family: family.id, buildingId: 'fit', lot: { width, depth }, floors: fits.floors.minimum });
-      expect(plan.bands.map(b => b.height)).toEqual([bands.ground.height, bands.middle.height, bands.crown.height]);
+      const request = { family: family.id, buildingId: 'fit', lot: { width, depth }, floors: fits.floors.minimum };
+      const plan = planAssembly(request);
+      expect(plan.bands).toEqual([
+        { band: 'ground', floor: 0, base: 0, height: bands.ground.height },
+        { band: 'crown', floor: 1, base: bands.ground.height, height: bands.crown.height },
+      ]);
+      expect(plan.blueprint.floors).toHaveLength(2);
+      for (const floor of plan.blueprint.floors) {
+        const band = plan.bands[floor.index]!;
+        expect(floor).toMatchObject({ elevation: band.base, height: band.height });
+        const placements = plan.placements.filter(p => p.floor === floor.index);
+        expect(placements.every(p => p.position[1] === band.base && p.piece.includes(`/${band.band}/`))).toBe(true);
+        expect(floor.openings).toHaveLength(placements.reduce((count, p) => count
+          + original.find(piece => piece.id === p.piece)!.openings.length, 0));
+        for (const opening of floor.openings) {
+          expect(opening.sill).toBeGreaterThanOrEqual(0);
+          expect(opening.sill + opening.height).toBeLessThanOrEqual(floor.height);
+        }
+      }
+      expect(plan.doors).toHaveLength(1);
+      expect(plan.placements[plan.doors[0]!.placement]!.floor).toBe(0);
+      expect(plan.blueprint.floors[0]!.openings.filter(o => o.kind === 'door').map(o => o.id))
+        .toEqual(plan.doors.map(d => d.id));
+      expect(plan.blueprint.roof.elevation).toBe(bands.ground.height + bands.crown.height);
+      expect(plan.blueprint.bounds.height).toBe(plan.blueprint.roof.elevation);
+      cases.push({ schema: 'kit-request', value: request }, { schema: 'placement', value: plan });
     }
   }
   const subset = join(work, 'subset');
@@ -76,7 +102,7 @@ it('writes all nine original pieces per family, measured metadata and a valid ca
   expect(readdirSync(subset).sort()).toEqual(['kit.json', 'mirror-frame', 'white-grid']);
   const invalid = structuredClone(catalog);
   invalid.families[0]!.pieces[0]!.file = '../outside.glb';
-  validateKitSchemas([{ schema: 'kit', value: catalog }, { schema: 'kit', value: selected }, { schema: 'kit', value: invalid, valid: false }]);
+  validateKitSchemas([...cases, { schema: 'kit', value: catalog }, { schema: 'kit', value: selected }, { schema: 'kit', value: invalid, valid: false }]);
 });
 
 it('writes byte identical catalogs and every piece for the same seed regardless of family order or output directory', () => {

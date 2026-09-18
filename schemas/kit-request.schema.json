@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://urbe.dev/exterior/kit-request.schema.json",
   "title": "Exterior kit assembly request",
-  "description": "Input to planAssembly and assembleFromPieces. Parcel and building use the per parcel request fields. The footprint is a CCW rectangle with edges of 8N metres, N at least two. Floors number at least three. Authored band heights including the crown cap must fit maxHeight. Basements are zero. Outputs retain the parcel frame and edge order. Custom heights require matching custom pieces.",
+  "description": "Input to planAssembly and assembleFromPieces. Parcel and building use the per parcel request fields. The footprint is a CCW rectangle with edges of 8N metres, N at least two. Floors number at least two. Authored band heights including the crown cap must fit maxHeight. Basements are zero. Outputs retain the parcel frame and edge order. Custom heights require matching custom pieces.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -37,7 +37,7 @@
       "$ref": "building-request.schema.json#/properties/building",
       "properties": {
         "floors": {
-          "minimum": 3
+          "minimum": 2
         },
         "basements": {
           "const": 0
@@ -67,7 +67,7 @@
     },
     "floors": {
       "type": "integer",
-      "minimum": 3,
+      "minimum": 2,
       "description": "Legacy floor count used with lot."
     },
     "entranceEdge": {

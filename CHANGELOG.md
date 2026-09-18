@@ -1,5 +1,7 @@
 # Changelog
 
+0.58.1: every kit family accepts two floors with the crown directly on the ground band and matching blueprint heights and openings.
+
 0.58.0: kit assemblies accept parcel requests and publish the shared blueprint from authored piece openings.
 
 0.57.0: the kit CLI publishes deterministic pieces and a manifest for six families, with JSON schemas for catalog metadata and world space placements.
