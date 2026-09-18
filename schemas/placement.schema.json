@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://urbe.dev/exterior/placement.schema.json",
+  "title": "Exterior assembly placements",
+  "description": "planAssembly result. Coordinates are world metres in the supplied lot frame with origin [0,0,0]. Sign and door positions and facing vectors include the placement transform; placement indexes the placements array.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "family",
+    "bands",
+    "placements",
+    "signAnchors",
+    "doors"
+  ],
+  "properties": {
+    "family": {
+      "$ref": "kit.schema.json#/$defs/familyId"
+    },
+    "bands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "band",
+          "floor",
+          "base",
+          "height"
+        ],
+        "properties": {
+          "band": {
+            "enum": [
+              "ground",
+              "middle",
+              "crown"
+            ]
+          },
+          "floor": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "base": {
+            "type": "number",
+            "minimum": 0
+          },
+          "height": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      },
+      "minItems": 3
+    },
+    "placements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "family",
+          "piece",
+          "position",
+          "rotationY",
+          "floor",
+          "face",
+          "bayIndex"
+        ],
+        "properties": {
+          "family": {
+            "$ref": "kit.schema.json#/$defs/familyId"
+          },
+          "piece": {
+            "$ref": "kit.schema.json#/$defs/pieceId"
+          },
+          "position": {
+            "$ref": "kit.schema.json#/$defs/vector3"
+          },
+          "rotationY": {
+            "type": "number",
+            "description": "Radians about +Y; right handed rotation."
+          },
+          "floor": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "face": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "Lot edge: 0 at z=0 runs +X, then +Z, -X, -Z."
+          },
+          "bayIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Zero based straight bay index along the face. Null marks the corner at the face start."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "piece": {
+                  "pattern": "/corner$"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "bayIndex": {
+                  "type": "null"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "bayIndex": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "minItems": 1
+    },
+    "signAnchors": {
+      "type": "array",
+      "items": {
+        "$ref": "kit.schema.json#/$defs/signAnchor",
+        "type": "object",
+        "properties": {
+          "placement": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "placement"
+        ],
+        "unevaluatedProperties": false
+      }
+    },
+    "doors": {
+      "type": "array",
+      "items": {
+        "$ref": "kit.schema.json#/$defs/door",
+        "type": "object",
+        "properties": {
+          "placement": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "placement"
+        ],
+        "unevaluatedProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 1
+    }
+  }
+}

@@ -1,12 +1,12 @@
-// Public entry of the piece path. The per-parcel generator in ../generator.ts
-// is untouched and remains the shipping path.
+// Public entry of the piece kit.
 
 export { KIT, BANDS, PIECES, baysAcross, bandStack, type Band, type PieceKind } from './module.ts';
 export { buildPiece, buildPieceMesh, pieceId } from './piece.ts';
-export { assembleFromPieces, planAssembly, type AssemblyPlan } from './assemble.ts';
+export { assembleFromPieces } from './assemble.ts';
+export { planAssembly } from './plan.ts';
 export { KIT_FAMILIES } from './recipes/index.ts';
 export type {
-  AssemblyRequest, AssemblyResult, DoorRecord, Geometry, PieceManifest, PieceRequest, PieceResult, Placement, SignAnchor,
+  AssemblyPlan, AssemblyRequest, AssemblyResult, DoorRecord, Geometry, PieceManifest, PieceRequest, PieceResult, Placement, SignAnchor,
 } from './types.ts';
 
 import { BANDS, PIECES } from './module.ts';

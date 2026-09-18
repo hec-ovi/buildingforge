@@ -1,6 +1,6 @@
 {
   "name": "urbe-exterior",
-  "version": "0.56.0",
+  "version": "0.57.0",
   "private": true,
   "type": "module",
   "description": "Deterministic building exterior generator: GLB shell plus opening blueprint from a seeded request",
@@ -9,7 +9,8 @@
     "preview": "vite",
     "preview:build": "vite build",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "kit": "node --experimental-strip-types src/kit/cli.ts"
   },
   "dependencies": {
     "@gltf-transform/core": "4.5.0",

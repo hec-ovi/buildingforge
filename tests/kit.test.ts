@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-  assembleFromPieces, buildPiece, KIT, KIT_FAMILIES, pieceSet, planAssembly, ExteriorError,
+  assembleFromPieces, KIT, KIT_FAMILIES, pieceSet, planAssembly, ExteriorError,
 } from '../src/index.ts';
 import { glbJson, keys } from './support.ts';
+import { validateKitSchemas } from './kit-schema.ts';
 
 const textures = keys.textures;
 
@@ -35,22 +36,45 @@ describe.each(KIT_FAMILIES)('%s piece set', family => {
   });
 });
 
-it('gives the same piece the same bytes for the same seed', async () => {
-  const request = { family: 'faceted-bays', band: 'middle' as const, piece: 'bay' as const, seed: 'repeat' };
-  const [first, second] = await Promise.all([buildPiece(request, textures), buildPiece(request, textures)]);
-  expect(Buffer.from(second.glb).equals(Buffer.from(first.glb))).toBe(true);
-  const other = await buildPiece({ ...request, band: 'crown' }, textures);
-  expect(Buffer.from(other.glb).equals(Buffer.from(first.glb))).toBe(false);
-});
-
-it('fills an edge with two corner arms and one bay less than its bay count', () => {
-  const plan = planAssembly({ family: 'mirror-frame', buildingId: 'p1', lot: { width: 56, depth: 24 }, floors: 5 });
-  const ground = plan.placements.filter(p => p.floor === 0);
-  expect(ground.filter(p => p.piece.endsWith('/corner'))).toHaveLength(4);
-  // 56 m is seven bays: two 4 m arms and six bays. 24 m is three: two arms and two bays.
-  expect(ground.filter(p => !p.piece.endsWith('/corner'))).toHaveLength(2 * (7 - 1) + 2 * (3 - 1));
-  expect(ground.filter(p => p.piece.endsWith('/entrance-bay'))).toHaveLength(1);
-  expect(plan.bands.map(b => b.band)).toEqual(['ground', 'middle', 'middle', 'middle', 'crown']);
+it('publishes a valid JSON placement table with complete tiling and world space attachments', () => {
+  const plans = [0, 1, 2, 3].map(entranceEdge => planAssembly({
+    family: 'mirror-frame', buildingId: 'p1', lot: { width: 56, depth: 24 }, floors: 5, entranceEdge,
+  }));
+  const set = pieceSet('mirror-frame');
+  for (const [face, plan] of plans.entries()) {
+    const ground = plan.placements.filter(p => p.floor === 0);
+    expect(ground.filter(p => p.bayIndex === null)).toHaveLength(4);
+    expect(ground.filter(p => p.bayIndex !== null)).toHaveLength(2 * (7 - 1) + 2 * (3 - 1));
+    expect(ground.filter(p => p.piece.endsWith('/entrance-bay'))).toHaveLength(1);
+    expect(plan.bands.map(b => b.band)).toEqual(['ground', 'middle', 'middle', 'middle', 'crown']);
+    expect(plan.doors).toHaveLength(1);
+    expect(plan.signAnchors).toHaveLength(5);
+    for (const placement of plan.placements) {
+      expect(placement.family).toBe(plan.family);
+      const along = placement.bayIndex === null ? 0 : KIT.cornerArm + placement.bayIndex * KIT.bay;
+      const positions = [[along, 0], [56, along], [56 - along, 24], [0, 24 - along]];
+      const [x, z] = positions[placement.face]!;
+      expect(placement.position).toEqual([x, plan.bands[placement.floor]!.base, z]);
+      expect(Math.cos(placement.rotationY)).toBeCloseTo([1, 0, -1, 0][placement.face]!, 8);
+      expect(Math.sin(placement.rotationY)).toBeCloseTo([0, -1, 0, 1][placement.face]!, 8);
+    }
+    for (const record of [...plan.signAnchors, ...plan.doors]) {
+      const placement = plan.placements[record.placement]!;
+      expect(placement.face).toBe(face);
+      const piece = set.find(p => p.id === placement.piece)!;
+      const local = [...piece.signAnchors, ...piece.doors].find(r => r.id === record.id)!;
+      const rotate = ([x, y, z]: number[]) => [[x!, y!, z!], [-z!, y!, x!], [-x!, y!, -z!], [z!, y!, -x!]][face]!;
+      const offset = rotate(local.position), facing = rotate(local.facing);
+      for (let axis = 0; axis < 3; axis++) {
+        expect(record.position[axis]).toBeCloseTo(placement.position[axis]! + offset[axis]!, 8);
+        expect(record.facing[axis]).toBeCloseTo(facing[axis]!, 8);
+      }
+    }
+  }
+  const invalid = JSON.parse(JSON.stringify(plans[0]));
+  delete invalid.placements[0].rotationY;
+  validateKitSchemas([...plans.map(value => ({ schema: 'placement' as const, value })),
+    { schema: 'placement', value: invalid, valid: false }]);
 });
 
 it('refuses a lot that is not a whole number of bays', () => {
@@ -58,6 +82,10 @@ it('refuses a lot that is not a whole number of bays', () => {
     .toThrow(new RegExp(`whole number of ${KIT.bay} m bays`));
   expect(() => planAssembly({ family: 'nowhere', buildingId: 'p3', lot: { width: 24, depth: 24 }, floors: 4 }))
     .toThrow(ExteriorError);
+  const request = { family: 'mirror-frame', buildingId: 'p2', lot: { width: 24, depth: 24 }, floors: 4 };
+  expect(() => planAssembly({ ...request, floors: 2 })).toThrow(RangeError);
+  expect(() => planAssembly({ ...request, entranceEdge: 4 })).toThrow(ExteriorError);
+  expect(() => planAssembly({ ...request, floorHeight: Infinity })).toThrow(ExteriorError);
 });
 
 it('assembles one mesh per piece and keeps the nodes a consumer addresses', async () => {

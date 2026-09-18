@@ -1,0 +1,610 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://urbe.dev/exterior/kit.schema.json",
+  "title": "Exterior piece kit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "seed",
+    "module",
+    "families"
+  ],
+  "properties": {
+    "seed": {
+      "type": "string"
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bay",
+        "cornerArm",
+        "floorHeight",
+        "ribbon",
+        "bands",
+        "pieces"
+      ],
+      "properties": {
+        "bay": {
+          "const": 8
+        },
+        "cornerArm": {
+          "const": 4
+        },
+        "floorHeight": {
+          "const": 4.5
+        },
+        "ribbon": {
+          "const": 0.3
+        },
+        "bands": {
+          "const": [
+            "ground",
+            "middle",
+            "crown"
+          ]
+        },
+        "pieces": {
+          "const": [
+            "corner",
+            "bay",
+            "entrance-bay"
+          ]
+        }
+      }
+    },
+    "families": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/family"
+      },
+      "minItems": 1,
+      "maxItems": 6
+    }
+  },
+  "$defs": {
+    "vector3": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "familyId": {
+      "enum": [
+        "balcony-grid",
+        "corporate-sectors",
+        "faceted-bays",
+        "mirror-frame",
+        "mirror-shutters",
+        "white-grid"
+      ]
+    },
+    "pieceId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*/(ground|middle|crown)/(corner|bay|entrance-bay)$"
+    },
+    "signAnchor": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "position",
+        "size",
+        "facing"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "marquee",
+            "logo",
+            "screen"
+          ]
+        },
+        "position": {
+          "$ref": "#/$defs/vector3"
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "facing": {
+          "$ref": "#/$defs/vector3"
+        }
+      }
+    },
+    "door": {
+      "type": "object",
+      "required": [
+        "id",
+        "width",
+        "height",
+        "leaves",
+        "position",
+        "facing"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "leaves": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "position": {
+          "$ref": "#/$defs/vector3"
+        },
+        "facing": {
+          "$ref": "#/$defs/vector3"
+        }
+      }
+    },
+    "piece": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "band",
+        "file",
+        "size",
+        "origin",
+        "signAnchors",
+        "doors",
+        "triangles",
+        "bytes"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/pieceId"
+        },
+        "kind": {
+          "enum": [
+            "corner",
+            "bay",
+            "entrance-bay"
+          ]
+        },
+        "band": {
+          "enum": [
+            "ground",
+            "middle",
+            "crown"
+          ]
+        },
+        "file": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*/(ground|middle|crown)-(corner|bay|entrance-bay)\\.glb$",
+          "description": "Path relative to kit.json."
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "description": "Geometry bounds width, height and depth in metres, including projections, rounded to 0.00001 m. This is not the tiling step."
+        },
+        "origin": {
+          "enum": [
+            "corner-at-floor",
+            "run-start-at-floor"
+          ],
+          "description": "The GLB origin is the corner junction or bay run start on the walking surface, not its bounds minimum. +X follows the first run, +Y is up, +Z is inward. The second corner arm runs +Z."
+        },
+        "signAnchors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/signAnchor",
+            "unevaluatedProperties": false
+          }
+        },
+        "doors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/door",
+            "unevaluatedProperties": false
+          }
+        },
+        "triangles": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Complete GLB file length in bytes."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "corner"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "origin": {
+                "const": "corner-at-floor"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "origin": {
+                "const": "run-start-at-floor"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "family": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "pieces",
+        "bands",
+        "fits"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/familyId"
+        },
+        "pieces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/piece"
+          },
+          "minItems": 9,
+          "maxItems": 9,
+          "allOf": [
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "band",
+                  "kind"
+                ],
+                "properties": {
+                  "band": {
+                    "const": "ground"
+                  },
+                  "kind": {
+                    "const": "corner"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "band",
+                  "kind"
+                ],
+                "properties": {
+                  "band": {
+                    "const": "ground"
+                  },
+                  "kind": {
+                    "const": "bay"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "band",
+                  "kind"
+                ],
+                "properties": {
+                  "band": {
+                    "const": "ground"
+                  },
+                  "kind": {
+                    "const": "entrance-bay"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "band",
+                  "kind"
+                ],
+                "properties": {
+                  "band": {
+                    "const": "middle"
+                  },
+                  "kind": {
+                    "const": "corner"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "band",
+                  "kind"
+                ],
+                "properties": {
+                  "band": {
+                    "const": "middle"
+                  },
+                  "kind": {
+                    "const": "bay"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "band",
+                  "kind"
+                ],
+                "properties": {
+                  "band": {
+                    "const": "middle"
+                  },
+                  "kind": {
+                    "const": "entrance-bay"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "band",
+                  "kind"
+                ],
+                "properties": {
+                  "band": {
+                    "const": "crown"
+                  },
+                  "kind": {
+                    "const": "corner"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "band",
+                  "kind"
+                ],
+                "properties": {
+                  "band": {
+                    "const": "crown"
+                  },
+                  "kind": {
+                    "const": "bay"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "band",
+                  "kind"
+                ],
+                "properties": {
+                  "band": {
+                    "const": "crown"
+                  },
+                  "kind": {
+                    "const": "entrance-bay"
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            }
+          ]
+        },
+        "bands": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ground",
+            "middle",
+            "crown"
+          ],
+          "properties": {
+            "ground": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "floor",
+                "height"
+              ],
+              "properties": {
+                "floor": {
+                  "const": 0
+                },
+                "height": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            "middle": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "firstFloor",
+                "lastFloor",
+                "height"
+              ],
+              "properties": {
+                "firstFloor": {
+                  "const": 1
+                },
+                "lastFloor": {
+                  "const": "floors-2"
+                },
+                "height": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            },
+            "crown": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "floor",
+                "height"
+              ],
+              "properties": {
+                "floor": {
+                  "const": "floors-1"
+                },
+                "height": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              }
+            }
+          },
+          "description": "Zero based floor indices. Middle endpoints are inclusive. Heights are the default piece band heights, including the crown cap."
+        },
+        "fits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "bays",
+            "floors",
+            "atlasLots"
+          ],
+          "properties": {
+            "bays": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "minimum",
+                "maximum",
+                "step"
+              ],
+              "properties": {
+                "minimum": {
+                  "const": 2
+                },
+                "maximum": {
+                  "type": "null"
+                },
+                "step": {
+                  "const": 1
+                }
+              }
+            },
+            "floors": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "minimum",
+                "maximum",
+                "step"
+              ],
+              "properties": {
+                "minimum": {
+                  "const": 3
+                },
+                "maximum": {
+                  "type": "null"
+                },
+                "step": {
+                  "const": 1
+                }
+              }
+            },
+            "atlasLots": {
+              "const": [
+                [
+                  16,
+                  32
+                ],
+                [
+                  24,
+                  32
+                ],
+                [
+                  24,
+                  40
+                ],
+                [
+                  40,
+                  40
+                ],
+                [
+                  40,
+                  56
+                ],
+                [
+                  56,
+                  56
+                ]
+              ]
+            }
+          },
+          "description": "Each lot edge accepts any integer N >= 2 bays: 8N metres, two corner arms and N-1 straight pieces. Floors accept any integer >= 3. Null maximum means unbounded. Atlas lot width and depth are metres; either orientation fits."
+        }
+      }
+    }
+  }
+}

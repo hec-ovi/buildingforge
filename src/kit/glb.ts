@@ -64,23 +64,25 @@ async function open(name: string, slots: string[], theme: string, seed: string, 
 /** One node per part, pivots kept as translations, parents as the recipe asked. */
 function emitParts(writer: Writer, root: ReturnType<Document['createNode']>, mb: MeshBuilder): void {
   const nodes = new Map<string, ReturnType<Document['createNode']>>();
+  const parentOf = new Map<string, string | undefined>();
   const parents = new Set(mb.parts.map(p => p.parent).filter((n): n is string => !!n));
   for (const part of mb.parts) {
     if (part.prims.size === 0 && !parents.has(part.name)) continue;
-    const node = writer.doc.createNode(part.name);
+    const node = nodes.get(part.name) ?? writer.doc.createNode(part.name);
     if (part.pivot) node.setTranslation([part.pivot[0], part.pivot[1], part.pivot[2]]);
     if (part.prims.size > 0) {
-      const mesh = writer.doc.createMesh(part.name);
+      const mesh = node.getMesh() ?? writer.doc.createMesh(part.name);
       for (const [slot, prim] of [...part.prims.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) {
         if (prim.indices.length > 0) writer.addPrim(mesh, slot, prim);
       }
       if (mesh.listPrimitives().length > 0) node.setMesh(mesh);
     }
     nodes.set(part.name, node);
+    parentOf.set(part.name, part.parent);
   }
-  for (const part of mb.parts) {
-    const node = nodes.get(part.name);
-    if (node) (part.parent ? nodes.get(part.parent) ?? root : root).addChild(node);
+  for (const [name, node] of nodes) {
+    const parent = parentOf.get(name);
+    (parent ? nodes.get(parent) ?? root : root).addChild(node);
   }
 }
 
@@ -115,7 +117,7 @@ export async function writeAssemblyGlb(input: AssemblyGlbInput, options: Texture
   for (const [index, placement] of input.placements.entries()) {
     const mesh = meshes.get(placement.piece);
     if (!mesh || mesh.listPrimitives().length === 0) continue;
-    const half = placement.rotation / 2;
+    const half = placement.rotationY / 2;
     session.root.addChild(session.writer.doc.createNode(`place:${index}:${placement.piece}`)
       .setTranslation(placement.position)
       .setRotation([0, Math.sin(half), 0, Math.cos(half)])

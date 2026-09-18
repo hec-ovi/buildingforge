@@ -1,67 +1,51 @@
 # CONTRACT: piece kit
 
-Authors each registered family once as a set of repeated pieces, and places those pieces around a lot.
+Publishes nine facade pieces per family and places them around a rectangular lot.
 
-A building is not generated per parcel here. Nine pieces per family carry the whole family, and a lot decides how many times each one repeats.
+## Calls and schemas
 
-## Call and schemas
+From `src/index.ts`: `pieceSet(family, seed?)`, `buildPieceMesh(PieceRequest)`, `buildPiece(PieceRequest, TextureOptions?)`, `planAssembly(AssemblyRequest)` and `assembleFromPieces(AssemblyRequest, TextureOptions?)`. Inputs and library results: [types.ts](types.ts). Recipes: [recipe.ts](recipe.ts).
 
-From `src/index.ts`, beside the per-parcel `generate`, which is unchanged:
+`npm run kit -- --out <dir> [--families <a,b,...>] [--seed <seed>]` writes `<dir>/<family>/<band>-<kind>.glb` and one `<dir>/kit.json` containing the selected families. Seed defaults to `kit`; families default to all six. Selection is sorted and deduplicated. GLBs contain material keys and authored variants, with every recipe part retained. Invalid arguments exit 2; write errors exit 1.
 
-- `buildPieceMesh(PieceRequest): {mb, manifest}` and `buildPiece(PieceRequest, TextureOptions?): Promise<PieceResult>` build one piece.
-- `pieceSet(family, seed?): PieceManifest[]` builds all nine.
-- `planAssembly(AssemblyRequest): AssemblyPlan` decides which piece stands where, without geometry.
-- `assembleFromPieces(AssemblyRequest, TextureOptions?): Promise<AssemblyResult>` also writes the GLB.
-- Types: [types.ts](types.ts). Module constants: [module.ts](module.ts). Recipe surface: [recipe.ts](recipe.ts).
-- `KIT_FAMILIES` lists the families that have a set: `corporate-sectors`, `faceted-bays`, `white-grid`, `balcony-grid`, `mirror-shutters`, `mirror-frame`.
+- [Kit JSON schema](../../schemas/kit.schema.json): module constants, files, local signs and doors, geometry sizes, origins, triangle counts, actual file bytes, band heights and fits.
+- [Placement JSON schema](../../schemas/placement.schema.json): exactly the JSON result of `planAssembly`, including band elevations, placements and world space signs and doors.
 
-## The module
+Both schemas use draft 2020-12. Files have no paths or timestamps tied to a machine. The same seed and family give byte identical pieces and catalog metadata. The recipes currently use fixed geometry for every seed.
 
-`corner`, `bay` and `entrance-bay`, each in the `ground`, `middle` and `crown` band: nine pieces.
+## Families
 
-A bay is 8 m. A corner has two 4 m arms, one on each edge it turns. An edge of 8N metres is therefore two corner arms and N-1 bays, and Atlas lot sizes (16, 24, 32, 40, 56 m) are 2, 3, 5 and 7 bays. `baysAcross` refuses anything else. A building of F floors is one ground band, F-2 middle bands and one crown, so `bandStack` needs at least three floors. A middle band repeats any number of times; a bay repeats any number of times between two corners.
+| Family | Bay and crown |
+| --- | --- |
+| balcony-grid | Recessed loggia beside glazing, concrete cap |
+| corporate-sectors | Panel wings around a recessed window bank, ivory shield |
+| faceted-bays | Three glass planes between ivory piers, concrete cap |
+| mirror-frame | Deep glazed slot between graphite piers, stepped head |
+| mirror-shutters | Glazed ribbon and bronze mullions around a service spine, cornice |
+| white-grid | Ivory piers and diagonal brace over glazing, ivory cap |
 
-Piece frame: +X is the run of the first arm, +Y is up, +Z is inward, origin at the run start on the walking surface. A corner's second arm leaves the same origin along +Z. `Placement` gives a translation and a turn about +Y, so one mesh draws every instance.
+Garden taper remains a landmark: [constraint](../../docs/ISSUES.md#garden-taper-stays-a-landmark-design). Faceted bays and balcony grid preserve their reference element order at the 8 m module; white grid uses one brace per storey.
 
-## How the pieces tile
+## Module and placement
 
-Two authoring rules, and `PieceManifest.sections` publishes the evidence as four hashes of the merged outline the piece presents on each boundary plane.
+[Module constants](module.ts): 8 m bay, two 4 m corner arms, default 4.5 m floor pitch and 0.3 m ribbon. Nine pieces combine `corner`, `bay`, `entrance-bay` with `ground`, `middle`, `crown`. An edge of 8N metres contains two corner arms and N-1 straight pieces. N is any integer from two. Every family fits Atlas lots 16x32, 24x32, 24x40, 40x40, 40x56 and 56x56 in either orientation.
 
-- A run boundary falls in the middle of a joint pier, mullion, panel course or glazed cell, and each half leaves off the face its neighbour supplies. `sections.start` equals `sections.end` for every piece of a band, so any piece of that band meets any other. Material is part of the horizontal section: pieces of one band share their finishes.
-- A band boundary falls in the middle of the floor ribbon, and each half leaves off the cap the band above or below supplies. `ground.top`, `middle.bottom`, `middle.top` and `crown.bottom` are equal per piece kind. `ground.bottom` is the street and `crown.top` is the sky, so both are free.
+F is any integer from three: ground at floor 0, middle at 1 through F-2, crown at F-1. White grid has a 5 m ground band; other ground and middle bands use 4.5 m. Crown heights include the cap. The catalog publishes exact heights. Assembly height overrides require matching custom pieces; the CLI exports recipe defaults.
 
-The measured result on a 56 x 40 m, 20 floor assembly of each family: no coincident face pair anywhere, and scanning the outer facade plane at every 0.05 m of height finds no uncovered interval narrower than 0.12 m, so no joint leaves a sliver.
+Metres, +Y up, +X along a bay, +Z inward. The local origin is the bay run start or corner junction at the floor; a corner's second arm runs +Z. `size` is the geometry bounds extent including projections, not the tiling step. Signs and doors in kit.json use this local frame.
 
-## What a piece carries and what it does not
+The lot starts at [0,0,0]. Faces 0 through 3 run +X, +Z, -X, -Z around its perimeter. Placement `rotationY` is radians about +Y. `bayIndex` is zero based along that face, or null for the corner at its start. `piece` matches the catalog's full family/band/kind id. World sign and door records include their index in `placements`; local record ids repeat between instances. Planning constructs piece metadata and returns JSON, with no GLB output.
 
-A piece carries its own skin, its openings and glazing, its inner lining and its family decoration. It does not carry signage: `signAnchors` publishes each sign field as a position, a width and height on the facing plane, and an outward unit normal, and the consumer letters the building. It does not carry floor plates either: those belong to the building.
+## Invariants and ownership
 
-The entrance-bay ground piece carries `door:<id>/frame` and `door:<id>/leaf:<n>`, each leaf on its own hinge node. `assembleFromPieces` places it once and writes those nodes in building coordinates, so they stay addressable. It also writes `floor:<index>/slab` per storey, `roof:deck`, and `anchor:<id>` for each requested wire anchor.
+A bay tiles with itself and its corners. `PieceManifest.sections.start` and `.end` agree across every kind in a band. Ground top, middle bottom and top, and crown bottom agree per kind. Half piers omit touching end faces; half ribbons omit touching caps.
 
-Glazing is a host role. A recipe's `materials` are the registered family's own role slots plus the shared `glass` key.
+Sign anchors are published, never baked: centre, width and height, outward unit normal. Pieces contain facade, lining, decoration and glazing. A ground entrance contains addressable `door:<id>/frame` and `door:<id>/leaf:<n>` nodes. Floor plates belong to the building. `assembleFromPieces` shares each piece mesh and writes `floor:<index>/slab`, `roof:deck`, doors and requested `anchor:<id>` nodes in building coordinates.
 
-A piece's geometry depends only on its family, band, kind and band height, so the same request gives byte-identical geometry and GLB bytes for any seed. The seed is recorded on the manifest, for a caller keying a cache.
+Unknown families, invalid heights and entrance faces, or missing wire anchor edges raise `ExteriorError` with `E_SCHEMA`. Missing material roles raise `E_MATERIAL_UNRESOLVED`. Incomplete bay extents or fewer than three floors raise `RangeError`.
 
-## What each family's set looks like
+## Dependencies and checks
 
-| Family | The 8 m bay | The corner | Crown |
-| --- | --- | --- | --- |
-| corporate-sectors | two 2 m panel columns meeting at the boundary in a 0.04 m joint, around a 4 m bank recessed 1 m with slit windows and a projecting cassette | the panel wing turning the angle, one column per 2 m | pale ivory shield on the 2 m panel grid under a closed metal top |
-| faceted-bays | 1 m ivory pier split by the boundary, then a three-plane glass bay: 1.5 m cheeks at 45 degrees and a 4 m front between concrete sill and head | ivory panel column with the family's 0.4 m vertical slot | 0.32 m concrete cap |
-| white-grid | 1.5 m ivory pier split by the boundary, 6.5 m of glazing in four panes, one 0.14 m ivory brace across it, reflective floor ribbons | ivory column with its own glazed return | 0.28 m ivory cap |
-| balcony-grid | 1 m pier split by the boundary, a 3 m loggia recessed 2 m with rail and deck, a 1 m dividing pier and a 3 m paired glazed room | 3.5 m coated metal end pier | 0.3 m concrete cap |
-| mirror-shutters | a 3 m service spine with three 0.55 m windows between the two halves of a 5 m ribbon cell, bronze mullions at 0.625 m with a half bar on the boundary | bronze bank handing over to the ribbon | 0.5 m continuous cornice |
-| mirror-frame | 3 m graphite pier split by the boundary and a 5 m slot glazed 0.65 m back | solid graphite end pier | 0.73 m stepped pier head |
+[Building families](../families/CONTRACT.md) supply recipe dimensions and roles. [Exterior](../../CONTRACT.md) supplies welding and GLB serialization. Materials resolves published keys at consumption time; the CLI reads no catalog.
 
-Two references are re-proportioned to the 8 m module and say so here. faceted-bays authors its 12 m reference cell as 8 m, keeping every element and their order. balcony-grid authors its 17 m reference repeat as 8 m the same way. white-grid's reference brace crosses a three-floor group; a middle band has to tile at any floor count, so the brace spans one bay per storey and the bays read as one continuous ivory diagonal.
-
-## Errors
-
-`ExteriorError` with `E_SCHEMA` for an unknown family, a non-positive band height or an anchor on a missing edge, and `E_MATERIAL_UNRESOLVED` for a role a family does not define. `RangeError` for a lot that is not a whole number of 8 m bays, or fewer than three floors.
-
-## Dependencies
-
-- [Building families](../families/CONTRACT.md): each recipe takes its dimensions and material roles from the registered family it authors.
-- [Exterior](../../CONTRACT.md): welding, measurement and material resolution.
-- [Materials](../../../materials/CONTRACT.md): catalog slots.
-- Check: `npm test -- tests/kit.test.ts`.
+`npm test -- tests/kit.test.ts tests/kit-cli.test.ts --maxWorkers=1` checks the contract. Schema checks use the installed Python `jsonschema` draft 2020-12 validator.

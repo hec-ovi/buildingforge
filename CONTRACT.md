@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.56.0.
+Version: 0.57.0.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint, and authors each family as a set of repeated pieces a consumer assembles.
 
@@ -45,7 +45,11 @@ Paired-family dark windows use opaque reflective black glass and omit scenic roo
 
 ## Piece kit
 
-Beside the per-parcel call, each of the six registered families is authored once as [a set of nine pieces](src/kit/CONTRACT.md): `corner`, `bay` and `entrance-bay` in a `ground`, `middle` and `crown` band. A bay is 8 m and a corner has two 4 m arms, so an Atlas lot edge of 8N metres is two arms and N-1 bays and nothing is stretched to fit. A middle band repeats any number of times, a bay repeats any number of times between two corners, and `PieceManifest.sections` publishes the outline each piece presents on each boundary so a caller can check two pieces mate before assembling. Signage is never baked: pieces publish sign anchors with position, size and facing. `assembleFromPieces` places the pieces and writes `floor:<index>/slab`, `roof:deck`, `door:<id>/frame`, `door:<id>/leaf:<n>` and `anchor:<id>` in building coordinates, drawing one mesh per distinct piece however many times it repeats. `generate` is unchanged and remains the path a consumer uses today.
+`npm run kit -- --out <dir> [--families <a,b,...>] [--seed <seed>]` writes nine material key GLBs per family to `<dir>/<family>/<band>-<kind>.glb` and one `<dir>/kit.json`. The default seed is `kit`; omitted families selects all six: `balcony-grid`, `corporate-sectors`, `faceted-bays`, `mirror-frame`, `mirror-shutters`, `white-grid`. Garden taper remains a landmark design, with its geometric constraint in [ISSUES](docs/ISSUES.md#garden-taper-stays-a-landmark-design).
+
+[kit.schema.json](schemas/kit.schema.json) describes module constants, piece files, geometry sizes, origins, local signs and doors, byte and triangle counts, band heights and family fits. [placement.schema.json](schemas/placement.schema.json) describes `planAssembly`: placements with family, piece, position, `rotationY`, floor, face and bay index, plus signs and doors in world space. Both use JSON Schema draft 2020-12. [The kit contract](src/kit/CONTRACT.md) defines frames and calls.
+
+The same seed and family give byte identical pieces. An 8 m bay tiles with itself and its 4 m corner arms; band boundaries also mate. Floor zero uses ground, floors 1 through F-2 use middle, and F-1 uses crown. All six families accept integer edge bay counts from two and floor counts from three, including the six published Atlas lot sizes. Sign anchors are published, never baked. Engine instances the pieces from the placement table; `generate` supplies landmark shells. `assembleFromPieces` also writes replaceable slabs, roof, addressable doors and wire anchors.
 
 The six [registered building families](src/families/CONTRACT.md) select authored facade plans through `options.architecture`. Their material roles override the host, with structural wall backing at `family.wallBackingDepth` (default 0.12 m inward). The lining reserves at least another 0.12 m behind that backing. Ground fields are opaque unless explicit windows are supplied. Apertures reaching above ground fix rectangular parcel faces and exact connection bases; unsupported fixed shapes return `E_SCHEMA`. Basement-only cuts keep their original parcel faces and permit free upper family shapes. Required cuts remain clear. Multiple window rows use floor-relative sills and section-relative horizontal fields. Curved sections keep their authored pane spans, and narrow service windows use appropriately spaced room fixtures.
 

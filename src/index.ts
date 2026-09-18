@@ -16,5 +16,5 @@ export {
 } from './kit/index.ts';
 export type {
   Band, PieceKind, PieceRequest, PieceResult, PieceManifest, SignAnchor, DoorRecord,
-  AssemblyRequest, AssemblyResult, Placement,
+  AssemblyPlan, AssemblyRequest, AssemblyResult, Placement,
 } from './kit/index.ts';

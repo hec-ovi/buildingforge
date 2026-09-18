@@ -74,35 +74,18 @@ parcel at full detail:
 these figures, so no parcel loses its architecture. The largest shell in the city
 is a corporate-sectors tower at 308,760 triangles and 17.28 MB.
 
-### Engine and Interior: the piece path is ready to consume (2026-09-17)
+### Engine and Interior: consume the piece catalog
 
-`assembleFromPieces` is live beside `generate`, which is unchanged. Engine's
-current per-parcel consumption keeps working; nothing has to move yet.
+`npm run kit -- --out out/kit` publishes six families and `kit.json` under the [kit schema](../schemas/kit.schema.json). `planAssembly` returns the [placement schema](../schemas/placement.schema.json), including world space signs and doors. Engine instances these files; `generate` serves landmarks.
 
-What a consumer needs to know before adopting it:
+Lot edges accept 8N metres for integers N from two; floors accept integers from three. Catalog band heights include the crown cap. White grid ground is 5 m; other ground and middle bands are 4.5 m. Floor slabs, roof and wire anchors belong to the building. Ground entrance pieces contain their door nodes. `assembleFromPieces` also supplies building parts and addressable doors.
 
-- A lot edge must be a whole number of 8 m bays, at least two. Atlas lot sizes
-  (16, 24, 32, 40, 56 m) all qualify. An edge of 8N metres is two 4 m corner
-  arms and N-1 bays; a building of F floors is one ground band, F-2 middle
-  bands and one crown, so F is at least three.
-- `planAssembly` returns the placements without building geometry: a piece id,
-  a floor, a translation and a turn about +Y. Engine can draw those instanced
-  from nine meshes per family and skip the assembled GLB entirely.
-- `floor:<index>/slab`, `roof:deck`, `door:<id>/frame`, `door:<id>/leaf:<n>` and
-  `anchor:<id>` belong to the building, not to a piece. `assembleFromPieces`
-  writes them in building coordinates; a consumer that places pieces itself has
-  to write them itself, or call the assembler for them.
-- Signage is not baked. `AssemblyResult.signAnchors` gives each sign field a
-  position, a width and height on its facing plane, and an outward normal.
-- Measured keys-only at 0.56.0: a family's complete set is 66.8 KiB
-  (mirror-frame) to 145.3 KiB (mirror-shutters), 631 KiB for all six, against
-  the 3.53 MB mean per-parcel shell. A 56 x 40 m tower of 20 floors is 480
-  instances of 9 pieces: mirror-frame 698 unique triangles and 0.12 MB against
-  98,688 triangles and 6.53 MB from `generate`, corporate-sectors 880 and
-  0.14 MB against 353,348 and 21.86 MB.
-- `KitCatalog.js` grouping has nothing left to group once buildings assemble
-  from bays, as the kit design note says. Its lot frame math still applies.
+Open for Interior: one interior per band kind, aligned with the published band heights and piece boundaries.
 
-Open for Interior: one interior per band kind is the next step, and the bands
-are `ground`, `middle` and `crown` at 4.5 m (white-grid's ground is 5 m). The
-piece manifest publishes each band's height and shell thickness.
+## garden-taper stays a landmark design
+
+The planted spine keeps a fixed width in complete 10 m pairs while both glazed wings narrow on every upper floor.
+Wing slope depends on base width and total upper height, ending in 1.5 m roof tips with at least 0.3 m setback per metre of rise.
+Rigid 8 m bays and identical 4 m corner arms cannot preserve the fixed spine and the changing wing widths under translation and Y rotation.
+A crown only taper removes the continuous wing slope; a fixed floor count still leaves lot dependent slopes and different middle floor sections.
+The design requires separate spine, wing and sloped corner pieces with another placement contract, so it remains a landmark generated per parcel.

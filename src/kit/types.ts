@@ -77,13 +77,27 @@ export interface PieceResult {
 
 /** One piece put somewhere on a building: translation plus a turn about Y. */
 export interface Placement {
+  family: string;
   /** Manifest id of the piece this instance draws. */
   piece: string;
   /** Storey this instance belongs to, ground being 0. */
   floor: number;
   position: P3;
   /** Radians about +Y. */
-  rotation: number;
+  rotationY: number;
+  /** Lot edge: 0 runs +X, then +Z, -X and -Z. */
+  face: number;
+  /** Zero based bay along the face; null identifies its starting corner. */
+  bayIndex: number | null;
+}
+
+/** JSON output described by schemas/placement.schema.json. */
+export interface AssemblyPlan {
+  family: string;
+  bands: { band: Band; floor: number; base: number; height: number }[];
+  placements: Placement[];
+  signAnchors: (SignAnchor & { placement: number })[];
+  doors: (DoorRecord & { placement: number })[];
 }
 
 export interface AssemblyRequest {
@@ -106,8 +120,8 @@ export interface AssemblyResult {
   glb: Uint8Array;
   pieces: PieceManifest[];
   placements: Placement[];
-  signAnchors: (SignAnchor & { placement: number })[];
-  doors: (DoorRecord & { placement: number })[];
+  signAnchors: AssemblyPlan['signAnchors'];
+  doors: AssemblyPlan['doors'];
   /** What the assembled building costs: unique piece geometry plus per-building parts. */
   geometry: Geometry & { instances: number; uniquePieces: number };
   textures: { mode: TextureMode; reason?: string };

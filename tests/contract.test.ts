@@ -1,4 +1,5 @@
 import { expect, it } from 'vitest';
+import release from '../package.json' with { type: 'json' };
 import { generate } from '../src/index.ts';
 import schema from '../schemas/building-request.schema.json' with { type: 'json' };
 import { fixture, glbIO, keys } from './support.ts';
@@ -14,7 +15,7 @@ it('returns reproducible versioned floors, materials and a replaceable GLB shell
   const changed = await generate({ ...request, seed: 'another-city' }, keys);
   expect(Buffer.from(first.glb).equals(Buffer.from(changed.glb))).toBe(false);
   const bp = first.blueprint;
-  expect(bp.version).toBe('0.56.0');
+  expect(bp.version).toBe(release.version);
   expect(bp).toMatchObject({ buildingId: request.buildingId, seed: request.seed });
   expect(bp.floors).toHaveLength(request.building.floors + (request.building.basements ?? 0));
   expect(bp.floors.find(f => f.index === 0)!.elevation).toBe(0);
