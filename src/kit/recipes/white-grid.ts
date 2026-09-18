@@ -12,7 +12,7 @@ import { cornerFillet, type Cell } from '../cell.ts';
 import { KIT } from '../module.ts';
 import { entrance, jointPier, jointRibbon, panes, signField, type Opening } from '../skin.ts';
 import type { KitRecipe, PieceContext } from '../recipe.ts';
-import { bandCaps, HOST_GLASS, liningStart, ribbonEdges, shellBody, storeyOf } from './common.ts';
+import { bandCaps, HOST_GLASS, ribbonEdges, shellBody, storeyOf } from './common.ts';
 
 const PIER = dimensions.pier;
 const RECESS = 0.3;
@@ -37,24 +37,24 @@ function brace(context: PieceContext, cell: Cell, u0: number, u1: number, storey
   const sink = context.part('shell');
   const ivory = context.material('column');
   const y0 = dimensions.sill, y1 = storey - dimensions.head;
-  const rise = (y1 - y0) / (u1 - u0);
+  const rise = (y1 - y0 - 0.34) / (u1 - u0);
   const steps = 6;
   for (let i = 0; i < steps; i++) {
     const a = u0 + (u1 - u0) * i / steps, b = u0 + (u1 - u0) * (i + 1) / steps;
-    cell.solid(sink, ivory, a, b, y0 + (a - u0) * rise, y0 + (b - u0) * rise + 0.34, BRACE, 0, { back: false });
+    cell.solid(sink, ivory, a, b, y0 + (a - u0) * rise, y0 + (b - u0) * rise + 0.34, BRACE, 0);
   }
 }
 
-function bay(context: PieceContext, cell: Cell, index: number): void {
+function bay(context: PieceContext, cell: Cell): void {
   const { band, height } = context;
   const storey = band === 'crown' ? storeyOf(height, CAP) : height;
   const sink = context.part('shell');
   if (band === 'ground') {
-    shellBody(context, cell, { height, recess: RECESS, wallRole: 'ground', liningStart: liningStart(context, index, RECESS) });
+    shellBody(context, cell, { height, recess: RECESS, wallRole: 'ground' });
     podium(context, cell);
   } else {
     shellBody(context, cell, {
-      height, recess: RECESS, liningStart: liningStart(context, index, RECESS),
+      height, recess: RECESS,
       openings: [glazed(GLASS_START, GLASS_END, storey)],
     });
     brace(context, cell, GLASS_START, GLASS_END, storey);
@@ -67,7 +67,7 @@ function bay(context: PieceContext, cell: Cell, index: number): void {
   });
   if (band === 'crown') {
     cell.solid(sink, context.material('roof'), 0, cell.length, storey, height, dimensions.relief, 0,
-      { back: false, bottom: false, start: false, end: false });
+      { start: false, end: false });
   }
 }
 
@@ -77,44 +77,44 @@ function podium(context: PieceContext, cell: Cell): void {
   const split = context.height * BASE_FRACTION;
   const fascia = context.height - RIBBON / 2;
   cell.solid(sink, context.material('wall-trim'), 0, cell.length, split, fascia - 0.35, 0.08, 0,
-    { back: false, start: false, end: false });
+    { start: false, end: false });
   // The ivory fascia stops clear of the band boundary, which the floor ribbon owns.
   cell.solid(sink, context.material('column'), 0, cell.length, fascia - 0.35, fascia, dimensions.relief - 0.02, 0,
-    { back: false, start: false, end: false });
+    { start: false, end: false });
 }
 
 /** A corner is an ivory panel column with its own glazed return. */
-function cornerArm(context: PieceContext, cell: Cell, index: number): void {
+function cornerArm(context: PieceContext, cell: Cell): void {
   const { band, height } = context;
   const storey = band === 'crown' ? storeyOf(height, CAP) : height;
   const sink = context.part('shell');
   const column = 1.5;
   if (band === 'ground') {
-    shellBody(context, cell, { height, recess: RECESS, wallRole: 'ground', liningStart: liningStart(context, index, RECESS) });
+    shellBody(context, cell, { height, recess: RECESS, wallRole: 'ground' });
     podium(context, cell);
   } else {
     shellBody(context, cell, {
-      height, recess: RECESS, liningStart: liningStart(context, index, RECESS),
+      height, recess: RECESS,
       openings: [glazed(column, cell.length - PIER / 2, storey)],
     });
     brace(context, cell, column, cell.length - PIER / 2, storey);
   }
   cell.solid(sink, context.material(band === 'ground' ? 'ground' : 'column'), 0, column, 0, storey, dimensions.relief, 0,
-    { ...bandCaps(band), back: false, start: false });
+    { ...bandCaps(band), start: false });
   cell.solid(sink, context.material(band === 'ground' ? 'ground' : 'column'), cell.length - PIER / 2, cell.length, 0, storey, dimensions.relief, 0,
-    { ...bandCaps(band), back: false, end: false });
+    { ...bandCaps(band), end: false });
   jointRibbon(sink, cell, context.material('wall-trim'), {
     u0: column, u1: cell.length - PIER / 2, height: RIBBON, depth: 0.1, bandHeight: height, ...ribbonEdges(band),
   });
   if (band === 'crown') {
     cell.solid(sink, context.material('roof'), 0, cell.length, storey, height, dimensions.relief, 0,
-      { back: false, bottom: false, start: false, end: false });
+      { start: false, end: false });
   }
 }
 
-function entranceBay(context: PieceContext, cell: Cell, index: number): void {
+function entranceBay(context: PieceContext, cell: Cell): void {
   const { band, height } = context;
-  bay(context, cell, index);
+  bay(context, cell);
   if (band !== 'ground') {
     signField(context, cell, {
       id: band === 'middle' ? 'sign:logo' : 'sign:screen', kind: band === 'middle' ? 'logo' : 'screen',
@@ -130,16 +130,21 @@ export const recipe: KitRecipe = {
   family: family.id,
   materials: { ...family.materials, glass: HOST_GLASS },
   heights: { ground: family.groundFloorHeight ?? 5, middle: KIT.floorHeight, crown: KIT.floorHeight + CAP },
-  backing: RECESS,
+  backing: family.wallBackingDepth ?? 0.12,
   build(context) {
-    for (const [index, cell] of context.runs.entries()) {
-      if (context.piece === 'corner') cornerArm(context, cell, index);
-      else if (context.piece === 'entrance-bay') entranceBay(context, cell, index);
-      else bay(context, cell, index);
+    for (const cell of context.runs) {
+      if (context.piece === 'corner') cornerArm(context, cell);
+      else if (context.piece === 'entrance-bay') entranceBay(context, cell);
+      else bay(context, cell);
     }
     if (context.piece === 'corner') {
       cornerFillet(context.part('shell'), context.material(context.band === 'ground' ? 'ground' : 'column'),
         dimensions.relief, 0, context.height, bandCaps(context.band));
+      if (context.band === 'ground') {
+        const fascia = context.height - RIBBON / 2;
+        cornerFillet(context.part('shell'), context.material('wall-trim'), 0.08, context.height * BASE_FRACTION, fascia - 0.35);
+        cornerFillet(context.part('shell'), context.material('column'), dimensions.relief - 0.02, fascia - 0.35, fascia);
+      }
     }
   },
 };

@@ -2,13 +2,12 @@
 // recessed glazing, the pier a run boundary cuts in half, the ribbon a band
 // boundary cuts in half, and the entrance a consumer opens by node.
 //
-// A piece is closed by its outer wall plane, the reveals of each opening, the
-// glazing, and an inner lining on the glazing plane. Lining and glass are
-// coplanar, so the shell has one thickness and no open edge.
+// Opening reveals join the panel to the structural backing. Glass panes and
+// decorative members have closed surfaces of their own.
 
 import { cutWall, rectHole, type Hole } from '../mesh/wallcut.ts';
 import type { PartSink, V3 } from '../mesh/primitives.ts';
-import type { Cell, Ends } from './cell.ts';
+import { Cell, type Ends } from './cell.ts';
 import type { PieceContext } from './recipe.ts';
 import { splitMaterialSlot } from '../materials/slot.ts';
 
@@ -26,7 +25,7 @@ export interface WallSpec {
 /** A plane on the face, cut around its openings. */
 export function wall(sink: PartSink, cell: Cell, material: string, spec: WallSpec): void {
   const depth = spec.depth ?? 0, facing = spec.facing ?? 1;
-  const holes: Hole[] = (spec.openings ?? []).map(o => rectHole(o.u0 - spec.u0, o.y0, o.u1 - o.u0, o.y1 - o.y0));
+  const holes: Hole[] = [...(spec.openings ?? []), ...cell.openings].map(o => rectHole(o.u0 - spec.u0, o.y0, o.u1 - o.u0, o.y1 - o.y0));
   const n: V3 = [cell.outward[0] * facing, 0, cell.outward[1] * facing];
   for (const piece of cutWall(spec.u1 - spec.u0, spec.y0, spec.y1, holes)) {
     const at = (p: [number, number]) => cell.point(spec.u0 + p[0], p[1], depth);
@@ -36,34 +35,36 @@ export function wall(sink: PartSink, cell: Cell, material: string, spec: WallSpe
 }
 
 /**
- * Reveals from the face plane back to the glazing, the glass, and its mullions.
+ * Reveals to the structural backing, closed glass panes and mullions.
  * `ends` drops a jamb reveal where a ribbon runs on across a run boundary.
  */
 export function glazing(
   context: PieceContext, sink: PartSink, cell: Cell, opening: Opening,
   o: { glass: string | null; frame: string; face?: number; recess: number; mullion?: number; ends?: Ends },
 ): void {
-  const face = o.face ?? 0, back = face - o.recess;
+  const face = o.face ?? 0, glassDepth = face - o.recess;
+  const back = o.glass === null ? glassDepth : -context.backing;
   const { u0, u1, y0, y1 } = opening;
-  const uv: [number, number][] = [[0, 0], [o.recess, 0], [o.recess, 1], [0, 1]];
-  const reveal = (a: V3, b: V3, c: V3, d: V3, n: V3) => sink.quadFacing(o.frame, a, b, c, d, n, uv);
+  const uv: [number, number][] = [[0, 0], [Math.abs(face - back), 0], [Math.abs(face - back), 1], [0, 1]];
+  const sign = back <= face ? 1 : -1;
+  const reveal = (a: V3, b: V3, c: V3, d: V3, n: V3) => sink.quadFacing(o.frame, a, b, c, d, n.map(v => v * sign) as V3, uv);
   if (o.ends?.start !== false) reveal(cell.point(u0, y0, face), cell.point(u0, y0, back), cell.point(u0, y1, back), cell.point(u0, y1, face), cell.axis);
   if (o.ends?.end !== false) reveal(cell.point(u1, y0, face), cell.point(u1, y0, back), cell.point(u1, y1, back), cell.point(u1, y1, face), [-cell.axis[0], 0, -cell.axis[2]]);
-  reveal(cell.point(u0, y0, face), cell.point(u1, y0, face), cell.point(u1, y0, back), cell.point(u0, y0, back), [0, 1, 0]);
-  reveal(cell.point(u0, y1, face), cell.point(u1, y1, face), cell.point(u1, y1, back), cell.point(u0, y1, back), [0, -1, 0]);
+  if (o.ends?.bottom !== false) reveal(cell.point(u0, y0, face), cell.point(u1, y0, face), cell.point(u1, y0, back), cell.point(u0, y0, back), [0, 1, 0]);
+  if (o.ends?.top !== false) reveal(cell.point(u0, y1, face), cell.point(u1, y1, face), cell.point(u1, y1, back), cell.point(u0, y1, back), [0, -1, 0]);
   if (o.glass === null) return;
-  cell.plate(sink, o.glass, u0, u1, y0, y1, back);
+  cell.solid(sink, o.glass, u0, u1, y0, y1, glassDepth + 0.01, glassDepth, o.ends);
   const count = opening.panes ?? 1;
   context.opening({
     kind: 'window', position: cell.point((u0 + u1) / 2, y0), facing: cell.normal,
     width: u1 - u0, height: y1 - y0, panes: { cols: count, rows: 1 },
     material: splitMaterialSlot(o.glass)[0],
-    glazing: { offset: 0, sill: 0, width: u1 - u0, height: y1 - y0, glassDepth: -back, housingBackDepth: -back },
+    glazing: { offset: 0, sill: 0, width: u1 - u0, height: y1 - y0, glassDepth: -glassDepth, housingBackDepth: Math.max(-glassDepth, context.backing) },
   });
   const bar = o.mullion ?? 0.08;
   for (let i = 1; i < count; i++) {
     const u = u0 + (u1 - u0) * i / count;
-    cell.solid(sink, o.frame, u - bar / 2, u + bar / 2, y0, y1, back + bar, back, { back: false });
+    cell.solid(sink, o.frame, u - bar / 2, u + bar / 2, y0, y1, glassDepth + bar, glassDepth);
   }
 }
 
@@ -73,7 +74,7 @@ export function glazing(
  */
 export function jointPier(sink: PartSink, cell: Cell, material: string, o: { width: number; depth: number; y0: number; y1: number; caps?: Ends }): void {
   const half = o.width / 2;
-  const caps = { bottom: o.caps?.bottom, top: o.caps?.top, back: false as const };
+  const caps = { bottom: o.caps?.bottom, top: o.caps?.top };
   cell.solid(sink, material, 0, half, o.y0, o.y1, o.depth, 0, { ...caps, start: false });
   cell.solid(sink, material, cell.length - half, cell.length, o.y0, o.y1, o.depth, 0, { ...caps, end: false });
 }
@@ -91,15 +92,10 @@ export function jointRibbon(
   o: { u0: number; u1: number; height: number; depth: number; bandHeight: number; bottom?: RibbonEdge; top?: RibbonEdge; ends?: Ends },
 ): void {
   const half = o.height / 2;
-  const ends = { start: o.ends?.start, end: o.ends?.end, back: o.ends?.back ?? false };
+  const ends = { start: o.ends?.start, end: o.ends?.end, back: o.ends?.back };
   const bottom = o.bottom ?? 'joint', top = o.top ?? 'joint';
   if (bottom !== 'none') cell.solid(sink, material, o.u0, o.u1, 0, half, o.depth, 0, { ...ends, bottom: bottom === 'closed' });
   if (top !== 'none') cell.solid(sink, material, o.u0, o.u1, o.bandHeight - half, o.bandHeight, o.depth, 0, { ...ends, top: top === 'closed' });
-}
-
-/** The inner lining, coplanar with the glazing, cut around the same openings. */
-export function lining(sink: PartSink, cell: Cell, material: string, spec: WallSpec & { depth: number }): void {
-  wall(sink, cell, material, { ...spec, facing: -1 });
 }
 
 const LEAF_THICKNESS = 0.06;
@@ -112,6 +108,7 @@ export function entrance(
   context: PieceContext, cell: Cell,
   o: { id: string; u: number; width: number; height: number; leaves?: number; jamb?: number; glass: string; frame: string; depth?: number; face?: number },
 ): void {
+  cell = new Cell(cell.origin, cell.run, cell.outward, cell.length);
   const leaves = o.leaves ?? 2;
   const jamb = o.jamb ?? 0.14, depth = o.depth ?? 0.22, face = o.face ?? 0;
   const u0 = o.u - o.width / 2, u1 = o.u + o.width / 2;

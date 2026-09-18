@@ -1,15 +1,14 @@
 // Builds one piece of a family's set and measures what it costs.
 
-import { MeshBuilder, type V3 } from '../mesh/primitives.ts';
+import type { MeshBuilder, V3 } from '../mesh/primitives.ts';
 import { measureRuntime } from '../glb/measure.ts';
-import { ExteriorError } from '../core/errors.ts';
-import { bayCell, cornerCells, type Cell } from './cell.ts';
-import { KIT, type Band, type PieceKind } from './module.ts';
-import { recipeFor } from './recipes/index.ts';
+import type { Cell } from './cell.ts';
+import type { Band, PieceKind } from './module.ts';
 import { writePieceGlb } from './glb.ts';
-import type { PieceContext } from './recipe.ts';
-import type { PieceOpening, PieceManifest, PieceRequest, PieceResult, SignAnchor } from './types.ts';
+import type { PieceManifest, PieceRequest, PieceResult } from './types.ts';
 import type { TextureOptions } from '../materials/apply.ts';
+import { authorPiece } from './author.ts';
+import { mateBands } from './seams.ts';
 
 export interface BuiltPiece { mb: MeshBuilder; manifest: PieceManifest }
 
@@ -19,33 +18,8 @@ export function pieceId(family: string, band: Band, piece: PieceKind): string {
 
 /** Geometry and manifest of one piece, without serializing it. */
 export function buildPieceMesh(request: PieceRequest): BuiltPiece {
-  const recipe = recipeFor(request.family);
-  const band = request.band, kind = request.piece;
-  const seed = request.seed ?? 'kit';
-  const height = request.height ?? recipe.heights[band];
-  if (!(height > 0)) throw new ExteriorError('E_SCHEMA', `piece height must be positive: ${height}`);
-  const runs: Cell[] = kind === 'corner' ? cornerCells(KIT.cornerArm) : [bayCell(KIT.bay)];
-  const mb = new MeshBuilder();
-  const anchors: SignAnchor[] = [];
-  const openings: PieceOpening[] = [];
-  const context: PieceContext = {
-    family: recipe.family, band, piece: kind, runs, height,
-    material: (role) => {
-      const slot = recipe.materials[role];
-      if (!slot) throw new ExteriorError('E_MATERIAL_UNRESOLVED', `${recipe.family} has no material role "${role}"`, { role });
-      return slot;
-    },
-    part: (name, options) => mb.part(name, options ?? {}),
-    anchor: (anchor) => anchors.push(anchor),
-    opening: (opening) => {
-      if (opening.width <= 0 || opening.height <= 0 || opening.position[1] < 0
-        || opening.position[1] + opening.height > height) {
-        throw new ExteriorError('E_SCHEMA', 'piece height cannot contain its openings');
-      }
-      openings.push({ ...opening, id: opening.id ?? `window:${openings.length}` });
-    },
-  };
-  recipe.build(context);
+  const { recipe, band, kind, seed, height, runs, mb, anchors, openings } = authorPiece(request);
+  mateBands(mb, recipe.family, kind, band, height);
   const geometry = measureRuntime(mb);
   const manifest: PieceManifest = {
     id: pieceId(recipe.family, band, kind),

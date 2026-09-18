@@ -1,5 +1,7 @@
 # Changelog
 
+0.58.2: balcony ground bands carry the loggia section, white grid middle pieces measure 4.5 m, and every kit family has backing with clear openings and watertight seams.
+
 0.58.1: every kit family accepts two floors with the crown directly on the ground band and matching blueprint heights and openings.
 
 0.58.0: kit assemblies accept parcel requests and publish the shared blueprint from authored piece openings.

@@ -14,6 +14,8 @@ export interface PieceContext {
   readonly runs: Cell[];
   /** Floor-to-floor height of the band, a crown's cap included. */
   readonly height: number;
+  /** Inward plane of the family's structural wall. */
+  readonly backing: number;
   /** Final catalog slot for a family role. */
   material(role: string): string;
   part(name: string, options?: { parent?: string; pivot?: [number, number, number]; keepNode?: boolean }): PartSink;
@@ -27,7 +29,7 @@ export interface KitRecipe {
   materials: Record<string, string>;
   /** Preferred floor-to-floor heights; a caller's height overrides them. */
   heights: { ground: number; middle: number; crown: number };
-  /** Shell thickness: the plane the inner lining sits on. */
+  /** Family wall backing depth, measured inward from the facade. */
   backing: number;
   build(context: PieceContext): void;
 }

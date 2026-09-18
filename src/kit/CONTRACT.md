@@ -1,6 +1,6 @@
 # CONTRACT: piece kit
 
-Version 0.58.1. Publishes nine facade pieces per family, with openings recorded by their glazing and entrance builders; [requests](../../schemas/kit-request.schema.json) accept parcel, building and seed plus family, or legacy lot and floors.
+Version 0.58.2. Publishes nine facade pieces per family, with openings recorded by their glazing and entrance builders; [requests](../../schemas/kit-request.schema.json) accept parcel, building and seed plus family, or legacy lot and floors.
 
 ## Calls and schemas
 
@@ -40,7 +40,11 @@ Parcel requests retain footprint coordinates and edge order; legacy lots start a
 
 A bay tiles with itself and its corners. `PieceManifest.sections.start` and `.end` agree across every kind in a band. Ground top, middle bottom and top, and crown bottom agree per kind. Half piers omit touching end faces; half ribbons omit touching caps.
 
-Sign anchors are published, never baked: centre, width and height, outward unit normal. Pieces contain facade, lining, decoration and glazing. A ground entrance contains addressable `door:<id>/frame` and `door:<id>/leaf:<n>` nodes. Floor plates belong to the building. `assembleFromPieces` shares each piece mesh and writes `floor:<index>/slab`, `roof:deck`, doors and requested `anchor:<id>` nodes in building coordinates.
+Every piece has a full height inner `backing` surface at `family.wallBackingDepth`, 3.6 m for corporate sectors and the default 0.12 m for the other families. Corner arms meet at a miter. Opening records cut the backing; reveals join it to the panel, with closed glass panes and clear door passages. Decorative members have closed backs and returns. The balcony ground band carries the loggia deck section from local X 0.5 to 3.5 m. White grid middle pieces measure exactly 4.5 m high.
+
+Published GLBs share seam vertices within 1 mm and placements overlap by at most 1 mm. Their merged boundary edges lie only on the ground and roof planes. [Seam tessellation](seams.ts) splits mating edges at the same positions without changing their shape.
+
+Sign anchors are published, never baked: centre, width and height, outward unit normal. Pieces contain facade, backing, decoration and glazing. A ground entrance contains addressable `door:<id>/frame` and `door:<id>/leaf:<n>` nodes. Floor plates belong to the building. `assembleFromPieces` shares each piece mesh and writes `floor:<index>/slab`, `roof:deck`, doors and requested `anchor:<id>` nodes in building coordinates.
 
 Unknown families, invalid heights and entrance faces, or missing wire anchor edges raise `ExteriorError` with `E_SCHEMA`. Missing material roles raise `E_MATERIAL_UNRESOLVED`. Incomplete bay extents or fewer than two floors raise `RangeError`.
 
@@ -48,4 +52,4 @@ Unknown families, invalid heights and entrance faces, or missing wire anchor edg
 
 [Building families](../families/CONTRACT.md) supply recipe dimensions and roles. [Exterior](../../CONTRACT.md) supplies welding and GLB serialization. Materials resolves published keys at consumption time; the CLI reads no catalog.
 
-`npm test -- tests/kit.test.ts tests/kit-cli.test.ts --maxWorkers=1` checks the contract. Schema checks use the installed Python `jsonschema` draft 2020-12 validator.
+`npm test -- tests/kit.test.ts tests/kit-cli.test.ts --maxWorkers=1` checks the contract. The geometric check instances published pieces on a 40 x 56 m lot at two and six floors for all six families. It measures seam vertices, placement bounds, signed boundary edge lengths, backing area and opening counts. Schema checks use the installed Python `jsonschema` draft 2020-12 validator.

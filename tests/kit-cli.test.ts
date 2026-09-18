@@ -7,6 +7,8 @@ import { BANDS, KIT, KIT_FAMILIES, PIECES, pieceSet, planAssembly } from '../src
 import type { KitCatalog } from '../src/kit/catalog.ts';
 import { glbIO, glbJson } from './support.ts';
 import { validateKitSchemas } from './kit-schema.ts';
+import { decodePiece, type Mesh } from './kit-mesh.ts';
+import { backingArea, measureAssembly } from './kit-geometry.ts';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cli = join(root, 'src/kit/cli.ts');
@@ -22,6 +24,37 @@ beforeAll(() => {
   catalog = readCatalog(join(work, 'all'));
 });
 afterAll(() => { if (work) rmSync(work, { recursive: true, force: true }); });
+
+it('instances every published family at two and six floors with matching vertices, closed inner faces, clear openings and no overlaps', async () => {
+  for (const family of catalog.families) {
+    const decoded = new Map<string, Mesh>();
+    for (const record of family.pieces) {
+      const mesh = await decodePiece(readFileSync(join(work, 'all', record.file)));
+      decoded.set(record.id, mesh);
+      const depth = family.id === 'corporate-sectors' ? 3.6 : 0.12;
+      const height = family.bands[record.band].height;
+      expect(Math.max(...mesh.points.map(p => p[1])) - Math.min(...mesh.points.map(p => p[1])), record.id).toBeCloseTo(height, 5);
+      for (const axis of record.kind === 'corner' ? [2, 0] : [2]) {
+        const width = record.kind === 'corner' ? 4 - depth : 8;
+        const holes = record.openings.filter(o => Math.abs(o.facing[axis]!) > 0.99)
+          .reduce((area, o) => area + o.width * o.height, 0);
+        expect(backingArea(mesh, axis, depth), `${record.id} backing`).toBeCloseTo(width * height - holes, 4);
+      }
+    }
+    for (const floors of [2, 6]) {
+      const plan = planAssembly({ family: family.id, buildingId: `geometry:${family.id}:${floors}`,
+        lot: { width: 40, depth: 56 }, floors, entranceEdge: 0 });
+      const result = measureAssembly(plan, family, decoded);
+      const label = JSON.stringify(result);
+      expect(result.seamMillimetres, label).toBeLessThanOrEqual(1);
+      expect(result.overlaps, label).toEqual([]);
+      expect(result.seamHoleMetres, label).toBe(0);
+      expect(result.innerHoleMetres, label).toBe(0);
+      expect(result.holeMetres, label).toBe(0);
+      expect(result.openings, label).toEqual(result.blueprintOpenings);
+    }
+  }
+}, 30_000);
 
 it('writes all nine original pieces per family, measured metadata and a valid catalog, with optional family selection', async () => {
   expect(catalog.module).toEqual({ ...KIT, bands: BANDS, pieces: PIECES });

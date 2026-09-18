@@ -1,13 +1,13 @@
 # Box map
 
-Version 0.58.1.
+Version 0.58.2.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
 | [Exterior](../CONTRACT.md) | Builds one shell and its floor/opening blueprint | Atlas parcel, Connections apertures, Interior feasibility, Materials catalog | [Request](../schemas/building-request.schema.json), [blueprint](../schemas/blueprint.schema.json), [result](../src/types.ts) |
 | [Facade sections](../src/sections/CONTRACT.md) | Fits fixed corners, horizontal ribbon facades and floor groups | Caller maximum rectangle and floor heights | [Input](../src/sections/schemas/input.schema.json), [output](../src/sections/schemas/output.schema.json) |
 | [Building families](../src/families/CONTRACT.md) | Fits photographed facade families and their attached details | Facade sections, shared scenic rooms, Materials | [Input/output](../src/families/api.ts) |
-| [Piece kit](../src/kit/CONTRACT.md) | Publishes pieces, parcel placements and the shared opening blueprint; assemblies start at two floors | Building families, Exterior blueprint helpers and GLB writer, Materials keys | [Request](../schemas/kit-request.schema.json), [kit](../schemas/kit.schema.json), [placements](../schemas/placement.schema.json), [blueprint](../schemas/blueprint.schema.json) |
+| [Piece kit](../src/kit/CONTRACT.md) | Publishes watertight pieces, parcel placements and the shared opening blueprint; assemblies start at two floors | Building families, Exterior blueprint helpers and GLB writer, Materials keys | [Request](../schemas/kit-request.schema.json), [kit](../schemas/kit.schema.json), [placements](../schemas/placement.schema.json), [blueprint](../schemas/blueprint.schema.json) |
 | [Facade services](../src/facade-services/CONTRACT.md) | Fits attached services around reservations | Caller geometry and materials | [Input](../src/facade-services/schema/input.schema.json), [output](../src/facade-services/schema/output.schema.json) |
 | [Preview](../src/ui/CONTRACT.md) | Displays a generated building and inspection controls | Exterior, Materials, Three.js | Request controls, GLB and blueprint |
 
@@ -23,6 +23,7 @@ Version 0.58.1.
 - `src/mesh/slabOutline.ts`, `slabSpans.ts`: floor edges follow flat and sloped facade profiles, close storey transitions and retain floor-level access corridors.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
 - `src/kit/recipes`: one authored piece set per family on the 8 m bay module, with the joint pier and floor ribbon each boundary cuts in half.
+- `src/kit/author.ts`, `backing.ts`, `seams.ts`: authored surfaces, clear openings through the inner plane and shared seam vertices.
 - `src/kit/cli.ts`, `export.ts`: deterministic piece files and one catalog for selected families.
 - `src/kit/plan.ts`, `request.ts`, `blueprint.ts`: parcel requests, placements and blueprints from piece openings.
 - `src/kit/assemble.ts`: instanced pieces with building slabs, roof, entrance and wire anchors.

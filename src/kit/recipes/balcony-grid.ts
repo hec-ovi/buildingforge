@@ -12,7 +12,7 @@ import { cornerFillet, type Cell } from '../cell.ts';
 import { KIT } from '../module.ts';
 import { entrance, glazing, jointPier, jointRibbon, panes, signField, wall, type Opening } from '../skin.ts';
 import type { KitRecipe, PieceContext } from '../recipe.ts';
-import { bandCaps, HOST_GLASS, liningStart, ribbonEdges, shellBody, storeyOf } from './common.ts';
+import { bandCaps, HOST_GLASS, ribbonEdges, shellBody, storeyOf } from './common.ts';
 
 const LOGGIA = 3;
 const ROOM = 3;
@@ -31,7 +31,7 @@ function glazed(storey: number): Opening {
 }
 
 /** The loggia notch: side returns, a concrete deck, a ceiling and a rear wall. */
-function loggia(context: PieceContext, cell: Cell, storey: number, notch: Opening): void {
+function loggia(context: PieceContext, cell: Cell, notch: Opening): void {
   const sink = context.part('shell');
   const pier = context.material('column');
   const door: Opening = { u0: L0 + 0.7, u1: L1 - 0.7, y0: notch.y0, y1: notch.y1 - 0.4, panes: 2 };
@@ -39,71 +39,73 @@ function loggia(context: PieceContext, cell: Cell, storey: number, notch: Openin
   glazing(context, sink, cell, door, { glass: HOST_GLASS, frame: context.material('window-frame'), face: -DEPTH, recess: 0.1 });
   // Glass infill between metal posts, the reference's loggia rail.
   const rail = notch.y0 + RAIL;
-  cell.solid(sink, HOST_GLASS, L0, L1, notch.y0 + 0.12, rail - 0.06, -0.08, -0.12, { start: false, end: false });
-  for (const u of [L0 + 0.05, (L0 + L1) / 2, L1 - 0.05]) cell.solid(sink, pier, u - 0.05, u + 0.05, notch.y0, rail, -0.04, -0.14, {});
-  cell.solid(sink, pier, L0, L1, rail - 0.06, rail, -0.02, -0.16, { start: false, end: false });
+  cell.solid(sink, HOST_GLASS, L0, L1, notch.y0 + 0.12, rail - 0.06, -0.08, -0.12);
+  for (const u of [L0 + 0.05, (L0 + L1) / 2, L1 - 0.05]) cell.solid(sink, pier, u - 0.05, u + 0.05, notch.y0, rail, -0.04, -0.14);
+  cell.solid(sink, pier, L0, L1, rail - 0.06, rail, -0.02, -0.16);
 }
 
-function bay(context: PieceContext, cell: Cell, index: number): void {
+function bay(context: PieceContext, cell: Cell): void {
   const { band, height } = context;
   const storey = band === 'crown' ? storeyOf(height, CAP) : height;
   const sink = context.part('shell');
   if (band === 'ground') {
-    shellBody(context, cell, { height, recess: RECESS, wallRole: 'ground', liningStart: liningStart(context, index, RECESS) });
-    for (const u of [0.4, 4.2]) cell.solid(sink, context.material('ground'), u, u + 3.4, 0.6, height - 0.9, 0.07, 0, { back: false });
+    shellBody(context, cell, { height, recess: RECESS, wallRole: 'ground' });
+    for (const u of [0.4, 4.2]) cell.solid(sink, context.material('ground'), u, u + 3.4, 0.6, height - 0.9, 0.07, 0);
   } else {
     const notch: Opening = { u0: L0, u1: L1, y0: SLAB / 2, y1: storey - SLAB / 2 };
     shellBody(context, cell, {
       height, recess: RECESS, openings: [notch, glazed(storey)],
       openingRecess: [DEPTH, RECESS], openingGlass: [null, undefined], openingFrames: ['wall-trim'],
-      liningStart: liningStart(context, index, RECESS),
     });
-    loggia(context, cell, storey, notch);
+    loggia(context, cell, notch);
   }
   jointPier(sink, cell, context.material(band === 'ground' ? 'ground' : 'column'), {
     width: PIER, depth: 0.1, y0: 0, y1: storey, caps: bandCaps(band),
   });
-  for (const [u0, u1, closed] of [[0, L0, false], [L0, L1, true], [L1, cell.length, false]] as [number, number, boolean][]) {
+  // The concrete loggia deck continues through the ground and each floor joint.
+  if (band !== 'ground') cell.solid(sink, context.material('wall-trim'), L0, L1, 0, SLAB / 2,
+    0, -DEPTH, { bottom: false });
+  cell.solid(sink, context.material('wall-trim'), L0, L1, storey - SLAB / 2, storey,
+    0, -DEPTH, { top: band === 'crown' });
+  for (const [u0, u1] of [[0, L0], [L0, L1], [L1, cell.length]] as [number, number][]) {
     jointRibbon(sink, cell, context.material('wall-trim'), {
       u0, u1, height: SLAB, depth: 0.02, bandHeight: height,
-      ends: { start: false, end: false, back: closed && band !== 'ground' }, ...ribbonEdges(band),
+      ends: { start: false, end: false, back: true }, ...ribbonEdges(band),
     });
   }
   if (band === 'crown') {
     cell.solid(sink, context.material('roof'), 0, cell.length, storey, height, 0.18, 0,
-      { back: false, bottom: false, start: false, end: false });
+      { start: false, end: false });
   }
 }
 
 /** A corner is the family's end pier: a 3.5 m coated metal strip turning the angle. */
-function cornerArm(context: PieceContext, cell: Cell, index: number): void {
+function cornerArm(context: PieceContext, cell: Cell): void {
   const { band, height } = context;
   const storey = band === 'crown' ? storeyOf(height, CAP) : height;
   const sink = context.part('shell');
   const end = cell.length - PIER / 2;
   shellBody(context, cell, {
     height, recess: RECESS, wallRole: band === 'ground' ? 'ground' : 'wall',
-    liningStart: liningStart(context, index, RECESS),
     openings: band === 'ground' ? [] : [{ u0: 1.2, u1: end - 0.3, y0: SLAB / 2 + 0.08, y1: storey - SLAB / 2 - 0.08, panes: 2 }],
   });
   cell.solid(sink, context.material(band === 'ground' ? 'ground' : 'column'), 0, 1.2, 0, storey, 0.1, 0,
-    { ...bandCaps(band), back: false, start: false });
-  jointPier(sink, cell, context.material(band === 'ground' ? 'ground' : 'column'), {
-    width: PIER, depth: 0.1, y0: 0, y1: storey, caps: bandCaps(band),
-  });
+    { ...bandCaps(band), start: false });
+  cell.solid(sink, context.material(band === 'ground' ? 'ground' : 'column'), end, cell.length,
+    0, storey, 0.1, 0, { ...bandCaps(band), end: false });
   jointRibbon(sink, cell, context.material('wall-trim'), {
     u0: 0, u1: cell.length, height: SLAB, depth: 0.02, bandHeight: height,
     ends: { start: false, end: false }, ...ribbonEdges(band),
   });
   if (band === 'crown') {
     cell.solid(sink, context.material('roof'), 0, cell.length, storey, height, 0.18, 0,
-      { back: false, bottom: false, start: false, end: false });
+      { start: false, end: false });
   }
 }
 
-function entranceBay(context: PieceContext, cell: Cell, index: number): void {
+function entranceBay(context: PieceContext, cell: Cell): void {
   const { band, height } = context;
-  bay(context, cell, index);
+  bay(context, cell);
   if (band !== 'ground') {
     signField(context, cell, {
       id: band === 'middle' ? 'sign:logo' : 'sign:screen', kind: band === 'middle' ? 'logo' : 'screen',
@@ -119,16 +121,22 @@ export const recipe: KitRecipe = {
   family: family.id,
   materials: { ...family.materials, glass: finishes.glass, light: finishes.light },
   heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight + CAP },
-  backing: RECESS,
+  backing: family.wallBackingDepth ?? 0.12,
   build(context) {
-    for (const [index, cell] of context.runs.entries()) {
-      if (context.piece === 'corner') cornerArm(context, cell, index);
-      else if (context.piece === 'entrance-bay') entranceBay(context, cell, index);
-      else bay(context, cell, index);
+    for (const cell of context.runs) {
+      if (context.piece === 'corner') cornerArm(context, cell);
+      else if (context.piece === 'entrance-bay') entranceBay(context, cell);
+      else bay(context, cell);
     }
     if (context.piece === 'corner') {
+      const storey = context.band === 'crown' ? context.height - CAP : context.height;
       cornerFillet(context.part('shell'), context.material(context.band === 'ground' ? 'ground' : 'column'),
-        0.1, 0, context.height, bandCaps(context.band));
+        0.1, 0, storey, bandCaps(context.band));
+      if (context.band === 'crown') cornerFillet(context.part('shell'), context.material('roof'), 0.18, storey, context.height);
+      const edges = ribbonEdges(context.band);
+      cornerFillet(context.part('shell'), context.material('wall-trim'), 0.02, 0, SLAB / 2, { bottom: edges.bottom === 'closed' });
+      if (edges.top !== 'none') cornerFillet(context.part('shell'), context.material('wall-trim'), 0.02,
+        context.height - SLAB / 2, context.height, { top: false });
     }
   },
 };

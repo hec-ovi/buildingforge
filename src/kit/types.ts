@@ -50,7 +50,7 @@ export interface PieceManifest {
   arms: number[];
   /** Floor-to-floor height of the band, including a crown's cap. */
   height: number;
-  /** Deepest inward reach of the piece body. */
+  /** Inward depth of the structural backing plane. */
   depth: number;
   geometry: Geometry;
   /** Node names the piece exports. */
@@ -60,8 +60,8 @@ export interface PieceManifest {
   doors: DoorRecord[];
   openings: PieceOpening[];
   /**
-   * Mating sections, as a hash of the sorted (offset, depth, material) of every
-   * vertex on the boundary plane. Two runs join without a seam when the end
+   * Mating sections, as a hash of merged edge intervals on each boundary plane,
+   * including materials for run boundaries. Two runs join when the end
    * section of one equals the start section of the next; two bands stack when
    * the top section of one equals the bottom section of the next.
    */

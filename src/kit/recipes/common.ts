@@ -3,7 +3,7 @@
 import { KIT, type Band } from '../module.ts';
 import type { Cell, Ends } from '../cell.ts';
 import type { PieceContext } from '../recipe.ts';
-import { glazing, lining, wall, type Opening, type RibbonEdge } from '../skin.ts';
+import { glazing, wall, type Opening, type RibbonEdge } from '../skin.ts';
 
 export const RIBBON = KIT.ribbon;
 
@@ -30,16 +30,8 @@ export function bandCaps(band: Band): Ends {
 export interface BodySpec {
   height: number;
   recess: number;
-  /** Run span the body covers; the whole run by default. */
-  u0?: number;
-  u1?: number;
   openings?: Opening[];
-  glass?: string;
-  /** Shift the lining start so a corner's two arms meet without overlapping. */
-  liningStart?: number;
   wallRole?: string;
-  innerRole?: string;
-  frameRole?: string;
   mullion?: number;
   /** Drop a jamb reveal where a glazed ribbon runs on across a run boundary. */
   openingEnds?: Ends[];
@@ -54,31 +46,24 @@ export interface BodySpec {
 }
 
 /**
- * The closed shell of one run: the outer wall plane cut around its openings,
- * the reveals and glazing, and the inner lining coplanar with the glass.
+ * The panel and its through reveals; the piece builder supplies the backing.
  */
 export function shellBody(context: PieceContext, cell: Cell, spec: BodySpec): void {
   const sink = context.part('shell');
   const openings = spec.openings ?? [];
-  const frame = context.material(spec.frameRole ?? 'window-frame');
-  const u0 = spec.u0 ?? 0, u1 = spec.u1 ?? cell.length;
-  wall(sink, cell, context.material(spec.wallRole ?? 'wall'), { u0, u1, y0: 0, y1: spec.height, openings });
-  lining(sink, cell, context.material(spec.innerRole ?? 'inner-wall'), {
-    u0: Math.max(u0, spec.liningStart ?? 0), u1, y0: 0, y1: spec.height, openings, depth: -spec.recess,
-  });
+  const frame = context.material('window-frame');
+  wall(sink, cell, context.material(spec.wallRole ?? 'wall'), { u0: 0, u1: cell.length, y0: 0, y1: spec.height, openings });
   for (const [index, opening] of openings.entries()) {
     const face = spec.openingFaces?.[index] ?? 0;
-    const glass = spec.openingGlass?.[index] === undefined ? spec.glass ?? HOST_GLASS : spec.openingGlass[index];
+    const glass = spec.openingGlass?.[index] === undefined ? HOST_GLASS : spec.openingGlass[index];
     const role = spec.openingFrames?.[index];
     glazing(context, sink, cell, opening, {
-      glass, frame: role ? context.material(role) : frame, face, mullion: spec.mullion,
-      recess: spec.openingRecess?.[index] ?? spec.recess + face,
+      glass, frame: role ? context.material(role) : frame, mullion: spec.mullion,
+      recess: spec.openingRecess?.[index] ?? spec.recess,
       ...(spec.openingEnds?.[index] ? { ends: spec.openingEnds[index]! } : {}),
     });
+    if (face !== 0) glazing(context, sink, cell, opening, {
+      glass: null, frame, face, recess: face, ends: spec.openingEnds?.[index],
+    });
   }
-}
-
-/** Arm 0 of a corner starts its lining one shell thickness along, so the two arms meet cleanly. */
-export function liningStart(context: PieceContext, index: number, recess: number): number {
-  return context.piece === 'corner' && index === 0 ? recess : 0;
 }

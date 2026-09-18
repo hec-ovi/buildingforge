@@ -8,6 +8,7 @@
 import type { PartSink, V3 } from '../mesh/primitives.ts';
 
 export type Dir = [number, number];
+export interface CellOpening { u0: number; u1: number; y0: number; y1: number }
 
 export interface Ends { front?: boolean; start?: boolean; end?: boolean; back?: boolean; bottom?: boolean; top?: boolean }
 
@@ -16,6 +17,7 @@ export class Cell {
   readonly run: Dir;
   readonly outward: Dir;
   readonly length: number;
+  readonly openings: CellOpening[] = [];
 
   constructor(origin: Dir, run: Dir, outward: Dir, length: number) {
     this.origin = origin;
@@ -59,6 +61,16 @@ export class Cell {
    */
   solid(sink: PartSink, material: string, u0: number, u1: number, y0: number, y1: number, front: number, back: number, ends: Ends = {}): void {
     if (u1 - u0 < 1e-9 || y1 - y0 < 1e-9) return;
+    const hole = this.openings.find(o => o.u0 < u1 - 1e-9 && o.u1 > u0 + 1e-9 && o.y0 < y1 - 1e-9 && o.y1 > y0 + 1e-9);
+    if (hole) {
+      const left = Math.max(u0, hole.u0), right = Math.min(u1, hole.u1);
+      const bottom = Math.max(y0, hole.y0), top = Math.min(y1, hole.y1);
+      this.solid(sink, material, u0, left, y0, y1, front, back, { ...ends, end: true });
+      this.solid(sink, material, right, u1, y0, y1, front, back, { ...ends, start: true });
+      this.solid(sink, material, left, right, y0, bottom, front, back, { ...ends, start: true, end: true, top: true });
+      this.solid(sink, material, left, right, top, y1, front, back, { ...ends, start: true, end: true, bottom: true });
+      return;
+    }
     const d: V3 = this.axis;
     if (ends.front !== false) this.plate(sink, material, u0, u1, y0, y1, front);
     if (ends.back !== false) this.plate(sink, material, u0, u1, y0, y1, back, -1);
