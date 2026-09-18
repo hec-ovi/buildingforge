@@ -123,7 +123,7 @@ function entranceBay(context: PieceContext, cell: Cell): void {
   if (band !== 'ground') bay(context, cell);
   if (band === 'crown') {
     // Face 2 of the reference carries one portrait screen; the consumer fills it.
-    signField(context, cell, { id: 'sign:screen', kind: 'screen', u: KIT.bay / 2, y: height / 2, width: 2.4, height: 4.8, depth: -CHANNEL_RECESS + 0.06 });
+    signField(context, cell, { id: 'sign:screen', kind: 'screen', u: KIT.bay / 2, y: height / 2, width: 2.4, height: Math.min(4.8, height), depth: -CHANNEL_RECESS + 0.06 });
     return;
   }
   if (band === 'middle') {
@@ -147,7 +147,7 @@ function entranceBay(context: PieceContext, cell: Cell): void {
 export const recipe: KitRecipe = {
   family: family.id,
   materials: { ...family.materials, glass: HOST_GLASS },
-  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight + SHIELD },
+  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight },
   backing: family.wallBackingDepth ?? 0.12,
   build(context) {
     for (const cell of context.runs) {

@@ -1,5 +1,7 @@
 # Changelog
 
+0.58.3: every kit band measures 4.5 m including crown parapets and roof caps, with matching assembly heights, blueprints and parcel fits.
+
 0.58.2: balcony ground bands carry the loggia section, white grid middle pieces measure 4.5 m, and every kit family has backing with clear openings and watertight seams.
 
 0.58.1: every kit family accepts two floors with the crown directly on the ground band and matching blueprint heights and openings.

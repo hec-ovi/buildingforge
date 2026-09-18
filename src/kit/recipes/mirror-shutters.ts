@@ -43,7 +43,7 @@ function spineWindows(storey: number): Opening[] {
 function bronzeBank(context: PieceContext, cell: Cell, u0: number, u1: number, storey: number, boundary?: 'start' | 'end'): void {
   const sink = context.part('shell');
   const bronze = context.material('column');
-  const bar = (a: number, b: number, ends: Ends) =>
+  const bar = (a: number, b: number, ends: Ends = {}) =>
     cell.solid(sink, bronze, a, b, SLAB / 2, storey - SLAB / 2, 0.12, 0, { ...ends });
   const pitch = DIMENSIONS.mullionPitch;
   const count = Math.round((u1 - u0) / pitch);
@@ -134,7 +134,7 @@ function entranceBay(context: PieceContext, cell: Cell): void {
 export const recipe: KitRecipe = {
   family: family.id,
   materials: { ...family.materials, glass: HOST_GLASS },
-  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight + CORNICE },
+  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight },
   backing: family.wallBackingDepth ?? 0.12,
   build(context) {
     for (const cell of context.runs) {

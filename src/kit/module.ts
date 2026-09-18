@@ -14,7 +14,7 @@ export const KIT = {
   bay: 8,
   /** Each arm of a corner piece, measured along its edge. */
   cornerArm: 4,
-  /** Default storey pitch when the caller gives none. */
+  /** Height of every published band, including crown parapets and roof caps. */
   floorHeight: 4.5,
   /** Total height of the floor ribbon that straddles a band boundary. */
   ribbon: 0.3,

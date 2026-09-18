@@ -99,7 +99,7 @@ function entranceBay(context: PieceContext, cell: Cell): void {
 export const recipe: KitRecipe = {
   family: family.id,
   materials: { ...family.materials, glass: HOST_GLASS },
-  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight + HEAD },
+  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight },
   backing: family.wallBackingDepth ?? 0.12,
   build(context) {
     for (const cell of context.runs) {

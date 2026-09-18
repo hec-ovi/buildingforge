@@ -140,7 +140,7 @@ function entranceBay(context: PieceContext, cell: Cell): void {
   if (band !== 'ground') {
     signField(context, cell, {
       id: band === 'middle' ? 'sign:logo' : 'sign:screen', kind: band === 'middle' ? 'logo' : 'screen',
-      u: KIT.bay / 2, y: height / 2, width: 2.4, height: 4.8, depth: PROJECT + 0.04,
+      u: KIT.bay / 2, y: height / 2, width: 2.4, height: Math.min(4.8, height), depth: PROJECT + 0.04,
     });
     return;
   }
@@ -151,7 +151,7 @@ function entranceBay(context: PieceContext, cell: Cell): void {
 export const recipe: KitRecipe = {
   family: family.id,
   materials: { ...family.materials, glass: HOST_GLASS },
-  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight + CAP },
+  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight },
   backing: family.wallBackingDepth ?? 0.12,
   build(context) {
     for (const cell of context.runs) {

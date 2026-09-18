@@ -485,8 +485,7 @@
                   "const": 0
                 },
                 "height": {
-                  "type": "number",
-                  "exclusiveMinimum": 0
+                  "const": 4.5
                 }
               }
             },
@@ -506,8 +505,7 @@
                   "const": "floors-2"
                 },
                 "height": {
-                  "type": "number",
-                  "exclusiveMinimum": 0
+                  "const": 4.5
                 }
               }
             },
@@ -523,13 +521,12 @@
                   "const": "floors-1"
                 },
                 "height": {
-                  "type": "number",
-                  "exclusiveMinimum": 0
+                  "const": 4.5
                 }
               }
             }
           },
-          "description": "Zero based floor indices. Middle endpoints are inclusive; two floors have ground at 0 and crown at 1 with no middle band. Heights are the default piece band heights, including the crown cap."
+          "description": "Zero based floor indices. Middle endpoints are inclusive; two floors have ground at 0 and crown at 1 with no middle band. Every band is 4.5 m including crown parapets and roof caps, so F floors measure F x 4.5 m."
         },
         "fits": {
           "type": "object",

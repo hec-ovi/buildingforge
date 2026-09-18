@@ -17,7 +17,7 @@ it('publishes the shared blueprint for all six families from their placed openin
     const request: AssemblyRequest = {
       family, buildingId: `parcel:${family}`, seed: 'blueprint-contract', theme: 'cyberpunk',
       parcel: { footprint: [rotate(0, 0), rotate(40, 0), rotate(40, 40), rotate(0, 40)],
-        accessPoint: rotate(42, 20), maxHeight: 40,
+        accessPoint: rotate(42, 20), maxHeight: 27,
         buildingGrid: { origin: rotate(0, 0), angle, spacing: 0.5 } },
       building: { type: 'offices', tier: 'rich', floors: 6,
         floorKinds: ['lobby', 'office', 'office', 'meeting', 'office', 'executive'] },
@@ -34,6 +34,8 @@ it('publishes the shared blueprint for all six families from their placed openin
     expect(blueprint.floors).toHaveLength(6);
     expect(new Set(openings.map(o => o.id)).size).toBe(openings.length);
     for (const floor of blueprint.floors) {
+      expect(floor.height).toBe(4.5);
+      expect(floor.elevation).toBe(floor.index * 4.5);
       expect(floor.outline).toEqual(request.parcel.footprint);
       expect(floor.roomEnvelope!.grid).toEqual(request.parcel.buildingGrid);
       expect(floor.roomEnvelope!.vertical.min).toBe(floor.elevation);
@@ -64,7 +66,8 @@ it('publishes the shared blueprint for all six families from their placed openin
     expect([...blueprint.signage, ...blueprint.screens].map(s => s.center).sort())
       .toEqual(plan.signAnchors.map(s => s.position).sort());
     expect(blueprint.materials).toContain(blueprint.roof.material!.key);
-    expect(blueprint.roof.elevation).toBe(blueprint.bounds.height);
+    expect(blueprint.roof.elevation).toBe(27);
+    expect(blueprint.bounds.height).toBe(27);
     cases.push({ schema: 'kit-request', value: request }, { schema: 'placement', value: plan },
       { schema: 'blueprint', value: blueprint });
   }
@@ -90,11 +93,12 @@ describe.each(KIT_FAMILIES)('%s piece set', family => {
   });
 
   it('publishes sign anchors instead of baking signage', () => {
-    const anchors = set.flatMap(piece => piece.signAnchors);
-    expect(anchors.length).toBeGreaterThan(0);
-    for (const anchor of anchors) {
+    expect(set.flatMap(piece => piece.signAnchors).length).toBeGreaterThan(0);
+    for (const piece of set) for (const anchor of piece.signAnchors) {
       expect(anchor.size[0]).toBeGreaterThan(0);
       expect(Math.hypot(...anchor.facing)).toBeCloseTo(1, 6);
+      expect(anchor.position[1] - anchor.size[1] / 2).toBeGreaterThanOrEqual(0);
+      expect(anchor.position[1] + anchor.size[1] / 2).toBeLessThanOrEqual(piece.height);
     }
     expect(set.flatMap(piece => piece.materials).some(slot => slot.includes('sign'))).toBe(false);
   });
@@ -153,7 +157,7 @@ it('refuses incomplete bays and requests outside the kit envelope', () => {
   const parcelRequest: AssemblyRequest = { family: 'mirror-frame', buildingId: 'parcel-errors',
     parcel: { footprint: [[0, 0], [40, 0], [40, 40], [0, 40]], accessPoint: [20, 0], maxHeight: 40 },
     building: { type: 'offices', tier: 'rich', floors: 6 } };
-  expect(() => planAssembly({ ...parcelRequest, parcel: { ...parcelRequest.parcel, maxHeight: 27 } }))
+  expect(() => planAssembly({ ...parcelRequest, parcel: { ...parcelRequest.parcel, maxHeight: 26.99 } }))
     .toThrow('kit band heights exceed parcel.maxHeight');
   expect(() => planAssembly({ ...parcelRequest, building: { ...parcelRequest.building, basements: 1 } }))
     .toThrow('above ground floors only');
@@ -168,10 +172,23 @@ it('refuses incomplete bays and requests outside the kit envelope', () => {
   ]);
 });
 
+it('includes crown details inside custom band heights and the parcel envelope', () => {
+  const plan = planAssembly({ family: 'mirror-frame', buildingId: 'custom-height', groundHeight: 5, floorHeight: 6,
+    parcel: { footprint: [[0, 0], [24, 0], [24, 24], [0, 24]], accessPoint: [12, 0], maxHeight: 17 },
+    building: { type: 'offices', tier: 'rich', floors: 3 } });
+  expect(plan.bands).toEqual([
+    { band: 'ground', floor: 0, base: 0, height: 5 },
+    { band: 'middle', floor: 1, base: 5, height: 6 },
+    { band: 'crown', floor: 2, base: 11, height: 6 },
+  ]);
+  expect(plan.blueprint.roof.elevation).toBe(17);
+  expect(plan.blueprint.bounds.height).toBe(17);
+});
+
 it('assembles one mesh per piece and keeps the nodes a consumer addresses', async () => {
   const request: AssemblyRequest = {
     family: 'white-grid', buildingId: 'p4',
-    parcel: { footprint: [[10, 20], [10, 44], [-14, 44], [-14, 20]], accessPoint: [12, 32], maxHeight: 40 },
+    parcel: { footprint: [[10, 20], [10, 44], [-14, 44], [-14, 20]], accessPoint: [12, 32], maxHeight: 27 },
     building: { type: 'residential', tier: 'rich', floors: 6 },
     anchors: [{ id: 'bridge-a', edge: 1, u: 12, y: 18 }],
   };

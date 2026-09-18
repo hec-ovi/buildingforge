@@ -1,6 +1,6 @@
 # CONTRACT: piece kit
 
-Version 0.58.2. Publishes nine facade pieces per family, with openings recorded by their glazing and entrance builders; [requests](../../schemas/kit-request.schema.json) accept parcel, building and seed plus family, or legacy lot and floors.
+Version 0.58.3. Publishes nine facade pieces per family, with openings recorded by their glazing and entrance builders; [requests](../../schemas/kit-request.schema.json) accept parcel, building and seed plus family, or legacy lot and floors.
 
 ## Calls and schemas
 
@@ -30,7 +30,7 @@ Garden taper remains a landmark: [constraint](../../docs/ISSUES.md#garden-taper-
 
 [Module constants](module.ts): 8 m bay, two 4 m corner arms, default 4.5 m floor pitch and 0.3 m ribbon. Nine pieces combine `corner`, `bay`, `entrance-bay` with `ground`, `middle`, `crown`. An edge of 8N metres contains two corner arms and N-1 straight pieces. N is any integer from two. Every family fits Atlas lots 16x32, 24x32, 24x40, 40x40, 40x56 and 56x56 in either orientation.
 
-F is any integer from two: ground at floor 0, middle at 1 through F-2, crown at F-1. With two floors, crown at floor 1 sits directly on ground with no middle band. White grid has a 5 m ground band; other ground and middle bands use 4.5 m. Crown heights include the cap. The catalog publishes exact heights. Assembly height overrides require matching custom pieces; the CLI exports recipe defaults.
+F is any integer from two: ground at floor 0, middle at 1 through F-2, crown at F-1. With two floors, crown at floor 1 sits directly on ground with no middle band. Every published band is 4.5 m, including crown parapets and roof caps. F floors measure F x 4.5 m and fit that exact parcel height. The catalog publishes those heights. Assembly height overrides require matching custom pieces; floorHeight includes crown details. The CLI exports recipe defaults.
 
 Metres, +Y up, +X along a bay, +Z inward. The local origin is the bay run start or corner junction at the floor; a corner's second arm runs +Z. `size` is the geometry bounds extent including projections, not the tiling step. Signs and doors in kit.json use this local frame.
 
@@ -44,7 +44,7 @@ Every piece has a full height inner `backing` surface at `family.wallBackingDept
 
 Published GLBs share seam vertices within 1 mm and placements overlap by at most 1 mm. Their merged boundary edges lie only on the ground and roof planes. [Seam tessellation](seams.ts) splits mating edges at the same positions without changing their shape.
 
-Sign anchors are published, never baked: centre, width and height, outward unit normal. Pieces contain facade, backing, decoration and glazing. A ground entrance contains addressable `door:<id>/frame` and `door:<id>/leaf:<n>` nodes. Floor plates belong to the building. `assembleFromPieces` shares each piece mesh and writes `floor:<index>/slab`, `roof:deck`, doors and requested `anchor:<id>` nodes in building coordinates.
+Sign anchors are published, never baked: centre, width and height, outward unit normal. Published sign fields fit inside their band height. Pieces contain facade, backing, decoration and glazing. A ground entrance contains addressable `door:<id>/frame` and `door:<id>/leaf:<n>` nodes. Floor plates belong to the building. `assembleFromPieces` shares each piece mesh and writes `floor:<index>/slab`, `roof:deck`, doors and requested `anchor:<id>` nodes in building coordinates.
 
 Unknown families, invalid heights and entrance faces, or missing wire anchor edges raise `ExteriorError` with `E_SCHEMA`. Missing material roles raise `E_MATERIAL_UNRESOLVED`. Incomplete bay extents or fewer than two floors raise `RangeError`.
 

@@ -33,7 +33,9 @@ it('instances every published family at two and six floors with matching vertice
       decoded.set(record.id, mesh);
       const depth = family.id === 'corporate-sectors' ? 3.6 : 0.12;
       const height = family.bands[record.band].height;
-      expect(Math.max(...mesh.points.map(p => p[1])) - Math.min(...mesh.points.map(p => p[1])), record.id).toBeCloseTo(height, 5);
+      expect(height, record.id).toBe(4.5);
+      expect(Math.min(...mesh.points.map(p => p[1])), record.id).toBeCloseTo(0, 5);
+      expect(Math.max(...mesh.points.map(p => p[1])), record.id).toBeCloseTo(4.5, 5);
       for (const axis of record.kind === 'corner' ? [2, 0] : [2]) {
         const width = record.kind === 'corner' ? 4 - depth : 8;
         const holes = record.openings.filter(o => Math.abs(o.facing[axis]!) > 0.99)
@@ -44,6 +46,10 @@ it('instances every published family at two and six floors with matching vertice
     for (const floors of [2, 6]) {
       const plan = planAssembly({ family: family.id, buildingId: `geometry:${family.id}:${floors}`,
         lot: { width: 40, depth: 56 }, floors, entranceEdge: 0 });
+      expect(plan.bands.map(b => [b.base, b.height])).toEqual(
+        Array.from({ length: floors }, (_, floor) => [floor * 4.5, 4.5]));
+      expect(plan.blueprint.roof.elevation).toBe(floors * 4.5);
+      expect(plan.blueprint.bounds.height).toBe(floors * 4.5);
       const result = measureAssembly(plan, family, decoded);
       const label = JSON.stringify(result);
       expect(result.seamMillimetres, label).toBeLessThanOrEqual(1);
@@ -100,7 +106,10 @@ it('writes all nine original pieces per family, measured metadata and a valid ca
     const { bands, fits } = family;
     expect(fits.floors.minimum).toBe(2);
     for (const [width, depth] of fits.atlasLots) {
-      const request = { family: family.id, buildingId: 'fit', lot: { width, depth }, floors: fits.floors.minimum };
+      const request = { family: family.id, buildingId: 'fit',
+        parcel: { footprint: [[0, 0], [width, 0], [width, depth], [0, depth]] as [number, number][],
+          accessPoint: [width / 2, 0] as [number, number], maxHeight: 9 },
+        building: { type: 'offices' as const, tier: 'rich' as const, floors: fits.floors.minimum } };
       const plan = planAssembly(request);
       expect(plan.bands).toEqual([
         { band: 'ground', floor: 0, base: 0, height: bands.ground.height },
@@ -123,7 +132,7 @@ it('writes all nine original pieces per family, measured metadata and a valid ca
       expect(plan.placements[plan.doors[0]!.placement]!.floor).toBe(0);
       expect(plan.blueprint.floors[0]!.openings.filter(o => o.kind === 'door').map(o => o.id))
         .toEqual(plan.doors.map(d => d.id));
-      expect(plan.blueprint.roof.elevation).toBe(bands.ground.height + bands.crown.height);
+      expect(plan.blueprint.roof.elevation).toBe(9);
       expect(plan.blueprint.bounds.height).toBe(plan.blueprint.roof.elevation);
       cases.push({ schema: 'kit-request', value: request }, { schema: 'placement', value: plan });
     }
@@ -135,6 +144,11 @@ it('writes all nine original pieces per family, measured metadata and a valid ca
   expect(readdirSync(subset).sort()).toEqual(['kit.json', 'mirror-frame', 'white-grid']);
   const invalid = structuredClone(catalog);
   invalid.families[0]!.pieces[0]!.file = '../outside.glb';
+  for (const band of BANDS) {
+    const invalidHeight = structuredClone(catalog);
+    invalidHeight.families[0]!.bands[band].height = 4.8;
+    cases.push({ schema: 'kit', value: invalidHeight, valid: false });
+  }
   validateKitSchemas([...cases, { schema: 'kit', value: catalog }, { schema: 'kit', value: selected }, { schema: 'kit', value: invalid, valid: false }]);
 });
 

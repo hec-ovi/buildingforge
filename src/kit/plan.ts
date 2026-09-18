@@ -18,7 +18,7 @@ export function prepareAssembly(raw: AssemblyRequest): { plan: AssemblyPlan; pie
   const seed = request.seed;
   const groundHeight = raw.groundHeight ?? recipe.heights.ground;
   const floorHeight = raw.floorHeight ?? recipe.heights.middle;
-  const crownHeight = floorHeight + (recipe.heights.crown - recipe.heights.middle);
+  const crownHeight = raw.floorHeight ?? recipe.heights.crown;
   if (![groundHeight, floorHeight, crownHeight].every(h => Number.isFinite(h) && h >= 2.2 && h <= 12)) {
     throw new ExteriorError('E_SCHEMA', 'band heights must be finite and between 2.2 and 12 metres');
   }

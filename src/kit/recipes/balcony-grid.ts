@@ -120,7 +120,7 @@ function entranceBay(context: PieceContext, cell: Cell): void {
 export const recipe: KitRecipe = {
   family: family.id,
   materials: { ...family.materials, glass: finishes.glass, light: finishes.light },
-  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight + CAP },
+  heights: { ground: KIT.floorHeight, middle: KIT.floorHeight, crown: KIT.floorHeight },
   backing: family.wallBackingDepth ?? 0.12,
   build(context) {
     for (const cell of context.runs) {

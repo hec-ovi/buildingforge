@@ -1,6 +1,6 @@
 # Box map
 
-Version 0.58.2.
+Version 0.58.3.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
@@ -22,7 +22,7 @@ Version 0.58.2.
 - `src/mesh`: closed frame and glazing sections.
 - `src/mesh/slabOutline.ts`, `slabSpans.ts`: floor edges follow flat and sloped facade profiles, close storey transitions and retain floor-level access corridors.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
-- `src/kit/recipes`: one authored piece set per family on the 8 m bay module, with the joint pier and floor ribbon each boundary cuts in half.
+- `src/kit/recipes`: one authored piece set per family on the 8 m bay module, with every band 4.5 m including crown details; the joint pier and floor ribbon meet at each boundary.
 - `src/kit/author.ts`, `backing.ts`, `seams.ts`: authored surfaces, clear openings through the inner plane and shared seam vertices.
 - `src/kit/cli.ts`, `export.ts`: deterministic piece files and one catalog for selected families.
 - `src/kit/plan.ts`, `request.ts`, `blueprint.ts`: parcel requests, placements and blueprints from piece openings.

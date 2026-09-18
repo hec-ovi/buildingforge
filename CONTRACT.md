@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.58.2.
+Version: 0.58.3.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint, and authors each family as a set of repeated pieces a consumer assembles.
 
@@ -51,7 +51,7 @@ Paired-family dark windows use opaque reflective black glass and omit scenic roo
 
 The same seed and family give byte identical pieces. An 8 m bay tiles with itself and its 4 m corner arms; band boundaries also mate. Floor zero uses ground, floors 1 through F-2 use middle, and F-1 uses crown. With two floors, crown at floor 1 sits directly on ground with no middle band. All six families accept integer edge bay counts from two and floor counts from two, including the six published Atlas lot sizes. Sign anchors are published, never baked. Engine instances the pieces from the placement table; `generate` supplies landmark shells. `assembleFromPieces` also writes replaceable slabs, roof, addressable doors and wire anchors.
 
-Kit pieces carry full height backing at the family wall depth, cut around their authored windows and doors. Reveals connect panels to backing. The published pieces share seam vertices within 1 mm, overlap by at most 1 mm and have boundary edges only on the assembled ground and roof planes.
+Every published kit band is 4.5 m, including crown parapets and roof caps, so F floors measure F x 4.5 m. Kit pieces carry full height backing at the family wall depth, cut around their authored windows and doors. Reveals connect panels to backing. The published pieces share seam vertices within 1 mm, overlap by at most 1 mm and have boundary edges only on the assembled ground and roof planes.
 
 The six [registered building families](src/families/CONTRACT.md) select authored facade plans through `options.architecture`. Their material roles override the host, with structural wall backing at `family.wallBackingDepth` (default 0.12 m inward). The lining reserves at least another 0.12 m behind that backing. Ground fields are opaque unless explicit windows are supplied. Apertures reaching above ground fix rectangular parcel faces and exact connection bases; unsupported fixed shapes return `E_SCHEMA`. Basement-only cuts keep their original parcel faces and permit free upper family shapes. Required cuts remain clear. Multiple window rows use floor-relative sills and section-relative horizontal fields. Curved sections keep their authored pane spans, and narrow service windows use appropriately spaced room fixtures.
 
