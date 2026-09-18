@@ -6,7 +6,8 @@ import { family } from './index.ts';
 const input = (): FamilyInput => JSON.parse(readFileSync(new URL('./fixtures/reference.json', import.meta.url), 'utf8'));
 
 describe('portal-pier family public contract', () => {
-  it('fits repeatable slots, solid ground and complete floor groups without moving floor heights', () => {
+  it('fits repeatable slots, solid ground and rotated fixed faces, and rejects invalid input', () => {
+  {
     const request = input(), result = family.plan(request);
     expect(result).toEqual(family.plan(request));
     expect(result.extent).toEqual({ width: 31, depth: 23 });
@@ -30,9 +31,8 @@ describe('portal-pier family public contract', () => {
       }
       expect(cursor).toBeCloseTo(edge % 2 === 0 ? result.extent.width : result.extent.depth);
     }
-  });
-
-  it('preserves rotated infrastructure faces verbatim and suppresses outward relief', () => {
+  }
+  {
     const request = input();
     request.rectangle = request.rectangle.map(([x, z]) => [10 + x * 0.8 - z * 0.6, -2 + x * 0.6 + z * 0.8]) as FamilyInput['rectangle'];
     request.fixedFaces = true;
@@ -41,14 +41,14 @@ describe('portal-pier family public contract', () => {
       expect(floor.outline).toEqual(request.rectangle);
       expect(floor.sections.filter(s => s.technique === 'paired-solid').every(s => s.border.depth === 0)).toBe(true);
     }
-  });
-
-  it('rejects invalid rectangle and height inputs at its entry point', () => {
+  }
+  {
     const request = input();
     expect(() => family.plan({ ...request, rectangle: [[0, 0], [9, 0], [9, 9], [0, 9]] })).toThrow(RangeError);
     expect(() => family.plan({ ...request, rectangle: [...request.rectangle].reverse() as FamilyInput['rectangle'] })).toThrow(RangeError);
     expect(() => family.plan({ ...request, floorHeights: [2.5] })).toThrow(RangeError);
     expect(() => family.plan({ ...request, floorHeights: [] })).toThrow(RangeError);
+  }
   });
 
   it('emits bounded panels, open entrance reservations and real lights through decorate', () => {

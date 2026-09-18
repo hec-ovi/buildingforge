@@ -25,7 +25,8 @@ function layout(plan: FamilyPlan, request: FamilyInput): Layout {
 }
 
 describe('balcony-grid family contract', () => {
-  it('keeps adjacent gallery recesses separated on the real p117 parcel, minimum plates and rotated long plates', () => {
+  it('plans separated galleries, paired glazing, the curved end and fixed faces, and rejects impossible input', () => {
+  {
     const real = p117 as FamilyInput;
     const minimum = { ...real, rectangle: [[0, 0], [20.5, 0], [20.5, 20.5], [0, 20.5]] } as FamilyInput;
     const rotated = { ...real, rectangle: real.rectangle.map(([x, z]) =>
@@ -40,9 +41,8 @@ describe('balcony-grid family contract', () => {
       expect(result.floors[1]!.sections.filter(s => s.id.startsWith('bg:corner:curve:'))).toHaveLength(4);
     }
     expect(family.plan(real).extent).toEqual({ width: 54, depth: 20 });
-  });
-
-  it('fits repeatable paired windows and recessed gallery fields with closed ground and exact caller floors', () => {
+  }
+  {
     const request = input(), result = family.plan(request);
     expect(family.id).toBe('balcony-grid');
     expect(result).toEqual(family.plan(request));
@@ -66,9 +66,8 @@ describe('balcony-grid family contract', () => {
     const galleries = upper.sections.filter(s => s.technique === 'paired-glass' && s.id.startsWith('bg:gallery:'));
     expect(galleries).toHaveLength(8);
     expect(galleries.every(s => s.width === 5)).toBe(true);
-  });
-
-  it('models the reference glazed end as a five metre quarter circle with four continuous glass fields', () => {
+  }
+  {
     const result = family.plan(input()), floor = result.floors[1]!;
     const fields = floor.sections.filter(s => s.id.startsWith('bg:corner:curve:'));
     expect(result.corners[2]).toBe('rounded');
@@ -83,9 +82,8 @@ describe('balcony-grid family contract', () => {
     expect(floor.outline[(last.edge + 1) % floor.outline.length]).toEqual([32.25, 37.25]);
     expect(floor.outline[spans[0]!.edge]).toEqual([37.25, 32.25]);
     expect(floor.sections.filter(s => s.id.startsWith('bg:corner:leg:')).map(s => s.width)).toEqual([6, 6]);
-  });
-
-  it('preserves fixed faces and rectangular edge numbering on rotated, translated plots', () => {
+  }
+  {
     const request = input();
     request.rectangle = request.rectangle.map(([x, z]) => [70 + (x - z) / Math.SQRT2, -40 + (x + z) / Math.SQRT2]) as FamilyInput['rectangle'];
     request.fixedFaces = true;
@@ -105,6 +103,18 @@ describe('balcony-grid family contract', () => {
         expect((z - x) / Math.SQRT2).toBeLessThanOrEqual(37.5 + 1e-7);
       }
     }
+  }
+  {
+    const invalid: Partial<FamilyInput>[] = [
+      { rectangle: [[0, 0], [17, 0], [17, 37.5], [0, 37.5]] },
+      { rectangle: [[0, 0], [0, 37.5], [37.5, 37.5], [37.5, 0]] },
+      { rectangle: [[0, 0], [37.5, 0], [35, 37.5], [0, 37.5]] },
+      { rectangle: [[0, 0], [Infinity, 0], [37.5, 37.5], [0, 37.5]] },
+      { floorHeights: [4.5] },
+      { floorHeights: [4.5, 2.5] },
+    ] as Partial<FamilyInput>[];
+    for (const bad of invalid) expect(() => family.plan({ ...input(), ...bad }), JSON.stringify(bad)).toThrow(RangeError);
+  }
   });
 
   it('builds finite owned gallery geometry, publishes fixture lights, and omits reservations and dark emitters', () => {
@@ -132,16 +142,5 @@ describe('balcony-grid family contract', () => {
         expect(primitive.positions[i + 2]!).toBeLessThanOrEqual(37.25 + 1e-7);
       }
     }
-  });
-
-  it.each([
-    { rectangle: [[0, 0], [17, 0], [17, 37.5], [0, 37.5]] },
-    { rectangle: [[0, 0], [0, 37.5], [37.5, 37.5], [37.5, 0]] },
-    { rectangle: [[0, 0], [37.5, 0], [35, 37.5], [0, 37.5]] },
-    { rectangle: [[0, 0], [Infinity, 0], [37.5, 37.5], [0, 37.5]] },
-    { floorHeights: [4.5] },
-    { floorHeights: [4.5, 2.5] },
-  ] as Partial<FamilyInput>[])('rejects impossible input %j', invalid => {
-    expect(() => family.plan({ ...input(), ...invalid })).toThrow(RangeError);
   });
 });

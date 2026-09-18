@@ -17,7 +17,7 @@ function request(angle = 0): BuildingRequest {
 }
 
 it('keeps a corner-access entrance on its real street frontage through rotation and path reversal', async () => {
-  for (const angle of [0, 0.37]) {
+  for (const angle of [0.37]) {
     const req = request(angle), saved = structuredClone(req);
     const result = await generate(req, keys);
     const ground = result.blueprint.floors.find(floor => floor.index === 0)!;

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { expect, it } from 'vitest';
 import {
   assembleFromPieces, KIT, KIT_FAMILIES, pieceSet, planAssembly, ExteriorError,
 } from '../src/index.ts';
@@ -74,34 +74,36 @@ it('publishes the shared blueprint for all six families from their placed openin
   validateKitSchemas(cases);
 });
 
-describe.each(KIT_FAMILIES)('%s piece set', family => {
-  const set = pieceSet(family);
-  const of = (band: string, piece: string) => set.find(m => m.band === band && m.piece === piece)!;
-
-  it('tiles: every run boundary of a band presents one section, and bands stack on one more', () => {
-    expect(set).toHaveLength(9);
+it('tiles every family: each run boundary of a band presents one section, and bands stack on one more', () => {
+  for (const family of KIT_FAMILIES) {
+    const set = pieceSet(family);
+    const of = (band: string, piece: string) => set.find(m => m.band === band && m.piece === piece)!;
+    expect(set, family).toHaveLength(9);
     for (const band of ['ground', 'middle', 'crown']) {
       const runs = ['corner', 'bay', 'entrance-bay'].flatMap(piece => [of(band, piece).sections.start, of(band, piece).sections.end]);
-      expect(new Set(runs).size).toBe(1);
+      expect(new Set(runs).size, `${family} ${band}`).toBe(1);
     }
     for (const piece of ['corner', 'bay', 'entrance-bay']) {
       expect(new Set([
         of('ground', piece).sections.top, of('middle', piece).sections.bottom,
         of('middle', piece).sections.top, of('crown', piece).sections.bottom,
-      ]).size).toBe(1);
+      ]).size, `${family} ${piece}`).toBe(1);
     }
-  });
+  }
+});
 
-  it('publishes sign anchors instead of baking signage', () => {
-    expect(set.flatMap(piece => piece.signAnchors).length).toBeGreaterThan(0);
+it('publishes sign anchors instead of baking signage', () => {
+  for (const family of KIT_FAMILIES) {
+    const set = pieceSet(family);
+    expect(set.flatMap(piece => piece.signAnchors).length, family).toBeGreaterThan(0);
     for (const piece of set) for (const anchor of piece.signAnchors) {
       expect(anchor.size[0]).toBeGreaterThan(0);
       expect(Math.hypot(...anchor.facing)).toBeCloseTo(1, 6);
       expect(anchor.position[1] - anchor.size[1] / 2).toBeGreaterThanOrEqual(0);
       expect(anchor.position[1] + anchor.size[1] / 2).toBeLessThanOrEqual(piece.height);
     }
-    expect(set.flatMap(piece => piece.materials).some(slot => slot.includes('sign'))).toBe(false);
-  });
+    expect(set.flatMap(piece => piece.materials).some(slot => slot.includes('sign')), family).toBe(false);
+  }
 });
 
 it('publishes a valid JSON placement table with complete tiling and world space attachments', () => {

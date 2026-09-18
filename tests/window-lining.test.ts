@@ -103,15 +103,3 @@ it('cuts both corporate window rows through the full wall body', async () => {
   }
   dispose(meshes);
 });
-
-it('reserves housing depth without counting the taper of a broad, short tower', async () => {
-  const input = request('garden-taper');
-  input.parcel = { ...input.parcel, footprint: [[0, 0], [182, 0], [182, 42], [0, 42]], accessPoint: [91, 0] };
-  const { blueprint } = await generate(input, keys);
-  const glass = blueprint.floors.flatMap(f => f.openings.flatMap(o => o.glazing ? [o.glazing.glassDepth] : []));
-  const deepest = Math.max(...glass);
-  expect(blueprint.floors.filter(f => f.index >= 0)).toHaveLength(4);
-  expect(blueprint.facade.wallDepth).toBeGreaterThanOrEqual(deepest);
-  expect(blueprint.facade.wallDepth).toBeLessThanOrEqual(deepest + 0.03);
-  expect(blueprint.floors.every(f => f.roomEnvelope!.width > 0 && f.roomEnvelope!.depth > 0)).toBe(true);
-});

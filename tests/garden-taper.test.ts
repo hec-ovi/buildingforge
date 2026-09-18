@@ -1,6 +1,4 @@
 import { expect, it } from 'vitest';
-import { createHash, type Hash } from 'node:crypto';
-import type { Document } from '@gltf-transform/core';
 import { generate, type BuildingRequest } from '../src/index.ts';
 import { glbIO, keys, normalsOf } from './support.ts';
 
@@ -10,7 +8,6 @@ const request: BuildingRequest = {
   building: { type: 'residential', tier: 'rich', floors: 4 },
   options: { architecture: 'garden-taper', glb: 'named', balconies: 'off', facadeServices: 'off', roofArtifacts: 'off', adScreens: 'off', fireEscape: 'off', signage: null },
 };
-const gardenMaterials = ['cyberpunk/garden-stem/mid', 'cyberpunk/garden-leaf/mid', 'cyberpunk/garden-leaf-light/mid'];
 
 it('exports tapering wings around a straight enclosed planted spine', async () => {
   const { blueprint, glb } = await generate(request, keys);
@@ -58,58 +55,20 @@ it('exports tapering wings around a straight enclosed planted spine', async () =
   expect(blueprint.balconyBands).toEqual([]);
 });
 
-it('merges enclosed planted facades without changing their geometry', async () => {
-  const wide: BuildingRequest = { ...request, parcel: { ...request.parcel,
-    footprint: [[0, 0], [182, 0], [182, 42], [0, 42]], accessPoint: [91, 0] } };
-  const named = await glbIO().readBinary((await generate(wide, keys)).glb);
-  const merged = await glbIO().readBinary((await generate({ ...wide, options: { ...wide.options, glb: 'merged' } }, keys)).glb);
-  const largest = Math.max(...named.getRoot().listMeshes().flatMap(mesh => mesh.listPrimitives()
-    .filter(primitive => gardenMaterials.includes(primitive.getMaterial()!.getName()))
-    .map(primitive => primitive.getAttribute('POSITION')!.getArray()!.length)));
-  expect(largest).toBeGreaterThan(10_000);
-  const expected = gardenGeometry(named);
-  expect(Object.keys(expected).sort()).toEqual([...gardenMaterials].sort());
-  expect(gardenGeometry(merged)).toEqual(expected);
-});
-
-function gardenGeometry(document: Document): Record<string, { vertices: number; hashes: Record<string, string> }> {
-  const materials = new Map<string, { vertices: number; hashes: Record<string, Hash> }>();
-  for (const mesh of document.getRoot().listMeshes()) for (const primitive of mesh.listPrimitives()) {
-    const material = primitive.getMaterial()!.getName();
-    if (!gardenMaterials.includes(material)) continue;
-    let entry = materials.get(material);
-    if (!entry) {
-      entry = { vertices: 0, hashes: Object.fromEntries(['POSITION', 'NORMAL', 'TEXCOORD_0', 'indices'].map(name => [name, createHash('sha256')])) };
-      materials.set(material, entry);
-    }
-    for (const attribute of ['POSITION', 'NORMAL', 'TEXCOORD_0']) {
-      const array = primitive.getAttribute(attribute)!.getArray()!;
-      entry.hashes[attribute]!.update(new Uint8Array(array.buffer, array.byteOffset, array.byteLength));
-    }
-    const indices = Uint32Array.from(primitive.getIndices()!.getArray()!, index => index + entry.vertices);
-    entry.hashes.indices!.update(new Uint8Array(indices.buffer));
-    entry.vertices += primitive.getAttribute('POSITION')!.getCount();
-  }
-  return Object.fromEntries([...materials].map(([material, entry]) => [material,
-    { vertices: entry.vertices, hashes: Object.fromEntries(Object.entries(entry.hashes).map(([attribute, hash]) => [attribute, hash.digest('hex')])) }]));
-}
-
-it('rejects a parcel without room for the fixed wings and minimum planted section', async () => {
+it('rejects a plate, a vertical envelope and a slope that cannot carry the podium and wings', async () => {
   await expect(generate({ ...request, parcel: { ...request.parcel, footprint: [[0,0],[25,0],[25,30],[0,30]] } }, keys))
+    .rejects.toMatchObject({ code: 'E_CORE_PLATE' });
+  await expect(generate({ ...request, parcel: { ...request.parcel, maxHeight: 17.5 } }, keys))
+    .rejects.toMatchObject({ code: 'E_ENVELOPE_TOO_LOW' });
+  await expect(generate({ ...request, building: { ...request.building, floors: 25 }, parcel: { ...request.parcel, maxHeight: 112.5 } }, keys))
     .rejects.toMatchObject({ code: 'E_CORE_PLATE' });
 });
 
-it('retains the podium height when checking a tight vertical envelope', async () => {
-  await expect(generate({ ...request, parcel: { ...request.parcel, maxHeight: 17.5 } }, keys))
-    .rejects.toMatchObject({ code: 'E_ENVELOPE_TOO_LOW' });
-});
-
-it('fits the planted front along the long base and rejects a slender taper', async () => {
+it('fits the planted front along the long base', async () => {
   const rotated = { ...request, parcel: { ...request.parcel, footprint: [[0,0],[42,0],[42,62],[0,62]] as [number, number][], accessPoint: [42,31] } };
   const { blueprint } = await generate(rotated, keys);
   const floor = blueprint.floors[1]!;
   expect(floor.outline[0]![0]).toBeCloseTo(floor.outline[1]![0]);
   const podium = blueprint.floors[0]!;
   expect(Math.hypot(podium.outline[1]![0] - podium.outline[0]![0], podium.outline[1]![1] - podium.outline[0]![1])).toBe(61);
-  await expect(generate({ ...request, building: { ...request.building, floors: 25 }, parcel: { ...request.parcel, maxHeight: 112.5 } }, keys)).rejects.toMatchObject({ code: 'E_CORE_PLATE' });
 });

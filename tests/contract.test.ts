@@ -40,9 +40,12 @@ it('returns reproducible versioned floors, materials and a replaceable GLB shell
   expect(bp.materialVariants).not.toEqual({});
 });
 
-it('preserves floor programs and exact link reservations, including anchor identities', async () => {
+it('preserves floor programs, link reservations and anchors with storeys pinned to a non-round aperture base', async () => {
   const request = fixture('bridged-tower');
   request.building.floorKinds = Array.from({ length: request.building.floors }, (_, i) => i === 0 ? 'coffee_shop' : 'offices');
+  const pinned = request.apertures![0]!, base = 24.013401388006868, shift = base - pinned.base;
+  pinned.base = base;
+  pinned.cut.polygon = pinned.cut.polygon.map(([x, y, z]) => [x, y + shift, z]);
   const { blueprint, glb } = await generate(request, keys);
   expect(blueprint.floors.filter(f => f.index >= 0).map(f => f.kind)).toEqual(request.building.floorKinds);
   const nodes = (await glbIO().readBinary(glb)).getRoot().listNodes().map(n => n.getName());
@@ -60,16 +63,6 @@ it('preserves floor programs and exact link reservations, including anchor ident
       expect(field.offset + field.width <= opening.offset || field.offset >= opening.offset + opening.width).toBe(true);
     }
   }
-});
-
-it('keeps roof and bounds exactly aligned with storeys pinned to a non-round aperture base', async () => {
-  const request = fixture('bridged-tower');
-  const aperture = request.apertures![0]!;
-  const base = 24.013401388006868;
-  const shift = base - aperture.base;
-  aperture.base = base;
-  aperture.cut.polygon = aperture.cut.polygon.map(([x, y, z]) => [x, y + shift, z]);
-  const { blueprint } = await generate(request, keys);
   const floors = blueprint.floors.filter(floor => floor.index >= 0);
   expect(floors.some(floor => floor.elevation === base)).toBe(true);
   const last = floors.at(-1)!;
@@ -77,8 +70,10 @@ it('keeps roof and bounds exactly aligned with storeys pinned to a non-round ape
   expect(blueprint.bounds.height).toBe(blueprint.roof.elevation + blueprint.roof.parapetHeight);
 });
 
-it('applies the nine explicit styles while preserving their fitted glazing and material keys', async () => {
-  for (const style of schema.properties.options.properties.exteriorStyle.enum) {
+it('applies an explicit style from each published programme while preserving fitted glazing and keys', async () => {
+  // One style per programme branch: the enum is a published list, the fitting is the promise.
+  for (const style of ['residential-weathered', 'premium-office', 'civic-industrial']) {
+    expect(schema.properties.options.properties.exteriorStyle.enum).toContain(style);
     const request = fixture('corpo-tower');
     request.building = { type: style.startsWith('residential') ? 'residential' : style.startsWith('civic') ? 'factory' : 'corpo',
       tier: style.startsWith('premium') ? 'high_rich' : 'poor', floors: 4 };

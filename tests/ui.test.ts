@@ -7,7 +7,7 @@ import { InspectPanel } from '../src/ui/widgets/InspectPanel.ts';
 
 afterEach(() => { document.body.replaceChildren(); });
 
-it('renders JSON controls and emits fixture, seed, style and shape without changing fixture data', async () => {
+it('renders JSON controls, emits the displayed request and shows generation errors', async () => {
   const fixture = { seed: 'a', buildingId: 'x', options: { windows: 'none' } };
   const before = structuredClone(fixture), onGenerate = vi.fn();
   const panel = new RequestPanel({ alpha: fixture, beta: { ...fixture, seed: 'b' } }, { onGenerate });
@@ -22,18 +22,10 @@ it('renders JSON controls and emits fixture, seed, style and shape without chang
   await user.click(getByText(panel.root, 'generate'));
   expect((panel.currentRequest() as { seed: string }).seed).toBe('custom');
   expect(fixture).toEqual(before);
-});
-
-it('shows the generated seed and displays generation errors', async () => {
-  const onGenerate = vi.fn();
-  const panel = new RequestPanel({ alpha: { buildingId: 'x' } }, { onGenerate });
-  document.body.append(panel.root);
-  const first = (panel.currentRequest() as { seed: string }).seed;
-  expect(first).toMatch(/^[0-9a-f]{12}$/);
-  await userEvent.setup().click(getByText(panel.root, 'random seed'));
-  const next = onGenerate.mock.calls.at(-1)![0].seed;
-  expect(next).not.toBe(first);
-  expect((getByRole(panel.root, 'textbox') as HTMLInputElement).value).toBe(next);
+  await user.click(getByText(panel.root, 'random seed'));
+  const rolled = onGenerate.mock.calls.at(-1)![0].seed;
+  expect(rolled).toMatch(/^[0-9a-f]{12}$/);
+  expect((seed as HTMLInputElement).value).toBe(rolled);
   panel.showError('E_SCHEMA: seed required');
   expect(getByText(panel.root, 'E_SCHEMA: seed required')).toBeTruthy();
 });

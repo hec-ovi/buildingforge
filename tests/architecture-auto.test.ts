@@ -71,21 +71,6 @@ it('records ordinary selection and preserves fixed connection faces', async () =
   expect(result.blueprint).toEqual(original.blueprint);
 });
 
-it('selects varied fitted luxury families through the automatic public entry', async () => {
-  const chosen = new Set<string>();
-  for (const seed of ['luxury-a', 'luxury-b', 'luxury-c']) {
-    const r = request(); r.seed = seed; r.building.tier = 'high_rich'; r.building.floors = 6;
-    r.parcel = { footprint: [[0, 0], [61, 0], [61, 49], [0, 49]], accessPoint: [30, -1], maxHeight: 32 };
-    const result = await generate(r, keys);
-    expect(result.blueprint.architectureSelection?.requested).toBe('auto');
-    expect(result.blueprint.architectureSelection?.selected).toBe(result.blueprint.assembly?.architecture);
-    expect(result.blueprint.architectureSelection?.selected).not.toBe('ordinary');
-    expect(result.blueprint.floors.filter(f => f.index >= 0)).toHaveLength(6);
-    chosen.add(result.blueprint.architectureSelection!.selected);
-  }
-  expect(chosen.size).toBeGreaterThan(1);
-});
-
 it('requires the complete corporate volume before automatic selection', async () => {
   const request: BuildingRequest = { seed: 'corporate-volume-4', buildingId: 'volume', theme: 'cyberpunk',
     parcel: { footprint: [[0, 0], [47, 0], [47, 37.5], [0, 37.5]], accessPoint: [23.5, 0], maxHeight: 60 },

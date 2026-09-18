@@ -3,7 +3,7 @@ name: exterior
 description: Generate one seeded building exterior GLB and its floor/opening blueprint, or publish the six-family piece kit, through the Exterior library or CLI.
 ---
 
-# Exterior 0.58.3
+# Exterior 0.58.4
 
 Builds one deterministic building shell with replaceable slabs, 1 m-deep window scenery and its exact opening blueprint.
 

@@ -22,7 +22,8 @@ function decorationLayout(plan: FamilyPlan, source: FamilyInput): Layout {
 }
 
 describe('white-grid family contract', () => {
-  it('fits complete eight-pane bays, opaque ground and consecutive three-floor braces deterministically', () => {
+  it('fits complete eight-pane bays and fixed rotated faces, and rejects impossible plates', () => {
+  {
     const plan = family.plan(input);
     expect(plan).toEqual(family.plan(input));
     expect(plan.extent).toEqual({ width: 31.5, depth: 16.5 });
@@ -44,9 +45,8 @@ describe('white-grid family contract', () => {
       }
       expect(floor.balconySections).toEqual([]);
     }
-  });
-
-  it('preserves fixed rotated faces, exact edge partitions and caller floor heights', () => {
+  }
+  {
     const fixed: FamilyInput = { rectangle: [[7, 3], [19, 19], [3, 31], [-9, 15]],
       floorHeights: [5, 4, 5, 4, 6, 4], fixedFaces: true, seed: 'fixed' };
     const plan = family.plan(fixed);
@@ -63,9 +63,8 @@ describe('white-grid family contract', () => {
     }
     expect(plan.groups).toMatchObject([{ fromFloor: 0, toFloor: 0 }, { fromFloor: 1, toFloor: 4 }, { fromFloor: 5, toFloor: 5 }]);
     expect(fixed.rectangle).toEqual([[7, 3], [19, 19], [3, 31], [-9, 15]]);
-  });
-
-  it('rejects impossible plates and floor stacks with RangeError', () => {
+  }
+  {
     const invalid: FamilyInput[] = [
       { ...input, floorHeights: [5, 4.5, 4.5] },
       { ...input, floorHeights: [5, 4.5, 2, 4.5] },
@@ -77,9 +76,11 @@ describe('white-grid family contract', () => {
       { ...input, rectangle: [[0, 0], [Infinity, 0], [20, 20], [0, 20]] },
     ];
     for (const bad of invalid) expect(() => family.plan(bad)).toThrow(RangeError);
+  }
   });
 
-  it('emits solid diagonal panels and metal bands within the parcel, with restored floor ownership', () => {
+  it('emits solid diagonal panels and metal bands inside the parcel, clear of door and bridge reservations', () => {
+  {
     const plan = family.plan(input), builder = new MeshBuilder();
     builder.floor = 42;
     family.decorate!({ builder, layout: decorationLayout(plan, input), material: role => family.materials![role]! });
@@ -106,9 +107,8 @@ describe('white-grid family contract', () => {
     const prim = [...front.prims.values()][0]!;
     const depths = prim.positions.filter((_, i) => i % 3 === 2);
     expect(Math.max(...depths) - Math.min(...depths)).toBeCloseTo(0.14);
-  });
-
-  it('cuts bridge and door reservations through the actual decoration', () => {
+  }
+  {
     const source: FamilyInput = { ...input, fixedFaces: true };
     const plan = family.plan(source), layout = decorationLayout(plan, source), builder = new MeshBuilder();
     const bridge = { id: 'bridge-test', buildingId: 'white-grid-test', floor: 2, face: 0, kind: 'bridge' as const,
@@ -128,5 +128,6 @@ describe('white-grid family contract', () => {
         }
       }
     }
+  }
   });
 });

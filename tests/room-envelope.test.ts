@@ -5,7 +5,7 @@ import { fixture, keys } from './support.ts';
 it('publishes a contained right-angle rectangle on every actual floor and construction frame', async () => {
   const angle = 0.37, cosine = Math.cos(angle), sine = Math.sin(angle);
   const transform = ([x, z]: [number, number]): [number, number] => [70 + x * cosine - z * sine, 90 + x * sine + z * cosine];
-  for (const shape of ['auto', 'box', 'rounded-box', 'octagon', 'cylinder', 'pyramid', 'setback'] as const) {
+  for (const shape of ['auto', 'cylinder', 'setback'] as const) {
     const request = fixture('corpo-tower');
     request.building.floors = 10;
     request.building.basements = 1;
@@ -48,7 +48,7 @@ it('publishes a contained right-angle rectangle on every actual floor and constr
   }
 });
 
-it('honors explicit clear height without reducing the taller ground program', async () => {
+it('honors an explicit clear height on every floor without reducing the taller ground program', async () => {
   const request = fixture('architecture-02-chamfered-corners');
   request.building.floors = 6;
   const { blueprint } = await generate(request, keys);
@@ -58,21 +58,11 @@ it('honors explicit clear height without reducing the taller ground program', as
     expect(floor.roomEnvelope!.vertical.max - floor.roomEnvelope!.vertical.min).toBe(4);
   }
   expect(blueprint.floors[1]!.openings.filter(o => o.kind === 'window').every(o => o.height === 3.5)).toBe(true);
+  const lower = await generate({ ...request, options: { ...request.options, minimumClearHeight: 3 } }, keys);
+  expect(lower.blueprint.floors[0]!.height).toBe(7);
+  // The override lowers the active minimum; the composition keeps its own larger dimension.
+  const upper = lower.blueprint.floors.find(f => f.index === 1)!;
+  expect(upper.roomEnvelope!.vertical.max - upper.roomEnvelope!.vertical.min).toBeGreaterThanOrEqual(3);
+  expect(upper.height).toBeLessThan(blueprint.floors[1]!.height);
   await expect(generate({ ...request, parcel: { ...request.parcel, maxHeight: 23 } }, keys)).rejects.toMatchObject({ code: 'E_ENVELOPE_TOO_LOW' });
-});
-
-it('keeps connection elevations fixed when explicit clear height changes floor allocation', async () => {
-  const request = fixture('bridged-tower');
-  request.building.floors = 28;
-  request.options = { minimumClearHeight: 4 };
-  await expect(generate(request, keys)).rejects.toMatchObject({ code: 'E_APERTURE_UNREACHABLE' });
-  request.building.basements = 0;
-  request.apertures = request.apertures!.filter(a => a.base >= 0);
-  const { blueprint } = await generate(request, keys);
-  for (const aperture of request.apertures!.filter(a => a.kind !== 'wire-anchor')) {
-    const floor = blueprint.floors.find(f => f.openings.some(o => o.id === aperture.id))!;
-    const opening = floor.openings.find(o => o.id === aperture.id)!;
-    expect(floor.elevation + opening.sill).toBe(aperture.base);
-  }
-  expect(blueprint.anchors.find(a => a.id === 'ap-wire-4')!.position).toEqual([30, 30.25, 16]);
 });

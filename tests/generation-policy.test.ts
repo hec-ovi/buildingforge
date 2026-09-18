@@ -31,9 +31,3 @@ it('generates four metres clear by default, including basements, with wide share
   }
   expect(gaps.some(gap => Math.abs(gap - policy.windows.sharedPierWidth) < 1e-7)).toBe(true);
 });
-
-it('resolves an explicit lower clear-height override through the same policy', async () => {
-  const { blueprint } = await generate({ ...request, options: { ...request.options, minimumClearHeight: 3 } }, keys);
-  const floor = blueprint.floors.find(f => f.index === 1)!;
-  expect(floor.roomEnvelope!.vertical.max - floor.roomEnvelope!.vertical.min).toBe(3);
-});

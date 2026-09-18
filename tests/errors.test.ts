@@ -31,12 +31,14 @@ const cases: [string, unknown, GenerateOptions?][] = [
   ['E_INVARIANT', residential, { textures: { source: { get index(): never { throw Error('catalog callback failed'); }, readMap: () => null } } }],
 ];
 
-it.each(cases)('reports %s through the public entry', async (code, request, options) => {
-  try {
-    await generate(request, options ?? keys);
-    expect.unreachable('generation must fail');
-  } catch (error) {
-    expect(error).toBeInstanceOf(ExteriorError);
-    expect(error).toMatchObject({ code, message: expect.any(String) });
+it('reports every closed error code through the public entry', async () => {
+  for (const [code, request, options] of cases) {
+    try {
+      await generate(request, options ?? keys);
+      expect.unreachable(`${code} must fail generation`);
+    } catch (error) {
+      expect(error, code).toBeInstanceOf(ExteriorError);
+      expect(error).toMatchObject({ code, message: expect.any(String) });
+    }
   }
 });

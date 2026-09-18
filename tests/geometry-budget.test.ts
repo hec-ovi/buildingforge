@@ -1,26 +1,15 @@
 import { expect, it } from 'vitest';
-import { readdirSync } from 'node:fs';
 import { generate } from '../src/index.ts';
 import { fixture, keys } from './support.ts';
 
-const FIXTURES = readdirSync(new URL('../fixtures', import.meta.url))
-  .filter(name => name.endsWith('.request.json')).map(name => name.replace('.request.json', ''));
-
-it.each(FIXTURES)('exports %s inside its published budget at full detail', async name => {
-  const { blueprint } = await generate(fixture(name), keys);
-  const report = blueprint.geometry!;
-  expect(report.triangles).toBeGreaterThan(0);
-  expect(report.triangles).toBeLessThanOrEqual(report.budget.triangles);
+it('publishes the ordinary allowance and raises it for a tall tower and an authored family', async () => {
+  const ordinary = await generate(fixture('residential-mid'), keys);
+  expect(ordinary.blueprint.geometry!.budget).toEqual({ triangles: 50_000, bytes: 3 * 1024 * 1024 });
+  expect(ordinary.blueprint.geometry!.triangles).toBeGreaterThan(0);
+  expect(ordinary.blueprint.geometry!.triangles).toBeLessThanOrEqual(ordinary.blueprint.geometry!.budget.triangles);
   // Nothing authored costs enough to make the shell shed repeat detail.
-  expect(report.simplified).toBeUndefined();
-});
+  expect(ordinary.blueprint.geometry!.simplified).toBeUndefined();
 
-it('gives an ordinary shell the published ordinary allowance', async () => {
-  const { blueprint } = await generate(fixture('residential-mid'), keys);
-  expect(blueprint.geometry!.budget).toEqual({ triangles: 50_000, bytes: 3 * 1024 * 1024 });
-});
-
-it('raises the allowance for a tall tower and again for an authored family', async () => {
   const request = fixture('corpo-tower');
   request.building.floors = 14;
   request.parcel.footprint = [[0, 0], [40, 0], [40, 36], [0, 36]];

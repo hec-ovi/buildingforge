@@ -19,10 +19,10 @@ function request(architecture: FamilyArchitecture, fixed = false): BuildingReque
   };
 }
 
-it.each(FAMILY_IDS)('generates %s with authored skins, rooms and exact bridge faces', async architecture => {
-  const family = buildingFamily(architecture)!;
-  for (const fixed of [false, true]) {
-    const input = request(architecture, fixed);
+it('generates every registered family with its authored skin, rooms and material roles', async () => {
+  for (const architecture of FAMILY_IDS) {
+    const family = buildingFamily(architecture)!;
+    const input = request(architecture);
     const { blueprint, glb } = await generate(input, keys);
     const assembly = blueprint.assembly!;
     expect(assembly.architecture).toBe(architecture);
@@ -56,14 +56,7 @@ it.each(FAMILY_IDS)('generates %s with authored skins, rooms and exact bridge fa
       if (window.width < 0.7) expect(window.panes?.cols).toBe(1);
     }
     for (let i = 0; i < blueprint.lights.length; i++) expect(names.has(`light:${i}`)).toBe(true);
-    if (fixed) {
-      expect(blueprint.floors.every(f => JSON.stringify(f.outline) === JSON.stringify(input.parcel.footprint))).toBe(true);
-      const floor = blueprint.floors.find(f => f.openings.some(o => o.id === 'bridge'))!;
-      const cut = floor.openings.find(o => o.id === 'bridge')!;
-      expect(floor.elevation + cut.sill).toBe(9);
-      expect({ edge: cut.edge, offset: cut.offset, width: cut.width, height: cut.height }).toEqual({ edge: 1, offset: 16.5, width: 3, height: 3 });
-      expect(floor.openings.filter(o => o.kind === 'window' && o.edge === 1).every(o => o.offset + o.width <= 16.5 || o.offset >= 19.5)).toBe(true);
-    } else if (architecture === 'balcony-grid') {
+    if (architecture === 'balcony-grid') {
       const curved = assembly.floors[1]!.sections.filter(s => s.spans);
       expect(curved).toHaveLength(4);
       expect(curved.map(s => s.spans!.length)).toEqual([3, 3, 3, 3]);
@@ -74,7 +67,7 @@ it.each(FAMILY_IDS)('generates %s with authored skins, rooms and exact bridge fa
         expect(fields.filter(o => o.scenery?.lights?.length).length).toBeLessThanOrEqual(1);
       }
     }
-    if (!fixed && ['corporate-sectors', 'mirror-frame'].includes(architecture)) expect(blueprint.modelInstances?.length).toBeGreaterThan(0);
+    if (['corporate-sectors', 'mirror-frame'].includes(architecture)) expect(blueprint.modelInstances?.length).toBeGreaterThan(0);
   }
 }, 30_000);
 

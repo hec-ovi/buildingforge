@@ -36,7 +36,7 @@ describe('facade-services contract', () => {
     expect(JSON.stringify(c)).not.toBe(JSON.stringify(a));
   });
 
-  it('transforms fitted networks on all four facade orientations', () => {
+  it('fits every facade orientation and connects exact equipment endpoints through dimensioned segments and wall supports', () => {
     const input = load();
     const output = generateFacadeServices(input);
     const pipes = output.networks.filter((network) => network.kind === 'pipe');
@@ -51,11 +51,6 @@ describe('facade-services contract', () => {
         expect(distance(node.position, transformed(face, node))).toBeLessThan(0.002);
       }
     }
-  });
-
-  it('connects exact equipment endpoints through dimensioned segments and wall supports', () => {
-    const input = load();
-    const output = generateFacadeServices(input);
     const targets = new Map([
       ...input.artifacts.map((item) => [item.id, {
         rect: item.rect,
@@ -93,7 +88,7 @@ describe('facade-services contract', () => {
     }
   });
 
-  it('keeps services and clothes outside every opening reservation', () => {
+  it('keeps services and clothes outside every reservation and off a concave parcel edge', () => {
     const input = load();
     const output = generateFacadeServices(input);
     const openings = input.reservations.filter((item) => item.kind === 'opening');
@@ -124,9 +119,16 @@ describe('facade-services contract', () => {
         expect(support.tipLocal[2]).toBeGreaterThan(0);
       }
     }
+    const concave = generateFacadeServices({
+      ...input,
+      parcel: [[-2, -2], [0.8, -2], [0.8, -0.2], [3, -0.2], [3, -2],
+        [14, -2], [14, 14], [-2, 14]],
+    });
+    expect(concave.networks.some((network) => network.kind === 'pipe' && network.face.edge === 0)).toBe(false);
+    expect(concave.networks.some((network) => network.kind === 'pipe' && network.face.edge !== 0)).toBe(true);
   });
 
-  it('uses supplied database keys and remains inside every density and geometry budget', () => {
+  it('uses supplied database keys, stays inside every budget and emits nothing when detail is disabled', () => {
     const input = load();
     const output = generateFacadeServices(input);
     const allowed = new Set(Object.values(input.materials));
@@ -142,17 +144,18 @@ describe('facade-services contract', () => {
       const limitName = `max${name[0]!.toUpperCase()}${name.slice(1)}` as keyof typeof output.limits;
       expect(count, name).toBeLessThanOrEqual(output.limits[limitName]);
     }
-  });
-
-  it('rejects route spans that leave a concave parcel between their endpoints', () => {
-    const input = load();
-    const output = generateFacadeServices({
+    const quiet = generateFacadeServices({
       ...input,
-      parcel: [[-2, -2], [0.8, -2], [0.8, -0.2], [3, -0.2], [3, -2],
-        [14, -2], [14, 14], [-2, 14]],
+      density: 0,
+      modes: { services: 'off', clothes: 'off', windowDamage: 'off' },
     });
-    expect(output.networks.some((network) => network.kind === 'pipe' && network.face.edge === 0)).toBe(false);
-    expect(output.networks.some((network) => network.kind === 'pipe' && network.face.edge !== 0)).toBe(true);
+    expect(quiet).toMatchObject({
+      units: [], networks: [], clotheslines: [], damagedWindows: [],
+      stats: {
+        networks: 0, segments: 0, supports: 0, units: 0, clotheslines: 0,
+        clothItems: 0, damagedWindows: 0, triangles: 0, materialKeys: 0, drawCalls: 0,
+      },
+    });
   });
 
   it('keeps window damage opt-in, sparse, pane-bounded, and collision-explicit', () => {
@@ -167,22 +170,6 @@ describe('facade-services contract', () => {
     }
     const off = generateFacadeServices({ ...input, modes: { ...input.modes, windowDamage: 'off' } });
     expect(off.damagedWindows).toHaveLength(0);
-  });
-
-  it('emits nothing when density and modes disable the optional detail', () => {
-    const input = load();
-    const output = generateFacadeServices({
-      ...input,
-      density: 0,
-      modes: { services: 'off', clothes: 'off', windowDamage: 'off' },
-    });
-    expect(output).toMatchObject({
-      units: [], networks: [], clotheslines: [], damagedWindows: [],
-      stats: {
-        networks: 0, segments: 0, supports: 0, units: 0, clotheslines: 0,
-        clothItems: 0, damagedWindows: 0, triangles: 0, materialKeys: 0, drawCalls: 0,
-      },
-    });
   });
 
   it('rejects malformed face frames and invented material values', () => {

@@ -21,7 +21,8 @@ function layoutFor(request: FamilyInput, plan: FamilyPlan): Layout {
 }
 
 describe('mirror-shutters public family contract', () => {
-  it('fits complete frontage cells, partitions every face and preserves supplied storey heights', () => {
+  it('fits complete frontage cells on free and rotated bound plates, and rejects impossible input', () => {
+  {
     const variable = { ...input, floorHeights: [4.5, 5, 3.5, 4.5, 4, 6] };
     const plan = family.plan(variable);
     expect(plan).toEqual(family.plan(variable));
@@ -49,25 +50,25 @@ describe('mirror-shutters public family contract', () => {
     expect(upper.sections.find(s => s.edge === 0 && s.id.includes(':spine:'))!.windows!.every(w => w.panes?.cols === 1)).toBe(true);
     expect(upper.sections.find(s => s.id.includes(':bank:'))!.windows![0]!.height)
       .toBeGreaterThan(upper.sections.find(s => s.id.includes(':ribbon:'))!.windows![0]!.height);
-  });
-
-  it('retains rotated bound faces and uses exact fractional boundary lengths', () => {
+  }
+  {
     const transform = ([x, z]: Point): Point => [8 + x * 0.8 - z * 0.6, -11 + x * 0.6 + z * 0.8];
     const rectangle = ([[0, 0], [37.75, 0], [37.75, 22.25], [0, 22.25]] as Point[]).map(transform) as FamilyInput['rectangle'];
     const plan = family.plan({ ...input, rectangle, fixedFaces: true });
     for (const floor of plan.floors) expect(floor.outline).toEqual(rectangle);
     expect(plan.extent.width).toBeCloseTo(37.75, 8);
     expect(plan.extent.depth).toBeCloseTo(22.25, 8);
-  });
-
-  it('rejects impossible plates, malformed rectangles and floors that cannot carry its windows', () => {
+  }
+  {
     expect(() => family.plan({ ...input, rectangle: [[0, 0], [28, 0], [28, 20], [0, 20]] })).toThrow(RangeError);
     expect(() => family.plan({ ...input, rectangle: [[0, 0], [54, 0], [53, 34], [0, 34]] })).toThrow(RangeError);
     expect(() => family.plan({ ...input, floorHeights: [4.5] })).toThrow(RangeError);
     expect(() => family.plan({ ...input, floorHeights: [4.5, NaN] })).toThrow(RangeError);
+  }
   });
 
-  it('builds closed curved entry ribs and mullion depth inside the parcel, restoring builder ownership', () => {
+  it('builds entry ribs and mullions inside the parcel, clear of bridge holes, and omits trees at reservations', () => {
+  {
     const plan = family.plan(input), builder = new MeshBuilder();
     builder.floor = 99;
     const decoration = family.decorate!({ builder, layout: layoutFor(input, plan), material: role => family.materials![role]! });
@@ -98,9 +99,8 @@ describe('mirror-shutters public family contract', () => {
       expect(tree.position[2] + tree.size[2] / 2).toBeLessThan(34);
       expect(Math.abs(tree.position[0] - 27)).toBeGreaterThan(3.35);
     }
-  });
-
-  it('keeps bridge holes free of attached mullions and has no projecting ribs on bound faces', () => {
+  }
+  {
     const bound = { ...input, fixedFaces: true };
     const plan = family.plan(bound), layout = layoutFor(bound, plan), builder = new MeshBuilder();
     const section = plan.floors[1]!.sections.find(s => s.edge === 0 && s.id.includes(':bank:'))!;
@@ -126,9 +126,8 @@ describe('mirror-shutters public family contract', () => {
         expect(sides.every(v => v > 1e-7) || sides.every(v => v < -1e-7)).toBe(false);
       }
     }
-  });
-
-  it('omits existing-tree instances whose crowns occupy entrance or bridge reservations', () => {
+  }
+  {
     const plan = family.plan(input), layout = layoutFor(input, plan);
     const material = (role: string) => family.materials![role]!;
     const before = family.decorate!({ builder: new MeshBuilder(), layout, material })!.instances!;
@@ -145,5 +144,6 @@ describe('mirror-shutters public family contract', () => {
     expect(after).toHaveLength(before.length - 2);
     expect(after.some(t => JSON.stringify(t.position) === JSON.stringify(entrance.position))).toBe(false);
     expect(after.some(t => JSON.stringify(t.position) === JSON.stringify(bridge.position))).toBe(false);
+  }
   });
 });

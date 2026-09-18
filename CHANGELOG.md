@@ -1,5 +1,7 @@
 # Changelog
 
+0.58.4: the suite is one case per contract promise through the public entries, 77 cases in about six seconds.
+
 0.58.3: every kit band measures 4.5 m including crown parapets and roof caps, with matching assembly heights, blueprints and parcel fits.
 
 0.58.2: balcony ground bands carry the loggia section, white grid middle pieces measure 4.5 m, and every kit family has backing with clear openings and watertight seams.

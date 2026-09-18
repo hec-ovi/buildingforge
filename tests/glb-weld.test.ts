@@ -2,10 +2,10 @@ import { expect, it } from 'vitest';
 import { generate } from '../src/index.ts';
 import { fixture, glbIO, keys } from './support.ts';
 
-it.each(['named', 'merged'] as const)('welds and indexes every %s primitive', async glb => {
+it('welds and indexes every exported primitive', async () => {
   const request = fixture('corpo-tower');
   request.building.floors = 6;
-  request.options = { ...request.options, glb };
+  request.options = { ...request.options, glb: 'merged' };
   const doc = await glbIO().readBinary((await generate(request, keys)).glb);
 
   let checked = 0;

@@ -32,7 +32,8 @@ function contained(point: Point, rectangle: Point[]): boolean {
 }
 
 describe('faceted-bays public family', () => {
-  it('fits whole three-plane cells, solid group plinths and real narrow windows on a rotated parcel', () => {
+  it('fits whole three-plane cells on rotated and fixed plates, and rejects impossible input', () => {
+  {
     const source = input();
     const angle = 0.41;
     source.rectangle = source.rectangle.map(([x, z]) => [5 + x * Math.cos(angle) - z * Math.sin(angle), -9 + x * Math.sin(angle) + z * Math.cos(angle)]) as FamilyInput['rectangle'];
@@ -55,9 +56,8 @@ describe('faceted-bays public family', () => {
         expect(end).toBeCloseTo(Math.hypot(b[0] - a[0], b[1] - a[1]));
       }
     }
-  });
-
-  it('keeps every supplied bridge face and floor height in fixed-face mode', () => {
+  }
+  {
     const source = { ...input(), fixedFaces: true };
     source.rectangle = [[3, 6], [44, 6], [44, 35], [3, 35]];
     source.floorHeights[0] = 5;
@@ -67,9 +67,16 @@ describe('faceted-bays public family', () => {
     expect(plan.floors.every(f => JSON.stringify(f.outline) === JSON.stringify(source.rectangle))).toBe(true);
     expect(plan.extent).toEqual({ width: 41, depth: 29 });
     expect(plan.floors.every(f => f.balconySections.length === 0)).toBe(true);
+  }
+  {
+    expect(() => family.plan({ ...input(), rectangle: [[0, 0], [30, 0], [29, 30], [0, 30]] })).toThrow(RangeError);
+    expect(() => family.plan({ ...input(), rectangle: [[0, 0], [15, 0], [15, 15], [0, 15]] })).toThrow(RangeError);
+    expect(() => family.plan({ ...input(), floorHeights: [4.5, 2.2] })).toThrow(RangeError);
+  }
   });
 
-  it('emits finite attached geometry, full portrait screens and reserved opening clearance', () => {
+  it('emits finite attached geometry and portrait screens inside the parcel, clear of doors and bridge cuts', () => {
+  {
     const source = input(), plan = family.plan(source), layout = host(plan, source);
     const floor = layout.floors[0]!;
     floor.openings.push({ id: 'entrance', edge: 0, offset: 9, width: 3, height: 3.8, sill: 0, kind: 'door', material: 'door' });
@@ -89,9 +96,8 @@ describe('faceted-bays public family', () => {
         }
       }
     }
-  });
-
-  it('keeps fixed-face decorations inside the parcel and skips screens at bridge cuts', () => {
+  }
+  {
     const source = { ...input(), fixedFaces: true };
     source.rectangle = [[0, 0], [42.01, 0], [42.01, 30.01], [0, 30.01]];
     source.floorHeights[2] = 4.51;
@@ -106,11 +112,6 @@ describe('faceted-bays public family', () => {
       expect(contained([x, z], source.rectangle)).toBe(true);
       expect(z < 0.25 && x > target.offset + 1e-6 && x < target.offset + target.width - 1e-6 && y > 4.5 + 1e-6 && y < 22.5 - 1e-6).toBe(false);
     }
-  });
-
-  it('rejects an invalid rectangle, an incomplete cell and an unusable floor stack', () => {
-    expect(() => family.plan({ ...input(), rectangle: [[0, 0], [30, 0], [29, 30], [0, 30]] })).toThrow(RangeError);
-    expect(() => family.plan({ ...input(), rectangle: [[0, 0], [15, 0], [15, 15], [0, 15]] })).toThrow(RangeError);
-    expect(() => family.plan({ ...input(), floorHeights: [4.5, 2.2] })).toThrow(RangeError);
+  }
   });
 });

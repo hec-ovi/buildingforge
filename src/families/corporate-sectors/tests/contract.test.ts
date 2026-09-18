@@ -102,7 +102,8 @@ function layout(plan: FamilyPlan, source = input): Layout {
 
 describe('corporate sectors public family', () => {
 
-  it('keeps the exported middle window casings at the recessed panel plane', async () => {
+  it('exports recessed window casings, closing slabs and walking approaches to bridges and the entrance', async () => {
+  {
     const { blueprint, glb } = await exportedSource();
     const floor = blueprint.floors.find(f => f.index === 4)!;
     const opening = floor.openings.find(o => o.sectionId?.includes(':recessed-slit:'))!;
@@ -125,9 +126,8 @@ describe('corporate sectors public family', () => {
     const revealX = floor.outline[0]![0] + reveal.offset + reveal.width * 0.8;
     expect(slabCovers(document, 5, revealX, floor.outline[0]![1] + 0.2)).toBe(false);
     expect(slabCovers(document, 5, revealX, floor.outline[0]![1] + 1.1)).toBe(true);
-  });
-
-  it('retains walking approaches through an inset shell to fixed bridges and the entrance', async () => {
+  }
+  {
     const { blueprint, glb } = await exportedSource([{ id: 'bridge', buildingId: 'corporate-window-plane', floor: 2, face: 1, kind: 'bridge', u: 18, base: 9, width: 3, height: 3, shape: 'rect',
       cut: { polygon: [[51, 9, 16.5], [51, 9, 19.5], [51, 12, 19.5], [51, 12, 16.5]], axisDir: [1, 0, 0] }, linkId: 'link' }]);
     const document = await glbIO().readBinary(glb);
@@ -135,8 +135,11 @@ describe('corporate sectors public family', () => {
     expect(slabCovers(document, 2, 50.5, 24)).toBe(false);
     const entrance = blueprint.floors[0]!.openings.find(o => o.kind === 'door')!;
     expect(slabCovers(document, 0, entrance.offset + entrance.width / 2, 0.5)).toBe(true);
+  }
   });
-  it('fits fixed face limits around complete two-metre window repeats and distinct upper blocks', () => {
+
+  it('fits complete two-metre repeats, distinct upper blocks and supplied bridge faces, and rejects impossible plates', () => {
+  {
     const plan = family.plan(input);
     expect(plan).toEqual(family.plan(input));
     expect(plan.extent).toEqual({ width: 44, depth: 32 });
@@ -183,9 +186,8 @@ describe('corporate sectors public family', () => {
     expect(plan.floors[8]!.sections.filter(s => s.id.includes(':screen:')).map(s => s.edge)).toEqual([2]);
     expect(plan.floors[8]!.sections.filter(s => s.edge === 3 && s.id.includes(':mechanical:'))).toHaveLength(1);
     expect(plan.floors.every(f => f.balconySections.length === 0)).toBe(true);
-  });
-
-  it('preserves supplied bridge faces and rotation without changing any floor pitch', () => {
+  }
+  {
     const source: FamilyInput = { rectangle: [[10, 20], [43.6, 45.2], [20.8, 75.6], [-12.8, 50.4]], floorHeights: [4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5, 4.5, 4.5, 4.5, 4.5, 4.5], seed: 'bridge', fixedFaces: true };
     const plan = family.plan(source);
     expect(plan.floors.every(f => JSON.stringify(f.outline) === JSON.stringify(source.rectangle))).toBe(true);
@@ -193,9 +195,8 @@ describe('corporate sectors public family', () => {
     expect(plan.extent.depth).toBeCloseTo(38);
     expect(source.floorHeights).toEqual([4.5, 4.5, 4.7, 4.3, 4.5, 4.5, 5, 4.5, 4.5, 4.5, 4.5, 4.5]);
     expect(plan.floors[4]!.sections.find(s => s.id.includes(':recessed-slit:'))!.border.depth).toBeCloseTo(4.68);
-  });
-
-  it('rejects impossible storeys and malformed or undersized plates', () => {
+  }
+  {
     for (const override of [
       { floorHeights: Array(11).fill(4.5) }, { floorHeights: input.floorHeights.map((h, i) => i === 2 ? 2 : h) },
       { rectangle: [[0, 0], [16, 0], [16, 16], [0, 16]] },
@@ -206,9 +207,11 @@ describe('corporate sectors public family', () => {
     const minimum = family.plan({ ...input, rectangle: [[0, 0], [35, 0], [35, 35], [0, 35]] });
     expect(minimum.extent).toEqual({ width: 28, depth: 28 });
     expect(minimum.groups.map(g => [g.fromFloor, g.toFloor])).toEqual([[0, 3], [4, 7], [8, 11]]);
+  }
   });
 
-  it('decorates within the parcel, leaves bridge holes clear, and publishes cyan emitters', () => {
+  it('decorates inside the parcel with aligned panel grids, clear bridge holes and cyan emitters', () => {
+  {
     const scene = layout(family.plan(input));
     scene.carved.push({ aperture: { face: 0, kind: 'bridge' }, facePoly: [[1, 23], [4, 23], [4, 26], [1, 26]] } as Layout['carved'][number]);
     scene.carved.push({ aperture: { face: 1, kind: 'bridge' }, facePoly: [[5, 42], [9, 42], [9, 44], [5, 44]] } as Layout['carved'][number]);
@@ -272,9 +275,8 @@ describe('corporate sectors public family', () => {
     expect(Math.min(...coverage)).toBeGreaterThanOrEqual(5);
     expect(new Set(coverage).size).toBeGreaterThan(1);
     expect(builder.parts.some(p => p.name === 'corporate:8:3:services')).toBe(true);
-  });
-
-  it('fits fixed-face relief, aligns pale panel grids across unequal storeys, and clears a bridged screen', () => {
+  }
+  {
     const source = { ...input, fixedFaces: true, floorHeights: input.floorHeights.map((height, index) => height + (index % 3) * 0.1) };
     const scene = layout(family.plan(source), source);
     scene.carved.push({ aperture: { face: 2, kind: 'bridge' }, facePoly: [[20, 25], [25, 25], [25, 29], [20, 29]] } as Layout['carved'][number]);
@@ -304,5 +306,6 @@ describe('corporate sectors public family', () => {
       expect(verticalJoints).toBeGreaterThan(0);
     }
     expect([...misaligned]).toEqual([]);
+  }
   });
 });
