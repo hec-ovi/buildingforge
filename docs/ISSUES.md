@@ -21,64 +21,27 @@
 
 ## Open requests to other boxes
 
-### Materials: blade-pattern maps for coverings (2026-09-17)
+### Materials: blade-pattern maps for coverings
 
-A window covering is now one fitted quad; the blade pitch has to come from the map.
-Measured on `engine/out/games/corporate-streets-500` p0 (offices, 13 floors): slat
-geometry was 584,832 of 833,874 vertices (70 percent) and the shell was 31.8 MB.
+A window covering is one fitted quad; the blade pitch has to come from the map. Needed, one pattern variant each, tiling declared in world metres so a quad at world-metre UVs lands on the real pitch:
 
-Needed, one pattern variant each, tiling declared in world metres so a quad at
-world-metre UVs lands on the real pitch:
+- `cyberpunk/paired-blind/mid`: horizontal aluminium blades at a 0.14 m pitch, with the punched 0.076 x 0.026 m opening line. Today's only variant is `surface` (flat brushed aluminium at 0.5 x 0.5 m).
+- `cyberpunk/exterior-louvre/mid` (and its tier aliases): fixed exterior blades at a 0.13 m pitch. Today's only variant is `metal` (flat, 0.5 x 0.5 m).
+- `cyberpunk/window-frame/<tier>`: a head-baffle comb at a 0.16 m pitch, for the recessed band above chamfered-corner ribbon glazing.
+- `cyberpunk/ivory-panel/mid`: 22 mm fixing heads inset 45 mm from each corner of the 1.5 m faceted-bays panel module.
+- `cyberpunk/corporate-panel/mid`: the 1 x 1.5 m panel joint, 32 mm wide, so the corporate cladding field reads as panels without a box per panel.
 
-- `cyberpunk/paired-blind/mid`: horizontal aluminium blades at a 0.14 m pitch, with
-  the punched 0.076 x 0.026 m opening line the geometry used to carry. Today's only
-  variant is `surface` (flat brushed aluminium at 0.5 x 0.5 m).
-- `cyberpunk/exterior-louvre/mid` (+ its tier aliases): fixed exterior blades at a
-  0.13 m pitch. Today's only variant is `metal` (flat, 0.5 x 0.5 m).
+Geometry uses the closest existing keys: `paired-blind#surface`, `exterior-louvre#metal`, and `curtain/<tier>#slat` for venetian coverings (a blind pattern at 1.5 x 3 m).
 
-Meanwhile geometry uses the closest existing keys: `paired-blind#surface`,
-`exterior-louvre#metal`, and `curtain/<tier>#slat` for venetian coverings, which
-already carries a blind pattern at 1.5 x 3 m.
+### Interior and Engine: the shell GLB requires KHR_mesh_quantization
 
-Three more repeats moved from geometry into the map in 0.53.0 and need the same
-treatment, again as pattern variants with world-metre tiling:
-
-- `cyberpunk/window-frame/<tier>`: a head-baffle comb at a 0.16 m pitch, for the
-  recessed band above chamfered-corner ribbon glazing.
-- `cyberpunk/ivory-panel/mid`: 22 mm fixing heads inset 45 mm from each corner of
-  the 1.5 m faceted-bays panel module.
-- `cyberpunk/corporate-panel/mid`: the 1 x 1.5 m panel joint, 32 mm wide, so the
-  corporate cladding field reads as panels without a box per panel.
-
-### Interior and Engine: the shell GLB now requires KHR_mesh_quantization (2026-09-17)
-
-Exported normals are normalized signed shorts instead of floats, which is what
-brings a shell inside the 3 MiB budget. `extensionsRequired` lists
-`KHR_mesh_quantization`. three.js reads it natively; a reader built on glTF
-Transform must register `KHRMeshQuantization`, and a strict reader that does not
-support the extension will refuse the file. Positions and UVs stay float, so
-world coordinates read exactly as before.
-
-### Orchestrator: facade density by family, for the record (2026-09-17)
-
-Measured keys-only on `engine/out/games/corporate-streets-500` at 0.55.0, every
-parcel at full detail:
-
-| family | triangles per square metre of facade |
-| --- | --- |
-| ordinary, paired, balcony-grid | 5 to 9 |
-| faceted-bays | 13 |
-| corporate-sectors | 20 to 22 |
-
-`schemas/geometry-budget.json` gives an authored family its own allowance from
-these figures, so no parcel loses its architecture. The largest shell in the city
-is a corporate-sectors tower at 308,760 triangles and 17.28 MB.
+Exported normals are normalized signed shorts. `extensionsRequired` lists `KHR_mesh_quantization`. three.js reads it natively; a reader built on glTF Transform must register `KHRMeshQuantization`. Positions and UVs stay float.
 
 ### Engine and Interior: consume the piece catalog
 
 `npm run kit -- --out out/kit` publishes six families and `kit.json` under the [kit schema](../schemas/kit.schema.json). `planAssembly` returns the [placement schema](../schemas/placement.schema.json), including world space signs and doors. Engine instances these files; `generate` serves landmarks.
 
-Lot edges accept 8N metres for integers N from two; floors accept integers from three. Catalog band heights include the crown cap. White grid ground is 5 m; other ground and middle bands are 4.5 m. Floor slabs, roof and wire anchors belong to the building. Ground entrance pieces contain their door nodes. `assembleFromPieces` also supplies building parts and addressable doors.
+Lot edges accept 8N metres for integers N from two; floors accept integers from two. Catalog band heights include the crown cap. White grid ground is 5 m; other ground and middle bands are 4.5 m. Floor slabs, roof and wire anchors belong to the building. Ground entrance pieces contain their door nodes. `assembleFromPieces` also supplies building parts and addressable doors.
 
 Open for Interior: one interior per band kind, aligned with the published band heights and piece boundaries.
 

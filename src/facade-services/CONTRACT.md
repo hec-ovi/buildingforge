@@ -8,7 +8,7 @@ Builds deterministic facade-local pipes, ducts, cable bundles, service units, su
 
 - `generateFacadeServices(input)` accepts [schema/input.schema.json](schema/input.schema.json).
 - Face frames provide a world origin, unit facade tangent, unit outward normal, exact length and height, and panel boundaries in meters.
-- Reservations provide every opening, access route, fixture, relief member, artifact, and previously accepted route as a face-local rectangle with outward depth.
+- Reservations provide every opening, access route, fixture, relief member, artifact, and already accepted route as a face-local rectangle with outward depth.
 - AC artifacts are explicit equipment endpoints. Windows name the pane grid available for an explicit damage state.
 - Material values are canonical database keys supplied by the caller. The generator cannot synthesize a key.
 - `modes.windowDamage` defaults outside this layer. This layer only accepts the resolved states `off` and `sparse`.

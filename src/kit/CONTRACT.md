@@ -11,7 +11,7 @@ From `src/index.ts`: `pieceSet(family, seed?)`, `buildPieceMesh(PieceRequest)`, 
 - [Kit JSON schema](../../schemas/kit.schema.json): module constants, files, local signs and doors, geometry sizes, origins, triangle counts, actual file bytes, band heights and fits.
 - [Placement JSON schema](../../schemas/placement.schema.json): exactly the JSON result of `planAssembly`, including band elevations, placements and world space signs and doors.
 
-Both schemas use draft 2020-12. Files have no paths or timestamps tied to a machine. The same seed and family give byte identical pieces and catalog metadata. The recipes currently use fixed geometry for every seed.
+Both schemas use draft 2020-12. Files have no paths or timestamps tied to a machine. The same seed and family give byte identical pieces and catalog metadata. Recipes use fixed geometry for every seed.
 
 ## Families
 

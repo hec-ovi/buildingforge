@@ -1,6 +1,6 @@
 ---
 name: exterior
-description: Generate one seeded building exterior GLB and its floor/opening blueprint through the Exterior library or CLI.
+description: Generate one seeded building exterior GLB and its floor/opening blueprint, or publish the six-family piece kit, through the Exterior library or CLI.
 ---
 
 # Exterior 0.58.1
@@ -28,8 +28,8 @@ Call `generate(request, options?)` from `src/index.ts` in Node with TypeScript s
 | `facadeServices`, `hangingClothes`, `windowDamage` | `auto`, `auto`, `off`. |
 | `coreAdjacency` | Interior's published glazing circulation default (1.2 m). |
 | `curtains.profile`, `sunAzimuthDeg`, `overrides` | `day`, 180, empty. Override `openPercent:30` yields `closurePercent:70`. |
-| Second argument `textures` | `mode:external`; `dir` defaults to `URBE_MATERIALS_DIR`, then sibling `materials`; `baseUrl` defaults to empty. A supplied `source` replaces disk access; `null` requests fallback. |
-| `textures.nativeFinishes`, `nativeBaseUrl` | Built-in sources enable bundled finishes; custom sources opt in. Browser base defaults to `native-materials/`. |
+| Second argument `options.textures` | `mode:external`; `dir` defaults to `URBE_MATERIALS_DIR`, then sibling `materials`; `baseUrl` defaults to empty. A supplied `source` replaces disk access; `null` requests fallback. |
+| `options.textures.nativeFinishes`, `nativeBaseUrl` | Built-in sources enable bundled finishes; custom sources opt in. Browser base defaults to `native-materials/`. |
 
 The promise returns `{glb: Uint8Array, blueprint, textures: {mode, reason?}}`. The [blueprint](schemas/blueprint.schema.json) includes `version`, optional section `assembly`, floor `roomEnvelope` rectangles, all openings, facade reservations/material keys, balconies, services and roof data. Every opening remains a hard reservation; the irregular space outside each room rectangle stays open. Exterior does not build rooms or internal stairs.
 
@@ -44,3 +44,11 @@ npm run generate -- fixtures/residential-mid.request.json out --seed example --k
 ```
 
 This writes `out/p101.glb` and `out/p101.blueprint.json`, with seed `example` and keys for caller-side material resolution. Omit `--keys-only` for external textures or use `--embed` for a self-contained GLB. Optional CLI flags: `--materials DIR`, `--materials-base URI`.
+
+The piece kit authors each family as nine GLBs. Floors start at two (crown on ground, no middle band):
+
+```sh
+npm run kit -- --out out/kit
+```
+
+This writes `out/kit/kit.json` and `<family>/<band>-<kind>.glb` for all six families. Optional flags: `--families a,b`, `--seed S`. Library calls: `pieceSet`, `planAssembly`, `assembleFromPieces` from `src/index.ts`. See [src/kit/CONTRACT.md](src/kit/CONTRACT.md).

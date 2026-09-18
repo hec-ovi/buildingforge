@@ -12,3 +12,4 @@ Purpose: builds broad graphite piers around deep vertical slots and pale illumin
 - Materials: graphite panels use `paired-cladding-metal/mid#obsidian`; entrance trim fits the complete `portal-limestone/mid#native` image to each stone face. All roles and complete keys are in [index.ts](index.ts).
 - Dependencies: [family host](../CONTRACT.md), [Exterior](../../../CONTRACT.md), [Materials](../../../../materials/CONTRACT.md). The host owns glazing, formed coverings, room scenery and floor elevations.
 - Vegetation: returns paired palm and shrub instances beside the entrance, with planters and all canopy bounds inside the forecourt. Reservations suppress any plant that cannot fit. The host imports its existing models and preserves their proportions inside the supplied bounds.
+- Check: `npm test -- src/families/mirror-frame/contract.test.ts` from `exterior/`.
