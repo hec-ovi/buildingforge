@@ -35,10 +35,12 @@ it('exports the paired rounded facade and its authored room nodes', async () => 
   expect(blueprint.facade.materialPlan.field.key).toBe('cyberpunk/paired-cladding-metal/mid');
   expect(blueprint.facade.groundMaterial!.key).toBe('cyberpunk/paired-cladding/mid');
   expect(blueprint.materials).toContain('cyberpunk/paired-blind/mid');
+  expect(blueprint.materialVariants['cyberpunk/paired-blind/mid']).toBe('blades');
   // A covered pane is one fitted panel, not a slat stack: four vertices per
   // covered pane plus the raised stack, never thousands.
   const blindPrimitive = nodes.find(n => n.getName() === 'scenery:1')!.getMesh()!.listPrimitives()
     .find(p => p.getMaterial()!.getName() === 'cyberpunk/paired-blind/mid')!;
+  expect(blindPrimitive.getMaterial()!.getExtras().materialVariant).toBe('blades');
   const floor = blueprint.floors[1]!;
   const panes = floor.openings.filter(o => o.kind === 'window' && o.glazing).length * 4;
   const blindVertices = blindPrimitive.getAttribute('POSITION')!.getCount();

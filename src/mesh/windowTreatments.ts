@@ -18,8 +18,7 @@ export function meshGroundPrivacy(sink: PartSink, frame: Frame, field: Field, gl
 }
 
 export function meshExteriorLouvre(sink: PartSink, frame: Frame, field: Field, covering: NonNullable<Opening['exteriorCovering']>): void {
-  const material = materialSlot(covering.material, 'metal');
-  const width = field.u1 - field.u0;
+  const material = materialSlot(covering.material, 'blades', 'catalog');
   const height = field.y1 - field.y0;
   const at = (u: number, y: number, depth: number): V3 => [
     frame.v[0] + frame.dir[0] * u + frame.n[0] * depth, y,

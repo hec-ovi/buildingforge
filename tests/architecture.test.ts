@@ -111,7 +111,12 @@ it('keeps cut-facade catalog identities identical in keys and textured output', 
   expect(ids(keyMaterials)).toEqual(ids(textureMaterials));
   const trim = textureMaterials.filter((m: any) => m.name.includes('/window-frame/'));
   expect(trim.length).toBeGreaterThan(0);
-  expect(trim.every((m: any) => m.extras?.materialVariant === 'paint' && m.extras.nativeMaterial === undefined)).toBe(true);
+  expect(new Set(trim.map((m: any) => m.extras?.materialVariant))).toEqual(new Set(['paint', 'comb']));
+  expect(trim.every((m: any) => m.extras.nativeMaterial === undefined)).toBe(true);
+  for (const material of trim) {
+    const scale = material.extras.materialVariant === 'comb' ? 1 / 0.64 : 2;
+    expect(material.pbrMetallicRoughness.baseColorTexture.extensions.KHR_texture_transform.scale).toEqual([scale, scale]);
+  }
   expect(textureMaterials.some((m: any) => m.name.includes('/concrete-monolith/') && m.extras?.materialVariant === 'graphite')).toBe(true);
   for (const material of textureMaterials.filter((m: any) => m.name.includes('/concrete-monolith/') && !m.extras?.nativeMaterial)) {
     expect(material.pbrMetallicRoughness.baseColorTexture.extensions.KHR_texture_transform.scale).toEqual([0.25, 0.25]);

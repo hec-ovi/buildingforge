@@ -1,6 +1,7 @@
 import type { PartSink, V3 } from './primitives.ts';
 
 export const BLIND_PITCH = 0.14;
+export const BLIND_MATERIAL = 'cyberpunk/paired-blind/mid#blades';
 
 export interface BlindFrame {
   point(u: number, y: number, depth: number): V3;
@@ -15,7 +16,6 @@ export interface BlindFrame {
  */
 export class ProfiledBlind {
   build(sink: PartSink, frame: BlindFrame, width: number, bottom: number, top: number, front: number, closure: number): void {
-    const material = 'cyberpunk/paired-blind/mid#surface';
     const railMaterial = 'cyberpunk/paired-frame-metal/mid#surface';
     // Blade travel stays on the same pitch the head rail was drawn for, so a
     // given seed covers exactly the height it covered as real slats.
@@ -26,9 +26,9 @@ export class ProfiledBlind {
     this.panel(sink, frame, railMaterial, width, top - 0.09, top, front - 0.035);
     // Raised blades rest in one compact stack under the head rail.
     const stacked = Math.min(5, Math.round((100 - closure) / 20));
-    if (stacked > 0) this.panel(sink, frame, material, width, top - 0.135, top - 0.087, front - 0.025);
+    if (stacked > 0) this.panel(sink, frame, BLIND_MATERIAL, width, top - 0.135, top - 0.087, front - 0.025);
     if (count === 0) return;
-    this.panel(sink, frame, material, width, end, start, front - 0.03);
+    this.panel(sink, frame, BLIND_MATERIAL, width, end, start, front - 0.03);
     this.panel(sink, frame, railMaterial, width, end, end + 0.035, front - 0.025);
   }
 

@@ -1,6 +1,6 @@
 # CONTRACT: piece kit
 
-Version 0.58.6. Publishes nine facade pieces per family, with openings recorded by their glazing and entrance builders; [requests](../../schemas/kit-request.schema.json) accept parcel, building and seed plus family, or legacy lot and floors.
+Version 0.58.7. Publishes nine facade pieces per family, with openings recorded by their glazing and entrance builders; [requests](../../schemas/kit-request.schema.json) accept parcel, building and seed plus family, or legacy lot and floors.
 
 ## Calls and schemas
 
@@ -12,6 +12,8 @@ From `src/index.ts`: `pieceSet(family, seed?)`, `buildPieceMesh(PieceRequest)`, 
 - [Placement JSON schema](../../schemas/placement.schema.json): exactly the JSON result of `planAssembly`, including band elevations, placements and world space signs and doors.
 
 Both schemas use draft 2020-12. Files have no paths or timestamps tied to a machine. The same seed and family give byte identical pieces and catalog metadata. Recipes use fixed geometry for every seed.
+
+Material extras publish `materialVariant`, exposed as `material.userData.materialVariant` by Three.js. Consumers scale world metre UVs with `variant.tiling ?? entry.tiling`.
 
 ## Families
 

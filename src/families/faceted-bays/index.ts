@@ -12,9 +12,9 @@ export const family: BuildingFamily = {
   decorate: context => decoration.decorate(context),
   materials: {
     ground: 'cyberpunk/exterior-cast-concrete/mid#native',
-    wall: 'cyberpunk/ivory-panel/mid#cool-grey',
-    'inner-wall': 'cyberpunk/ivory-panel/mid#cool-grey',
-    column: 'cyberpunk/ivory-panel/mid#cool-grey',
+    wall: 'cyberpunk/ivory-panel/mid#fixings',
+    'inner-wall': 'cyberpunk/ivory-panel/mid#fixings',
+    column: 'cyberpunk/ivory-panel/mid#fixings',
     'wall-trim': 'cyberpunk/exterior-cast-concrete/mid#native',
     'window-frame': 'cyberpunk/paired-frame-metal/mid#surface',
     roof: 'cyberpunk/exterior-cast-concrete/mid#native',

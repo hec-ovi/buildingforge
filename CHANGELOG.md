@@ -1,5 +1,7 @@
 # Changelog
 
+0.58.7: facade coverings and panels select named pattern variants with world metre tiling.
+
 0.58.6: approved facades carry deeper slots, grouped panels, entrance displays, inset rails and authored roof finishes within the shell budget.
 
 0.58.5: a plate that holds no vertical core is offered the whole lot and a narrower core reservation, so every standard Atlas lot stands a building, and `blueprint.core` publishes the fitted core.

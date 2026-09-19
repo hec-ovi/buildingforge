@@ -1,10 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { expect, it } from 'vitest';
 import { generate } from '../src/index.ts';
+import { fileSource } from '../src/materials/fileSource.ts';
+import { buildResolver } from '../src/materials/theme.ts';
 import catalog from '../public/native-materials/themes/cyberpunk/theme.json' with { type: 'json' };
 
 it('packs original native image bytes beside external maps in one GLB', async () => {
   const request = JSON.parse(readFileSync(new URL('../fixtures/residential-mid.request.json', import.meta.url), 'utf8'));
+  request.building = { type: 'police', tier: 'mid', floors: 3 };
+  request.options = { exteriorStyle: 'civic-institutional', curtains: { profile: 'night', sunAzimuthDeg: 45 } };
   const { glb, textures } = await generate(request, { textures: { baseUrl: '/shared/' } });
   expect(textures.mode).toBe('external');
 
@@ -50,6 +54,27 @@ it('packs original native image bytes beside external maps in one GLB', async ()
   }
   expect(embedded.size).toBeGreaterThan(0);
   expect(embedded.size + external.length).toBe(json.images.length);
+  const source = fileSource(request.theme);
+  expect(source).not.toBeNull();
+  const resolve = buildResolver(source!.index);
+  for (const [key, size] of [['cyberpunk/paired-blind/mid', 0.56], ['cyberpunk/exterior-louvre/mid', 0.52]] as const) {
+    const material = json.materials.find((m: any) => m.name === key && m.extras?.materialVariant === 'blades');
+    expect(material).toBeDefined();
+    expect(material.extras.nativeMaterial).toBeUndefined();
+    const variant = resolve(key)?.variants.find((candidate) => candidate.id === material.extras.materialVariant);
+    expect(variant).toBeDefined();
+    const infos = [
+      [variant!.maps.basecolor, material.pbrMetallicRoughness.baseColorTexture],
+      [variant!.maps.metallicRoughness, material.pbrMetallicRoughness.metallicRoughnessTexture],
+      [variant!.maps.normal, material.normalTexture],
+      [variant!.maps.ao, material.occlusionTexture],
+    ] as const;
+    for (const [path, info] of infos) {
+      expect(path).toBeDefined();
+      expect(info.extensions.KHR_texture_transform.scale).toEqual([1 / size, 1 / size]);
+      expect(json.images[json.textures[info.index].source].uri).toBe(`/shared/themes/${request.theme}/${path}`);
+    }
+  }
 });
 
 it('embeds catalog maps or explicitly reports the keys fallback', async () => {

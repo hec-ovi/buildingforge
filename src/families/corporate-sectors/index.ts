@@ -10,9 +10,9 @@ export const family: BuildingFamily = {
   parapetHeight: 0,
   plan,
   materials: {
-    ground: 'cyberpunk/corporate-panel/mid#native',
-    wall: 'cyberpunk/corporate-panel/mid#native',
-    'inner-wall': 'cyberpunk/corporate-panel/mid#native',
+    ground: 'cyberpunk/corporate-panel/mid#joints',
+    wall: 'cyberpunk/corporate-panel/mid#joints',
+    'inner-wall': 'cyberpunk/corporate-panel/mid#joints',
     column: 'cyberpunk/paired-frame-metal/mid#surface',
     'wall-trim': 'cyberpunk/paired-cladding-metal/mid#surface',
     'window-frame': 'cyberpunk/paired-frame-metal/mid#surface',

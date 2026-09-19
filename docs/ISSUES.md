@@ -22,18 +22,6 @@
 
 ## Open requests to other boxes
 
-### Materials: blade-pattern maps for coverings
-
-A window covering is one fitted quad; the blade pitch has to come from the map. Needed, one pattern variant each, tiling declared in world metres so a quad at world-metre UVs lands on the real pitch:
-
-- `cyberpunk/paired-blind/mid`: horizontal aluminium blades at a 0.14 m pitch, with the punched 0.076 x 0.026 m opening line. Today's only variant is `surface` (flat brushed aluminium at 0.5 x 0.5 m).
-- `cyberpunk/exterior-louvre/mid` (and its tier aliases): fixed exterior blades at a 0.13 m pitch. Today's only variant is `metal` (flat, 0.5 x 0.5 m).
-- `cyberpunk/window-frame/<tier>`: a head-baffle comb at a 0.16 m pitch, for the recessed band above chamfered-corner ribbon glazing.
-- `cyberpunk/ivory-panel/mid`: 22 mm fixing heads inset 45 mm from each corner of the 1.5 m faceted-bays panel module.
-- `cyberpunk/corporate-panel/mid`: the 1 x 1.5 m panel joint, 32 mm wide, so the corporate cladding field reads as panels without a box per panel.
-
-Geometry uses the closest existing keys: `paired-blind#surface`, `exterior-louvre#metal`, and `curtain/<tier>#slat` for venetian coverings (a blind pattern at 1.5 x 3 m).
-
 ### Interior and Engine: the shell GLB requires KHR_mesh_quantization
 
 Exported normals are normalized signed shorts. `extensionsRequired` lists `KHR_mesh_quantization`. three.js reads it natively; a reader built on glTF Transform must register `KHRMeshQuantization`. Positions and UVs stay float.

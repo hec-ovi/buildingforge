@@ -1,5 +1,5 @@
 import type { P2 } from '../core/polygon.ts';
-import { withDefaultVariant } from '../materials/slot.ts';
+import { BLIND_MATERIAL } from './profiledBlind.ts';
 import type { PartSink, V3 } from './primitives.ts';
 
 interface Frame { v: P2; dir: P2; n: P2 }
@@ -11,7 +11,7 @@ interface Frame { v: P2; dir: P2; n: P2 }
  */
 export function meshVenetianBlind(
   sink: PartSink, frame: Frame, u0: number, u1: number, y0: number, y1: number,
-  front: number, closurePercent: number, frameMaterial: string, curtainMaterial: string,
+  front: number, closurePercent: number, frameMaterial: string,
 ): void {
   const width = u1 - u0, height = y1 - y0;
   if (width < 0.08 || height < 0.08) return;
@@ -29,10 +29,9 @@ export function meshVenetianBlind(
   if (closurePercent <= 0) return;
 
   const bottom = y1 - height * closurePercent / 100;
-  const slats = withDefaultVariant(curtainMaterial, 'slat');
   const covered = y1 - bottom;
   const z = front - 0.025;
-  sink.quadFacing(slats, point(u0, bottom, z), point(u1, bottom, z), point(u1, y1, z), point(u0, y1, z),
+  sink.quadFacing(BLIND_MATERIAL, point(u0, bottom, z), point(u1, bottom, z), point(u1, y1, z), point(u0, y1, z),
     [frame.n[0], 0, frame.n[1]], [[0, 0], [width, 0], [width, covered], [0, covered]]);
   const rail = Math.min(0.024, covered);
   box(center, bottom + rail / 2, width, rail, 0.032, front - 0.024);

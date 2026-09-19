@@ -116,9 +116,10 @@ export function createMaterials(
     if (variant.maps.metallicRoughness) material.setMetallicFactor(1).setRoughnessFactor(1);
 
     if (mapping) material.setExtras({ ...material.getExtras(), textureMapping: mapping });
-    if (mapping !== 'exact' && entry.alignment === 'tile' && entry.tiling) {
+    const tiling = variant.tiling ?? entry.tiling;
+    if (mapping !== 'exact' && entry.alignment === 'tile' && tiling) {
       // 1 UV unit = 1 tile: world-meter UVs scaled by the tile's world size.
-      const [wx, wy] = entry.tiling.worldSize;
+      const [wx, wy] = tiling.worldSize;
       for (const info of infos) {
         info.setExtension('KHR_texture_transform', transform.createTransform().setScale([1 / wx, 1 / wy]));
       }

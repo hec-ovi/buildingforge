@@ -1,6 +1,6 @@
 # Box map
 
-Version 0.58.6.
+Version 0.58.7.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
@@ -13,7 +13,6 @@ Version 0.58.6.
 
 - [Call guide](../SKILL.md): library and CLI usage.
 - [Issues](ISSUES.md): interface proposals and unresolved constraints.
-- [Look pass](ISSUES.md#look-pass-2026-09-18): seven canonical facade comparisons, geometry fixes and remaining material dependencies.
 - `src/core`, `src/rules`: validation, polygon arithmetic and [canonical floor/window policy](../schemas/floor-constants.json).
 - `src/layout`: [weighted automatic architecture selection](../schemas/architecture-policy.json), including fitted luxury families, floor stacks, volume fitting and section-driven openings.
 - `src/sections/paired.ts`: rounded and rectangular facades assembled from complete two-room sections.
@@ -36,7 +35,7 @@ Version 0.58.6.
 - `src/families/api.ts`: shared geometry helpers, including the shared blind for family-owned exterior coverings.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.
 - `src/mesh/frameProfile.ts`, `frameRing.ts`: one welded extruded ring per opening, built once per size.
-- `src/glb`, `src/materials`: GLB output and material resolution.
+- `src/glb`, `src/materials`: GLB output, named pattern variants and world metre UV scaling from variant tiling or entry tiling.
 - `src/glb/weld.ts`: attribute snapping, vertex welding, 16-bit indices and quantized normals.
 - `src/rules/geometryBudget.ts`, `simplification.ts`: the [per-shell allowance](../schemas/geometry-budget.json) and the order a shell sheds repeat detail to fit it.
 - `src/layout/corePlateOffers.ts`: the plates one request may be built on, so a lot that can hold a core gets a building.

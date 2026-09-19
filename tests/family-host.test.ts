@@ -39,6 +39,15 @@ it('generates every registered family with its authored skin, rooms and material
     expect(windows.some(o => o.material === 'cyberpunk/paired-window-black/mid' && !o.scenery)).toBe(true);
     expect(windows.some(o => o.scenery?.lights?.length)).toBe(true);
     const json = glbJson(glb);
+    const patterns: Record<string, string> = { 'cyberpunk/paired-blind/mid': 'blades' };
+    if (architecture === 'faceted-bays') patterns['cyberpunk/ivory-panel/mid'] = 'fixings';
+    if (architecture === 'corporate-sectors') patterns['cyberpunk/corporate-panel/mid'] = 'joints';
+    for (const [key, variant] of Object.entries(patterns)) {
+      expect(blueprint.materialVariants[key]).toBe(variant);
+      const materials = json.materials.filter((m: { name: string }) => m.name === key);
+      expect(materials.length).toBeGreaterThan(0);
+      expect(materials.every((m: { extras: { materialVariant: string } }) => m.extras.materialVariant === variant)).toBe(true);
+    }
     expect(json.materials.every((material: { extras?: { materialVariant?: string } }) => !material.extras?.materialVariant?.includes('#'))).toBe(true);
     if (family.materials?.['light-fixture']) {
       const [key, variant] = splitMaterialSlot(family.materials['light-fixture']);

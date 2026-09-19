@@ -4,6 +4,7 @@
 
 export interface MaterialVariant {
   id: string;
+  tiling?: { worldSize: [number, number] };
   resolution: [number, number];
   maps: Partial<Record<'basecolor' | 'normal' | 'roughness' | 'metallic' | 'metallicRoughness' | 'height' | 'ao' | 'emission', string>>;
 }

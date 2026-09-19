@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.58.6.
+Version: 0.58.7.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint, and authors each family as a set of repeated pieces a consumer assembles.
 
@@ -65,7 +65,17 @@ Family decoration owns screen and mechanical details, while the host retains req
 
 ## Materials
 
-`roof.material` publishes the actual roof key and named variant on every new output, including canonical native identities. Keys use `theme/kind/tier`, with named variant requests. Cut-corner exterior fields use the published graphite concrete, cast structural concrete and paint frame variants; their exact key/variant identities are retained in keys-only output. `external` writes configurable URIs and embeds selected bundled finishes; absent catalog returns `keys` with a reason. `embed` requires all selected maps; `keys` intentionally leaves resolution to the caller. Built-in sources enable bundled finishes; custom sources opt in. `dir` defaults to `URBE_MATERIALS_DIR`, then sibling `materials`; explicit `source` overrides disk access. World-metre mapping follows catalog tiling dimensions. Cut-facade concrete uses the catalog world-metre mapping. Other authored section fields carry full 0..1 maps with `textureMapping: exact` material extras and clamped texture edges.
+`roof.material` publishes the actual roof key and named variant on every new output, including canonical native identities. Keys use `theme/kind/tier`, with named variant requests. Cut corner exterior fields use graphite concrete, cast structural concrete and paint frame variants; their key and variant identities persist in every texture mode. `external` writes configurable URIs and embeds selected bundled finishes; absent catalog returns `keys` with a reason. `embed` requires all selected maps; `keys` leaves resolution to the caller. Built in sources enable bundled finishes; custom sources opt in. `dir` defaults to `URBE_MATERIALS_DIR`, then sibling `materials`; explicit `source` overrides disk access. World metre UVs use `variant.tiling ?? entry.tiling`, including cut facade concrete. Other authored section fields carry full 0..1 maps with `textureMapping: exact` material extras and clamped texture edges.
+
+Materials 0.17.4 supplies these patterns on fitted quads or panels. GLB material extras publish `materialVariant`, exposed as `material.userData.materialVariant` by Three.js.
+
+| Surface | Key | Variant | Repeat in metres |
+| --- | --- | --- | --- |
+| Shared formed and venetian coverings | `cyberpunk/paired-blind/mid` | `blades` | 0.56 x 0.56, 0.14 pitch |
+| Permanent exterior louvres | `cyberpunk/exterior-louvre/<tier>` | `blades` | 0.52 x 0.52, 0.13 pitch |
+| Chamfered ribbon head baffles | `cyberpunk/window-frame/<tier>` | `comb` | 0.64 x 0.64, 0.16 pitch |
+| Faceted bays ivory panels | `cyberpunk/ivory-panel/mid` | `fixings` | 1.5 x 1.5 |
+| Corporate cladding | `cyberpunk/corporate-panel/mid` | `joints` | 3 x 3 |
 
 ## Closed generation errors
 
