@@ -3,7 +3,7 @@ import { plan } from './plan.ts';
 import { decorate } from './decorate.ts';
 
 export const family: BuildingFamily = {
-  id: 'mirror-frame', plan, decorate,
+  id: 'mirror-frame', parapetHeight: 0, plan, decorate,
   materials: {
     ground: 'cyberpunk/paired-cladding-metal/mid#obsidian',
     wall: 'cyberpunk/paired-cladding-metal/mid#obsidian',

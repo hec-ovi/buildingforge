@@ -10,5 +10,5 @@ export const finishes = {
 export const materials: Record<string, string> = {
   ground: finishes.pier, wall: finishes.pier, 'inner-wall': finishes.slab,
   column: finishes.pier, 'wall-trim': finishes.slab,
-  'window-frame': finishes.frame, roof: finishes.slab,
+  'window-frame': finishes.frame, roof: finishes.slab, parapet: finishes.slab,
 };

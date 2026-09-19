@@ -1,6 +1,6 @@
 # CONTRACT: piece kit
 
-Version 0.58.5. Publishes nine facade pieces per family, with openings recorded by their glazing and entrance builders; [requests](../../schemas/kit-request.schema.json) accept parcel, building and seed plus family, or legacy lot and floors.
+Version 0.58.6. Publishes nine facade pieces per family, with openings recorded by their glazing and entrance builders; [requests](../../schemas/kit-request.schema.json) accept parcel, building and seed plus family, or legacy lot and floors.
 
 ## Calls and schemas
 

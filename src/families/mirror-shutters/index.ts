@@ -3,7 +3,7 @@ import { plan } from './plan.ts';
 import { decorate } from './decorate.ts';
 
 export const family: BuildingFamily = {
-  id: 'mirror-shutters', plan, decorate,
+  id: 'mirror-shutters', parapetHeight: 0, plan, decorate,
   materials: {
     ground: 'cyberpunk/ivory-panel/mid#cool-grey',
     wall: 'cyberpunk/paired-window-black/mid#black',

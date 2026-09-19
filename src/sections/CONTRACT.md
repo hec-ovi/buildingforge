@@ -16,6 +16,8 @@ Paired compositions (`paired-rounded`, `paired-rectangular`) use 5 m room widths
 
 `garden-taper` places its front on the longer axis. Its straight planted spine uses 10 m pair multiples near one third of the base, with a fixed depth. Only outer glazed wings taper. The flat roof retains 1.5 m wing tips; side inset per vertical metre is at least 0.3. Upper floor outlines remain explicit. The podium is 4.5 m, with a visible 4 m panel field. Required plate: 35 x 25 m and at least three floors; the requested height must fit the base-relative slope.
 
+Garden wing sections specify a 0.24 m recess, placing glass 0.26 m behind the face. The planted spine retains its 1.5 m recess.
+
 Registered families receive the fitted rectangle, actual floor heights, seed and `fixedFaces`. Their optional section `windows` contain explicit offsets, sills, heights and pane counts; `[]` leaves the section opaque. Spans retain one broad window field across multiple geometric edges.
 
 `RangeError` reports unknown composition, invalid rectangle/heights or a plate too small for complete sections. The caller checks parcel, circulation core and connection feasibility, places openings only in section fields and builds both wall faces, returns and glazing. Roof design is outside this box.

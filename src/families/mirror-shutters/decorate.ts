@@ -4,6 +4,7 @@ import { DIMENSIONS as D, entryRibOffsets } from './dimensions.ts';
 import { entryRib } from './entryRib.ts';
 import { podium } from './podium.ts';
 import { treeInstances } from './planting.ts';
+import { upperSkin } from './skin.ts';
 import { intersects, reservations, verticalRuns } from './reservations.ts';
 
 export function decorate(context: DecorationContext): FamilyDecoration {
@@ -25,6 +26,7 @@ export function decorate(context: DecorationContext): FamilyDecoration {
           }
           continue;
         }
+        upperSkin(context, floor, edge, clearance);
         const sink = builder.part(`mirror-shutters:${floor.index}:${edge}:mullions`);
         for (const section of floor.assembly!.sections.filter(s => s.edge === edge && s.id.includes(':bank:'))) {
           const count = Math.max(2, Math.round(section.width / D.mullionPitch));

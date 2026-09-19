@@ -19,4 +19,11 @@ export function gardenCassette(sink: PartSink, field: FacadeField, material: str
     sink.triFacing(material, at(ring[0]!, y), at(ring[i]!, y), at(ring[i + 1]!, y), [0, up, 0],
       [ring[0]!, ring[i]!, ring[i + 1]!]);
   }
+  if (top - bottom > 0.4) {
+    for (let left = a + bevel; left < b - bevel - 1e-8; left += 2) {
+      field.solid(sink, material, left + 0.012, Math.min(b - bevel, left + 2) - 0.012,
+        bottom + 0.012, top - 0.012, front + 0.018, front, [0, 1],
+        { start: true, end: true, back: false }, true);
+    }
+  }
 }

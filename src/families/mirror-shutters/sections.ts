@@ -13,7 +13,7 @@ export function sections(edge: number, length: number, floor: number, height: nu
     const ribbonHeight = Math.min(1.7, clear * 0.46);
     const ribbonSill = Math.max(0.3, clear - ribbonHeight - 0.45);
     if (floor > 0 && kind === 'ribbon') windows.push({ offset: 0.10, width: width - 0.20, sill: ribbonSill, height: ribbonHeight,
-      panes: { cols: Math.max(1, Math.round(width / 1.25)), rows: 1 } });
+      panes: { cols: Math.max(1, Math.round(width / D.mullionPitch)), rows: 1 } });
     if (floor > 0 && kind === 'bank') windows.push({ offset: 0.12, width: width - 0.24, sill: 0.30, height: clear - 0.50,
       panes: { cols: Math.round(width / D.mullionPitch), rows: 1 } });
     if (floor > 0 && kind === 'spine') {

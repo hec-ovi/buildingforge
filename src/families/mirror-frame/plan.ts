@@ -52,7 +52,8 @@ function sections(length: number, edge: number, height: number, opaque: boolean,
     const top = head ? 0.9 : 0.45, bottom = 0.38, side = slot ? 0.16 : 0.025;
     result.push({ id: `portal:${edge}:${result.length}:${slot ? 'slot' : 'pier'}`, edge, offset, width,
       technique: slot ? 'paired-glass' : 'paired-solid',
-      border: { side, bottom, top, depth: slot ? d.recess : fixed ? 0 : d.projection },
+      border: { side, bottom, top, depth: slot ? d.recess : fixed ? 0 : d.projection,
+        ...(slot && !opaque && !fixed ? { surfaceDepth: 0.45 } : {}) },
       windows: slot && !opaque ? [{ offset: side, width: width - 2 * side, sill: bottom, height: height - top - bottom }] : [] });
     offset += width;
   };

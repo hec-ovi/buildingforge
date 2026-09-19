@@ -72,8 +72,9 @@ class WhiteGridFacade {
           Math.abs(u1 - field.length) < 1e-8 ? field.length : u1 - d.seam / 2, base + d.seam / 2, top - d.seam / 2));
         continue;
       }
-      draw(`sill:${section.id}`, 'wall-trim', rectangle(u0, u1, base, base + d.sill), front - 0.07, back - 0.07);
-      draw(`head:${section.id}`, 'wall-trim', rectangle(u0, u1, top - d.head, top), front - 0.07, back - 0.07);
+      const ribbonFront = Math.max(-0.1, front - 0.24);
+      draw(`sill:${section.id}`, 'wall-trim', rectangle(u0, u1, base, base + d.sill), ribbonFront, ribbonFront - 0.14);
+      draw(`head:${section.id}`, 'wall-trim', rectangle(u0, u1, top - d.head, top), ribbonFront, ribbonFront - 0.14);
 
       const group = layout.assembly!.groups.find(g => g.id === floor.assembly!.group)!;
       const start = layout.floors.find(f => f.index === group.fromFloor)!;

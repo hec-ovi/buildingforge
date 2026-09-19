@@ -35,7 +35,7 @@ export function gardenAssembly(input: [Point, Point, Point, Point], heights: num
     const sections: Section[] = [];
     const add = (edge: number, offset: number, span: number, technique: Section['technique']) => sections.push({
       id: `s:${sections.length}`, edge, offset, width: span, technique,
-      border: { side: technique === 'garden-bay' ? 0.15 : 0.04, bottom: 0.22, top: 0.28, depth: technique === 'garden-bay' ? 1.5 : 0.12 },
+      border: { side: technique === 'garden-bay' ? 0.15 : 0.04, bottom: 0.22, top: 0.28, depth: technique === 'garden-bay' ? 1.5 : 0.24 },
     });
     for (let edge = 0; edge < 4; edge++) {
       const length = edge % 2 ? d : w;

@@ -2,6 +2,7 @@ import type { DecorationContext, FloorLayout, ModelInstance } from '../api.ts';
 import { Surface } from './surface.ts';
 import { accent } from './lights.ts';
 import { CANOPY_DEPTH } from './dimensions.ts';
+import { podiumDisplays } from './displays.ts';
 
 function entrance(context: DecorationContext, floor: FloorLayout, edge: number, surface: Surface, instances: ModelInstance[]): void {
   const { builder, material } = context;
@@ -60,6 +61,7 @@ export function decoratePodium(context: DecorationContext): ModelInstance[] {
     surface.solid(sink, context.material('light'), surface.start, surface.end, floor.elevation + 0.065, floor.elevation + 0.115, 0.16, 0.151);
     for (let u = surface.start + 1.5; u < surface.end - 0.5; u += 3) accent(context, surface, edge, u, floor.elevation + 0.18, 0.19, 1200);
     entrance(context, floor, edge, surface, instances);
+    podiumDisplays(context, floor, edge, surface);
   }
   return instances;
 }

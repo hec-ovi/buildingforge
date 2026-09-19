@@ -35,7 +35,7 @@ export function decorate(context: DecorationContext): FamilyDecoration {
                 right: left + section.width * (col + 1) / columns - d.joint / 2,
                 bottom: bottom + floor.height * row / rows + d.joint / 2,
                 top: bottom + floor.height * (row + 1) / rows - d.joint / 2,
-              }, pier ? projection : 0.045, 0.018);
+              }, pier ? projection : 0.045, pier ? 0.018 : -d.recess);
             }
             if (pier && head && floor.index > 0) {
               for (let step = 0; step < 3; step++) solid(material('column'), {

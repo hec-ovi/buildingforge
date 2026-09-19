@@ -21,7 +21,7 @@ export function decorateFloors(context: DecorationContext): void {
       const y = floor.elevation, top = y + floor.height;
       if (group.id === 0) {
         surface.solid(sink, panel, surface.start, surface.end, y, top, 0.02, -0.1, true, true);
-        surface.panels(sink, panel, surface.start, surface.end, y, top, 1, 1.5, 0, 0.15);
+        surface.panels(sink, panel, surface.start, surface.end, y, top, 2, 1.5, 0, 0.15);
         if (floor.index === group.toFloor) {
           const rim = builder.part(`corporate:podium-rim:${edge}`, { keepNode: true });
           surface.solid(rim, trim, surface.start, surface.end, top - 0.35, top, RIM_DEPTH, -CHANNEL_RECESS);

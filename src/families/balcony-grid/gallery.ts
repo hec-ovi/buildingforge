@@ -28,8 +28,8 @@ export function gallery(context: DecorationContext, floor: FloorLayout, section:
 }
 
 function rail(sink: PartSink, field: FacadeField, u0: number, u1: number, y: number, front: number): void {
-  const solid = (material: string, a: number, b: number, bottom: number, top: number, thickness: number) =>
-    field.solid(sink, material, a, b, bottom, top, front, front - thickness, [0, 1], { start: true, end: true }, true);
+  const solid = (material: string, a: number, b: number, bottom: number, top: number, thickness: number, inset = 0) =>
+    field.solid(sink, material, a, b, bottom, top, front - inset, front - inset - thickness, [0, 1], { start: true, end: true }, true);
   solid(finishes.frame, u0, u1, y + 1.045, y + 1.105, 0.07);
   solid(finishes.frame, u0, u1, y + 0.17, y + 0.21, 0.05);
   const panels = Math.max(1, Math.round((u1 - u0) / 1.25));
@@ -37,7 +37,7 @@ function rail(sink: PartSink, field: FacadeField, u0: number, u1: number, y: num
   for (let i = 0; i <= panels; i++) {
     const at = u0 + i * pitch;
     solid(finishes.frame, at, at + 0.06, y + 0.045, y + 1.105, 0.07);
-    if (i < panels) solid(finishes.glass, at + 0.06, at + pitch, y + 0.22, y + 1.035, 0.025);
+    if (i < panels) solid(finishes.glass, at + 0.06, at + pitch, y + 0.22, y + 1.035, 0.025, 0.025);
   }
 }
 

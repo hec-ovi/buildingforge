@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.58.5.
+Version: 0.58.6.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint, and authors each family as a set of repeated pieces a consumer assembles.
 
@@ -44,6 +44,8 @@ The `paired-rounded` and `paired-rectangular` architectures use 5 m room widths 
 `garden-taper` builds a pale 4.5 m podium and a straight planted spine between tapering glazed wings. The long parcel axis defines its front. The spine uses complete 10 m pairs near one third of the base width and keeps that width and depth on every floor. Enclosed balcony cassettes have opaque bevelled fronts, side closures and an overhead lip. Upper floors publish `topOutline`; only the outer wings contract. The roof ends with 1.5 m glazed wing tips around the fixed spine. Side setback is at least 0.3 m per metre of rise, so tall requests need a wider base. The footprint needs 35 x 25 m and three floors. Podium panels occupy the 4 m field between 0.25 m rims. Planted bands are exterior ornament: each plant is a trunk and arching fronds, one tapered double-sided blade per frond with the leaflet pattern in the leaf map. Basement apertures retain the original parcel faces.
 
 Paired-family dark windows use opaque reflective black glass and omit scenic rooms. Optional facade light `material`, `color`, `lumens` and `range` fields bind authored podium light surfaces and their emitters.
+
+Garden cassette fronts carry 2 m panel divisions with 24 mm joints. Wing glass sits 0.26 m behind the facade; planted spine glass remains 1.52 m inward.
 
 ## Piece kit
 

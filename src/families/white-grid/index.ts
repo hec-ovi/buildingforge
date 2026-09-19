@@ -5,6 +5,7 @@ import { decorate } from './decorate.ts';
 export const family: BuildingFamily = {
   id: 'white-grid',
   groundFloorHeight: 5,
+  parapetHeight: 0.28,
   plan,
   decorate,
   materials: {
@@ -15,5 +16,6 @@ export const family: BuildingFamily = {
     'wall-trim': 'cyberpunk/facade-chrome/mid#native',
     'window-frame': 'cyberpunk/paired-frame-metal/mid#surface',
     roof: 'cyberpunk/ivory-panel/mid#native',
+    parapet: 'cyberpunk/ivory-panel/mid#native',
   },
 };

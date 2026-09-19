@@ -10,6 +10,8 @@ Builds an ivory diagonal frame around tall glazing and a reflective metal podium
 
 A 13.5 m glazed bay sits between 1.5 m piers. Bays repeat horizontally. Three upper floors form one diagonal-brace group; later groups reverse direction. A terminal group uses the remaining floors. Each pier has one fitted panel per floor. The diagonal is one third of its group's height in vertical section. Its skin is 0.14 m thick and stands ahead of the reflective floor ribbons. Eight panes fill each reference bay, about 1.69 m each. Upper openings keep 0.22 m sill and 0.28 m head bands.
 
+Reflective floor ribbons sit 0.24 m behind free ivory brace faces, or 0.1 m behind fixed faces so they remain ahead of the structural backing. The roof edge is a 0.28 m ivory parapet.
+
 The family requests a 5 m ground default through `groundFloorHeight`. Ground has no windows and divides into 40 percent lower metal base and 60 percent upper podium, with an ivory top fascia, giving the reference's 2 m plus 3 m composition. The planner consumes the caller's actual floor heights; fixed bridge elevations stay pinned.
 
 Unbound plates fit complete bays on the 0.5 m grid and reserve at least 0.5 m around the shell for 0.28 m relief. They need at least 17.5 m on both axes. Fixed faces retain exact corners and edge numbers, expand bay widths to consume the edge, and put panel fronts on the face plane. Wider fixed bays increase their brace group to `round(3 * widestBay / 13.5)` floors, keeping at least three. Door envelopes and supplied aperture bounds cut through decoration with 0.12 m clearance. Diagonal braces intentionally cover part of glazing.

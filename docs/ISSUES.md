@@ -42,7 +42,7 @@ Exported normals are normalized signed shorts. `extensionsRequired` lists `KHR_m
 
 `npm run kit -- --out out/kit` publishes six families and `kit.json` under the [kit schema](../schemas/kit.schema.json). `planAssembly` returns the [placement schema](../schemas/placement.schema.json), including world space signs and doors. Engine instances these files; `generate` serves landmarks.
 
-Lot edges accept 8N metres for integers N from two; floors accept integers from two. Catalog band heights include the crown cap. White grid ground is 5 m; other ground and middle bands are 4.5 m. Floor slabs, roof and wire anchors belong to the building. Ground entrance pieces contain their door nodes. `assembleFromPieces` also supplies building parts and addressable doors.
+Lot edges accept 8N metres for integers N from two; floors accept integers from two. Every catalog band is 4.5 m including the crown cap. Floor slabs, roof and wire anchors belong to the building. Ground entrance pieces contain their door nodes. `assembleFromPieces` also supplies building parts and addressable doors.
 
 Open for Interior: one interior per band kind, aligned with the published band heights and piece boundaries.
 

@@ -113,7 +113,7 @@ export class FacetedBayPlanner {
       id: `fb:${run.face}:${run.module}:${run.edge}:${run.offset}:${run.kind}`,
       edge: run.edge, offset: run.offset, width: run.width,
       technique: glazing || floor === 0 && run.kind === 'entry' ? 'paired-glass' : 'paired-solid',
-      border: { side, bottom, top, depth: 0.12 },
+      border: { side: run.kind === 'slit' ? 0.035 : side, bottom, top, depth: run.kind === 'slit' ? 0.32 : 0.12 },
       windows: glazing ? [{ offset: side, width: run.width - 2 * side, sill: bottom, height: height - bottom - top }] : [],
     };
   }

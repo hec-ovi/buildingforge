@@ -1,6 +1,6 @@
 # Box map
 
-Version 0.58.5.
+Version 0.58.6.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
@@ -13,6 +13,7 @@ Version 0.58.5.
 
 - [Call guide](../SKILL.md): library and CLI usage.
 - [Issues](ISSUES.md): interface proposals and unresolved constraints.
+- [Look pass](ISSUES.md#look-pass-2026-09-18): seven canonical facade comparisons, geometry fixes and remaining material dependencies.
 - `src/core`, `src/rules`: validation, polygon arithmetic and [canonical floor/window policy](../schemas/floor-constants.json).
 - `src/layout`: [weighted automatic architecture selection](../schemas/architecture-policy.json), including fitted luxury families, floor stacks, volume fitting and section-driven openings.
 - `src/sections/paired.ts`: rounded and rectangular facades assembled from complete two-room sections.
@@ -22,6 +23,7 @@ Version 0.58.5.
 - `src/mesh`: closed frame and glazing sections.
 - `src/mesh/slabOutline.ts`, `slabSpans.ts`: floor edges follow flat and sloped facade profiles, close storey transitions and retain floor-level access corridors.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
+- `src/families/corporate-sectors/displays.ts`, `src/families/mirror-shutters/skin.ts`: entrance displays and clipped ribbon and service finishes, using [decoration input/output](../src/families/api.ts).
 - `src/kit/recipes`: one authored piece set per family on the 8 m bay module, with every band 4.5 m including crown details; the joint pier and floor ribbon meet at each boundary.
 - `src/kit/author.ts`, `backing.ts`, `seams.ts`: authored surfaces, clear openings through the inner plane and shared seam vertices.
 - `src/kit/cli.ts`, `export.ts`: deterministic piece files and one catalog for selected families.
