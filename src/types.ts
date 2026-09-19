@@ -327,6 +327,8 @@ export interface Blueprint {
   assembly?: Assembly;
   version?: string;
   coreFrame?: { anglesDeg: number[] };
+  /** the core Interior fits in the published plate, from its feasibility surface */
+  core?: { mode: 'standard' | 'compact' | 'walkup'; maxElevators: number };
   buildingId: string;
   seed: string;
   bounds: { footprint: P2[]; height: number };

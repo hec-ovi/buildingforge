@@ -17,6 +17,7 @@
 
 - Core fit: the residential fixture with seed `other-seed` fails the shared opening-aware fit (`E_CORE_PLATE`, floor 2, `w:2:0:3`, 1.00036 m available for 1.2 m circulation). Seeded feasibility needs joint review without changing openings or consumer rules in this phase.
 - Core fit: the 36 x 9 m hotel case with windows disabled fails `compact_depth`. Area alone does not prove circulation fit.
+- Interior blocker label: on a 12 x 28 m mirror-frame plate at twelve floors, `coreFeasibility` returns `blocker: compact_depth` with `compactDepthOk: true`, `crossDepthOk: true` and a band over `minCoreLength`; the real miss is opening and adjacency reservations (`maxElevators: 0`). The label should name the reservation miss so a producer can answer it.
 - Human review: material quality, AC sides, door/frame joins, gray glazing, traversable roof/fire-escape routes and final appearance.
 
 ## Open requests to other boxes

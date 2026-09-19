@@ -1,6 +1,6 @@
 # Box map
 
-Version 0.58.4.
+Version 0.58.5.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
@@ -37,6 +37,7 @@ Version 0.58.4.
 - `src/glb`, `src/materials`: GLB output and material resolution.
 - `src/glb/weld.ts`: attribute snapping, vertex welding, 16-bit indices and quantized normals.
 - `src/rules/geometryBudget.ts`, `simplification.ts`: the [per-shell allowance](../schemas/geometry-budget.json) and the order a shell sheds repeat detail to fit it.
+- `src/layout/corePlateOffers.ts`: the plates one request may be built on, so a lot that can hold a core gets a building.
 - `src/layout/validateLayout.ts`: final geometry and opening guards.
 - [Preview layout](../src/ui/views/preview.json): control definitions rendered by the shared Form component.
 - `vite.config.ts`: preview serving and source watching, excluding generated output trees.

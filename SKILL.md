@@ -3,7 +3,7 @@ name: exterior
 description: Generate one seeded building exterior GLB and its floor/opening blueprint, or publish the six-family piece kit, through the Exterior library or CLI.
 ---
 
-# Exterior 0.58.4
+# Exterior 0.58.5
 
 Builds one deterministic building shell with replaceable slabs, 1 m-deep window scenery and its exact opening blueprint.
 
@@ -31,7 +31,7 @@ Call `generate(request, options?)` from `src/index.ts` in Node with TypeScript s
 | Second argument `options.textures` | `mode:external`; `dir` defaults to `URBE_MATERIALS_DIR`, then sibling `materials`; `baseUrl` defaults to empty. A supplied `source` replaces disk access; `null` requests fallback. |
 | `options.textures.nativeFinishes`, `nativeBaseUrl` | Built-in sources enable bundled finishes; custom sources opt in. Browser base defaults to `native-materials/`. |
 
-The promise returns `{glb: Uint8Array, blueprint, textures: {mode, reason?}}`. The [blueprint](schemas/blueprint.schema.json) includes `version`, optional section `assembly`, floor `roomEnvelope` rectangles, all openings, facade reservations/material keys, balconies, services and roof data. Every opening remains a hard reservation; the irregular space outside each room rectangle stays open. Exterior does not build rooms or internal stairs.
+The promise returns `{glb: Uint8Array, blueprint, textures: {mode, reason?}}`. The [blueprint](schemas/blueprint.schema.json) includes `version`, `core` (the `standard`, `compact` or `walkup` core fitted in the plate and its lift cars), optional section `assembly`, floor `roomEnvelope` rectangles, all openings, facade reservations/material keys, balconies, services and roof data. Every opening remains a hard reservation; the irregular space outside each room rectangle stays open. Exterior does not build rooms or internal stairs.
 
 Texture modes are `external`, `embed` and `keys`. External mode can return `keys` with a reason if its catalog is unavailable. Embedded mode requires maps. Check the returned mode before presenting a textured result.
 

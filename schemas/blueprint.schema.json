@@ -52,6 +52,17 @@
         "anglesDeg": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "number" } }
       }
     },
+    "core": {
+      "type": "object", "required": ["mode", "maxElevators"], "additionalProperties": false,
+      "description": "The vertical core Interior fits in the published plate. Absent on older stored blueprints.",
+      "properties": {
+        "mode": {
+          "enum": ["standard", "compact", "walkup"],
+          "description": "standard: lift core in the shaft row. compact: stair columns behind the corridor. walkup: a single stair, no lift."
+        },
+        "maxElevators": { "type": "integer", "minimum": 0, "description": "lift cars the fitted plate carries; a walkup core carries none" }
+      }
+    },
     "seed": { "type": "string" },
     "bounds": {
       "type": "object",

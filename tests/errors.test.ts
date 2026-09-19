@@ -31,7 +31,7 @@ const cases: [string, unknown, GenerateOptions?][] = [
   ['E_INVARIANT', residential, { textures: { source: { get index(): never { throw Error('catalog callback failed'); }, readMap: () => null } } }],
 ];
 
-it('reports every closed error code through the public entry', async () => {
+it('reports every closed error code through the public entry, and cores every standard lot', async () => {
   for (const [code, request, options] of cases) {
     try {
       await generate(request, options ?? keys);
@@ -41,4 +41,13 @@ it('reports every closed error code through the public entry', async () => {
       expect(error).toMatchObject({ code, message: expect.any(String) });
     }
   }
+  // A 2 x 4 bay plate on the smallest Atlas lot: eleven floors hold no core
+  // behind a balcony setback, so the plate takes the whole lot and the
+  // blueprint publishes the core Interior fits in it.
+  const { blueprint } = await generate({ ...residential, seed: 'core-plate:two-by-four',
+    parcel: { ...residential.parcel, footprint: [[0, 0], [16, 0], [16, 32], [0, 32]], accessPoint: [8, -2], maxHeight: 49.5 },
+    building: { type: 'offices', tier: 'rich', floors: 11 } }, keys);
+  expect(blueprint.core!.mode).toBe('standard');
+  expect(blueprint.core!.maxElevators).toBeGreaterThan(0);
+  expect(blueprint.bounds.footprint).toEqual([[0, 0], [16, 0], [16, 32], [0, 32]]);
 });

@@ -1,5 +1,7 @@
 # Changelog
 
+0.58.5: a plate that holds no vertical core is offered the whole lot and a narrower core reservation, so every standard Atlas lot stands a building, and `blueprint.core` publishes the fitted core.
+
 0.58.4: the suite is one case per contract promise through the public entries, 77 cases in about six seconds.
 
 0.58.3: every kit band measures 4.5 m including crown parapets and roof caps, with matching assembly heights, blueprints and parcel fits.

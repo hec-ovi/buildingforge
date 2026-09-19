@@ -23,6 +23,7 @@ import { faceObstacles } from './layout/obstructions.ts';
 import { facadeDepth } from './layout/core.ts';
 import { coreAdjacency, corePerimeterClearance, validateAdjacencyOpenings } from './layout/coreAdjacency.ts';
 import { constructionCoreFrame, fitBuildingCore } from './layout/corePreflight.ts';
+import { corePlateOffers } from './layout/corePlateOffers.ts';
 import { planCoreOpenings } from './layout/coreOpeningPlan.ts';
 import { buildFacadeFeatures } from './layout/features.ts';
 import { buildRoof } from './layout/roof.ts';
@@ -51,7 +52,25 @@ export async function generate(raw: unknown, options: GenerateOptions = {}): Pro
   }
 }
 
+/**
+ * Every lot that can hold a core stands a building: when the planned plate
+ * refuses every core Interior publishes, the next plate is offered, and the
+ * closed refusal is kept for the lot that runs out of them.
+ */
 async function generateBuilding(raw: unknown, options: GenerateOptions, canonicalNative = false, simplify = true): Promise<GenerateResult> {
+  let refusal: ExteriorError | undefined;
+  for (const offer of corePlateOffers(validateRequest(raw))) {
+    try {
+      return await buildShell(offer, options, canonicalNative, simplify);
+    } catch (error) {
+      if (!(error instanceof ExteriorError) || error.code !== 'E_CORE_PLATE') throw error;
+      refusal ??= error;
+    }
+  }
+  throw refusal!;
+}
+
+async function buildShell(raw: unknown, options: GenerateOptions, canonicalNative: boolean, simplify: boolean): Promise<GenerateResult> {
   let req = validateRequest(raw);
   const family = FAMILY[req.building.type];
   const tier = req.building.tier;
@@ -151,7 +170,8 @@ async function generateBuilding(raw: unknown, options: GenerateOptions, canonica
   identity?.apply(mb);
   const blueprint = buildBlueprint(layout, mb);
   identity?.blueprint(blueprint);
-  fitBuildingCore(blueprint);
+  const core = fitBuildingCore(blueprint);
+  blueprint.core = { mode: core.mode, maxElevators: core.maxElevators };
   // The blueprint publishes the face count, which both GLB modes share; the
   // packed size belongs to the export the caller asked for.
   blueprint.geometry = { triangles: measured.triangles, budget, ...(layout.detail.size ? { simplified: [...layout.detail] } : {}) };

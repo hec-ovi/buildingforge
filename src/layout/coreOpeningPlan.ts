@@ -19,7 +19,7 @@ export function planCoreOpenings(layout: OpeningLayout, coreFrame: Blueprint['co
   const measure = (floors: FloorLayout[]): OpeningCorePlan => {
     const candidate = { ...layout, floors };
     const mesh = buildOpeningMesh(candidate);
-    const stair = fitBuildingCore({
+    const { stair } = fitBuildingCore({
       buildingId: layout.request.buildingId, floors, ...(coreFrame ? { coreFrame } : {}),
       facade: { style: layout.style.facade.kind, wallDepth: measureWallDepth(candidate, mesh),
         coreAdjacency: coreAdjacency(layout.request) },
