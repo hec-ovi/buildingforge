@@ -1,5 +1,7 @@
 # Changelog
 
+0.58.9: the roof housing stands along the stair run on the core frame's v axis, so the flight reaches the roof on every family and plan size.
+
 0.58.8: every family exports fitted exact plates, world metre tiled UVs, named variants and geometry free anchors.
 
 0.58.7: facade coverings and panels select named pattern variants with world metre tiling.

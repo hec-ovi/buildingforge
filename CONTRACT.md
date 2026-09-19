@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.58.8.
+Version: 0.58.9.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint, and authors each family as a set of repeated pieces a consumer assembles.
 
@@ -21,7 +21,7 @@ Every shell is measured against a published [geometry budget](schemas/geometry-b
 
 Over budget, a shell sheds repeat detail until it fits, in the published order: door and bracket fittings, window weathering, covering housings, scenic ceiling fixtures, coverings. Form is never shed. Massing, bays, piers, cassettes, wings, slots, ribbons, chamfers, curved corners, setbacks, tapers, openings, frames, mullions and glazing are what the building is, and a parcel never loses its selected architecture to a budget. `blueprint.geometry` publishes the face count, the budget it was checked against and `simplified`, the steps taken. `E_GEOMETRY_BUDGET` is returned only when the simplest detail still does not fit. Output shares the request footprint frame, with the ground walking surface at Y=0. Same request, catalog and texture options produce identical blueprint JSON and GLB bytes. Only CLI/preview seed resolution uses randomness.
 
-Every plate carries the vertical core Interior publishes. A plate that holds none is offered again: first the whole lot, where the balcony setback returns to the plate, then the same plate with the core's glazing reservation halved and dropped, so a standard Atlas lot of two floors or more always stands a building. `blueprint.core` records the core the building ended with, `standard` (lift core in the shaft row), `compact` (stair columns behind the corridor) or `walkup` (a single stair, no lift), with the lift cars its plate carries; `facade.coreAdjacency` publishes the reservation it was fitted against. A lot too small for any of them keeps `E_CORE_PLATE`.
+Every plate carries the vertical core Interior publishes. A plate that holds none is offered again: first the whole lot, where the balcony setback returns to the plate, then the same plate with the core's glazing reservation halved and dropped, so a standard Atlas lot of two floors or more always stands a building. `blueprint.core` records the core the building ended with, `standard` (lift core in the shaft row), `compact` (stair columns behind the corridor) or `walkup` (a single stair, no lift), with the lift cars its plate carries; `facade.coreAdjacency` publishes the reservation it was fitted against. A lot too small for any of them keeps `E_CORE_PLATE`. `blueprint.roof.bulkhead` states the stair-head cutout the building publishes and the housing over it: its deep side runs along the core frame's v axis and takes the full stair run, so Interior's 3 m by 6.2 m flight arrives inside it on every family and plan size, with the door at the head. A roof plate that cannot hold the housing plus its walk space publishes `null` and no roof access.
 
 The parcel limits massing. Auto uses construction-grid rectangles. Explicit rounded-box, octagon, cylinder, pyramid and setback forms fit where possible, with box fallback for core/parcel constraints. Aperture-bound parcels keep their exact faces; traversable cuts pin floor elevations to their absolute bases. Wire anchors are attachments. Building type and supplied floor programs retain their incoming vocabulary.
 

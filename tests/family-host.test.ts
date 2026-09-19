@@ -1,6 +1,8 @@
 import { expect, it } from 'vitest';
 import { generate, type BuildingRequest } from '../src/index.ts';
+import { ringInsidePolygon, type P2 } from '../src/core/polygon.ts';
 import { buildingFamily, FAMILY_IDS, type FamilyArchitecture } from '../src/families/registry.ts';
+import { fitBuildingCore } from '../src/layout/corePreflight.ts';
 import { splitMaterialSlot } from '../src/materials/slot.ts';
 import { keys, glbJson } from './support.ts';
 
@@ -77,6 +79,49 @@ it('generates every registered family with its authored skin, rooms and material
       }
     }
     if (['corporate-sectors', 'mirror-frame'].includes(architecture)) expect(blueprint.modelInstances?.length).toBeGreaterThan(0);
+  }
+}, 30_000);
+
+/** One plan of the shared library: whole 8 m bays, the entrance on face 0. */
+function planRequest(architecture: FamilyArchitecture, across: number, deep: number, floors: number): BuildingRequest {
+  const [width, depth] = [across * 8, deep * 8];
+  return {
+    seed: `plans:${architecture}-${across}x${deep}x${floors}f`, buildingId: `${architecture}-${across}x${deep}x${floors}f`,
+    theme: 'cyberpunk',
+    parcel: { footprint: [[0, 0], [width, 0], [width, depth], [0, depth]], accessPoint: [width / 2, 0], maxHeight: floors * 4.5 + 2 },
+    building: { type: architecture === 'corporate-sectors' ? 'corpo' : 'residential', tier: 'high_rich', floors },
+    options: { architecture },
+  };
+}
+
+it('stands the roof housing over the stair run on every family and plan size', async () => {
+  // Interior's stair A is 3 m across its 6.2 m run, and it runs along the core
+  // frame's v axis, so the cutout is deep along v and never turned across it.
+  const plans: [FamilyArchitecture, number, number, number][] = [
+    ['mirror-frame', 4, 3, 8], ['mirror-frame', 4, 3, 9], ['mirror-frame', 4, 3, 16], ['mirror-frame', 4, 3, 29],
+    ['balcony-grid', 4, 3, 8], ['corporate-sectors', 5, 5, 12], ['faceted-bays', 4, 4, 12],
+    ['mirror-shutters', 4, 3, 8], ['white-grid', 4, 3, 8],
+  ];
+  for (const [architecture, across, deep, floors] of plans) {
+    const plan = `${architecture}-${across}x${deep}x${floors}f`;
+    const { blueprint } = await generate(planRequest(architecture, across, deep, floors), keys);
+    const bulkhead = blueprint.roof.bulkhead;
+    expect(bulkhead, plan).toBeTruthy();
+    const { center, axis, width, depth: deepSide } = bulkhead!;
+    expect(deepSide, plan).toBeGreaterThanOrEqual(6.2);
+    expect(width, plan).toBeGreaterThanOrEqual(3);
+    const cross: P2 = [-axis[1]!, axis[0]!];
+    // Interior reads the published housing back and lands stair A inside it.
+    const { stair } = fitBuildingCore(blueprint);
+    const offset = [stair.center[0]! - center[0]!, stair.center[1]! - center[1]!];
+    const alongU = Math.abs(offset[0]! * axis[0]! + offset[1]! * axis[1]!);
+    const alongV = Math.abs(offset[0]! * cross[0] + offset[1]! * cross[1]);
+    expect(alongU + stair.width / 2, plan).toBeLessThanOrEqual(width / 2 + 1e-9);
+    expect(alongV + stair.depth / 2, plan).toBeLessThanOrEqual(deepSide / 2 + 1e-9);
+    const hw = width / 2, hd = deepSide / 2;
+    const corners = ([[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]] as P2[]).map(([u, v]): P2 =>
+      [center[0]! + axis[0]! * u + cross[0] * v, center[1]! + axis[1]! * u + cross[1] * v]);
+    expect(ringInsidePolygon(blueprint.roof.outline, corners), plan).toBe(true);
   }
 }, 30_000);
 

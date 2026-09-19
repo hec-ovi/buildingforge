@@ -1,6 +1,6 @@
 # Box map
 
-Version 0.58.8.
+Version 0.58.9.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
@@ -40,6 +40,7 @@ Version 0.58.8.
 - `src/glb/weld.ts`: attribute snapping, vertex welding, 16-bit indices and quantized normals.
 - `src/rules/geometryBudget.ts`, `simplification.ts`: the [per-shell allowance](../schemas/geometry-budget.json) and the order a shell sheds repeat detail to fit it.
 - `src/layout/corePlateOffers.ts`: the plates one request may be built on, so a lot that can hold a core gets a building.
+- `src/layout/roofAccess.ts`: the stair-head cutout and its housing, deep along the core frame's v axis so the flight reaches the roof.
 - `src/layout/validateLayout.ts`: final geometry and opening guards.
 - [Preview layout](../src/ui/views/preview.json): control definitions rendered by the shared Form component.
 - `vite.config.ts`: preview serving and source watching, excluding generated output trees.
