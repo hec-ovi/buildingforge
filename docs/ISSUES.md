@@ -19,6 +19,7 @@
 - Core fit: the 36 x 9 m hotel case with windows disabled fails `compact_depth`. Area alone does not prove circulation fit.
 - Interior blocker label: on a 12 x 28 m mirror-frame plate at twelve floors, `coreFeasibility` returns `blocker: compact_depth` with `compactDepthOk: true`, `crossDepthOk: true` and a band over `minCoreLength`; the real miss is opening and adjacency reservations (`maxElevators: 0`). The label should name the reservation miss so a producer can answer it.
 - Human review: material quality, AC sides, door/frame joins, gray glazing, traversable roof/fire-escape routes and final appearance.
+- Circulation depth: the plan measures the clear depth to the core solid Interior publishes (stair A at the placement its feasibility returns), behind the wall an opening sits in and as the gap across the plate, and gives up any window under 1.20 m on either. A furnishing pass that stands the core somewhere else than the published placement can still read a window as crowded; if that happens, publish the placement the furnishing uses.
 - Roof access: a faceted-bays plan of four by three bays leaves a faceted roof plate about 15 m deep, which cannot hold the stair housing plus its 0.9 m walk space, so it publishes `bulkhead: null` and no roof access. Four by four bays and larger hold it. Either that plan shape keeps no roof access or the walk space shrinks on faceted plates; the choice belongs to Engine and Interior.
 
 ## Open requests to other boxes

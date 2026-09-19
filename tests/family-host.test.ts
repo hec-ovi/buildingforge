@@ -2,6 +2,8 @@ import { expect, it } from 'vitest';
 import { generate, type BuildingRequest } from '../src/index.ts';
 import { ringInsidePolygon, type P2 } from '../src/core/polygon.ts';
 import { buildingFamily, FAMILY_IDS, type FamilyArchitecture } from '../src/families/registry.ts';
+import { crossingWindows } from '../src/layout/circulationBand.ts';
+import { coreAdjacency } from '../src/layout/coreAdjacency.ts';
 import { fitBuildingCore } from '../src/layout/corePreflight.ts';
 import { splitMaterialSlot } from '../src/materials/slot.ts';
 import { keys, glbJson } from './support.ts';
@@ -122,6 +124,29 @@ it('stands the roof housing over the stair run on every family and plan size', a
     const corners = ([[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]] as P2[]).map(([u, v]): P2 =>
       [center[0]! + axis[0]! * u + cross[0] * v, center[1]! + axis[1]! * u + cross[1] * v]);
     expect(ringInsidePolygon(blueprint.roof.outline, corners), plan).toBe(true);
+  }
+}, 30_000);
+
+it('keeps the published circulation depth beside every window on every family plan', async () => {
+  // Interior measured the two faceted-bays plans short beside these windows;
+  // the family gives them up rather than the core standing closer.
+  const plans: [FamilyArchitecture, number, number, number, string[]][] = [
+    ['faceted-bays', 4, 3, 3, ['w:1:fb:2:0:19:0:slit:0:0']],
+    ['faceted-bays', 4, 3, 36, ['w:1:fb:2:0:19:0:slit:0:0', 'w:2:fb:2:1:22:0:cheek:0:0']],
+    ['mirror-frame', 4, 3, 8, []], ['balcony-grid', 4, 3, 8, []], ['corporate-sectors', 5, 5, 12, []],
+    ['mirror-shutters', 4, 3, 8, []], ['white-grid', 4, 3, 8, []],
+  ];
+  for (const [architecture, across, deep, floors, givenUp] of plans) {
+    const plan = `${architecture}-${across}x${deep}x${floors}f`;
+    const request = planRequest(architecture, across, deep, floors);
+    const { blueprint } = await generate(request, keys);
+    const policy = blueprint.facade.coreAdjacency!;
+    expect(policy.glazing.clearDepth, plan).toBe(coreAdjacency(request).glazing.clearDepth);
+    const { stair } = fitBuildingCore(blueprint);
+    expect(crossingWindows(blueprint.floors, stair, blueprint.facade.wallDepth, policy), plan).toEqual(new Set());
+    const published = new Set(blueprint.floors.flatMap(floor => floor.openings.map(opening => opening.id)));
+    for (const id of givenUp) expect(published.has(id), `${plan} ${id}`).toBe(false);
+    expect(blueprint.floors.flatMap(floor => floor.openings).length, plan).toBeGreaterThan(0);
   }
 }, 30_000);
 
