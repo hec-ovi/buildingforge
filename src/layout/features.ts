@@ -10,7 +10,7 @@ import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, OPENING, MODULE, MOD
 import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
 import { crossed, edgeU, findClearRect, type Rect } from './obstructions.ts';
 import { placeAcUnits } from './acUnits.ts';
-import type { Blueprint, BuildingRequest, P3, Signage } from '../types.ts';
+import type { Blueprint, BuildingRequest, Marquee, P3, Signage } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
 import type { Massing } from './massing.ts';
 import type { FloorLayout, Style } from './model.ts';
@@ -129,7 +129,7 @@ function placeSignage(
   const spec = req.options?.signage;
   if (!spec) return;
   const street = faces[0] as number;
-  if (spec.mode === 'marquee') capacityCheck(spec.text, ground, street, groundFloor.height, top);
+  if (spec.mode === 'marquee') capacityCheck(spec, ground, street, groundFloor.height, top);
   // The street face first; when nothing clear fits there the sign relocates to
   // the next face the entrance ranking prefers.
   for (const face of faces) {
@@ -137,16 +137,23 @@ function placeSignage(
   }
 }
 
-/** A text longer than the street facade holds either way round is a request error. */
-function capacityCheck(text: string, ground: P2[], e: number, groundHeight: number, top: number): void {
+/** Letter cells a marquee asks for, lettered or blank. */
+function marqueeCells(spec: Marquee): number {
+  return 'text' in spec ? spec.text.length : spec.cells;
+}
+
+/** A band longer than the street facade holds either way round is a request error. */
+function capacityCheck(spec: Marquee, ground: P2[], e: number, groundHeight: number, top: number): void {
   const L = edgeLength(ground, e);
   const bandWidthLimit = (L - 2 * OPENING.cornerMargin) * 0.9;
   const bladeRoom = Math.max(0, top - 0.8 - (groundHeight + 0.6));
   const horizontalMax = Math.floor(bandWidthLimit / SIGNAGE.minCellSize);
   const verticalMax = Math.floor((bladeRoom - 2 * SIGNAGE.framePad) / SIGNAGE.minCellSize);
-  if (text.length > Math.max(horizontalMax, verticalMax)) {
+  const cells = marqueeCells(spec);
+  if (cells > Math.max(horizontalMax, verticalMax)) {
+    const asked = 'text' in spec ? `"${spec.text}"` : 'a blank band';
     throw new ExteriorError('E_SIGNAGE_TEXT_TOO_LONG',
-      `"${text}" is ${text.length} letter cells; this facade holds ${horizontalMax} across or ${verticalMax} stacked`);
+      `${asked} is ${cells} letter cells; this facade holds ${horizontalMax} across or ${verticalMax} stacked`);
   }
 }
 
@@ -168,7 +175,8 @@ function signOnFace(
   const doorHead = access ? access.sill + access.height : 0;
 
   if (spec.mode === 'marquee') {
-    const cells = spec.text.length;
+    const cells = marqueeCells(spec);
+    const lettering = 'text' in spec ? { text: spec.text } : {};
     const bandWidthLimit = usable * 0.9;
     // A blade hangs from just above the entrance to just under the parapet.
     const bladeBottom = groundHeight + 0.6;
@@ -198,7 +206,7 @@ function signOnFace(
       const letterHeight = quant(Math.min(cellSize * SIGNAGE.glyphFill,
         caseSize - 2 * SIGNAGE.glyphCase.inset));
       out.push({
-        mode: 'marquee', orientation: 'vertical', text: spec.text, edge: e,
+        mode: 'marquee', orientation: 'vertical', ...lettering, edge: e,
         cellSize, letterHeight,
         glyphCase: { size: caseSize, depth: SIGNAGE.glyphCase.depth, inset: SIGNAGE.glyphCase.inset },
         center: facePoint(ground, e, quant(spot.u), quant(spot.y)),
@@ -225,7 +233,7 @@ function signOnFace(
     const cellSize = quant(Math.max(SIGNAGE.minCellSize, spot.width / cells));
     const letterHeight = quant(cellSize * SIGNAGE.glyphFill);
     out.push({
-      mode: 'marquee', orientation: 'horizontal', text: spec.text, edge: e,
+      mode: 'marquee', orientation: 'horizontal', ...lettering, edge: e,
       cellSize, letterHeight,
       glyphCase: {
         size: quant(cellSize * SIGNAGE.glyphCase.fill),

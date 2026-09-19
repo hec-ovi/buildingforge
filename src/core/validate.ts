@@ -229,7 +229,14 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   if (o.signage !== undefined && o.signage !== null) {
     const s = o.signage as Record<string, unknown>;
     const mode = str(s.mode, 'options.signage.mode');
-    if (mode === 'marquee') {
+    if (mode === 'marquee' && s.cells !== undefined) {
+      if (s.text !== undefined) fail('options.signage', 'a marquee carries text or a cell count, not both');
+      const cells = num(s.cells, 'options.signage.cells');
+      if (!Number.isInteger(cells) || cells < 1 || cells > SIGNAGE.maxChars) {
+        fail('options.signage.cells', `expected 1 to ${SIGNAGE.maxChars} letter cells`);
+      }
+      out.signage = { mode, cells };
+    } else if (mode === 'marquee') {
       const text = str(s.text, 'options.signage.text');
       if (text.length > SIGNAGE.maxChars) fail('options.signage.text', `max ${SIGNAGE.maxChars} characters`);
       out.signage = { mode, text };

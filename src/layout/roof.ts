@@ -3,23 +3,20 @@ import { Rng } from '../core/rng.ts';
 import type { Family } from '../rules/families.ts';
 import { ROOF_ACCESS, ROOF_ARTIFACTS } from '../rules/tables.ts';
 import type { Blueprint, BuildingRequest, RoofArtifact } from '../types.ts';
-import type { CoreStairPlacement } from './corePreflight.ts';
 import { buildMastAssembly } from './mastAssembly.ts';
 import type { FloorLayout, Style } from './model.ts';
-import { fitRoofAccess } from './roofAccess.ts';
 
 interface RoofReservation { cx: number; cz: number; hw: number; hd: number }
 
 /** Roof fittings reserve the final stair enclosure before placing equipment. */
 export function buildRoof(
   request: BuildingRequest, family: Family,
-  style: Style, floors: FloorLayout[], coreStair: CoreStairPlacement,
+  style: Style, floors: FloorLayout[], bulkhead: Blueprint['roof']['bulkhead'],
 ): Blueprint['roof'] {
   const topFloor = floors[floors.length - 1]!;
   const outline = topFloor.topOutline ?? topFloor.outline;
   const elevation = topFloor.elevation + topFloor.height;
   const artifacts: RoofArtifact[] = [];
-  const bulkhead = fitRoofAccess(request.seed, outline, coreStair);
   if ((request.options?.roofArtifacts ?? 'auto') !== 'off') {
     const rng = new Rng(request.seed, 'roof');
     const placed: RoofReservation[] = bulkhead ? [bulkheadKeepOut(bulkhead)] : [];

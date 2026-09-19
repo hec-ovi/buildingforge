@@ -120,7 +120,7 @@ async function buildShell(raw: unknown, options: GenerateOptions, canonicalNativ
     facades.floors, facadeInset, facades.floors.filter((floor) => floor.index >= 0).length, massing.rectangular);
   if (corePlate.error) throw corePlate.error;
   const coreFrame = constructionCoreFrame(corePlate.axis, massing.rectangular);
-  const { floors, mesh: measuredOpenings, stair: coreStair } = planCoreOpenings({
+  const { floors, mesh: measuredOpenings, bulkhead } = planCoreOpenings({
     request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved, detail: FULL_DETAIL,
   }, coreFrame);
   facades.floors = floors;
@@ -138,7 +138,7 @@ async function buildShell(raw: unknown, options: GenerateOptions, canonicalNativ
   const openingMesh = facadeServices.damagedWindows.length > 0
     ? buildOpeningMesh({ request: req, theme: req.theme, tier, style, floors: facades.floors, carved: facades.carved, detail: FULL_DETAIL })
     : measuredOpenings;
-  const roof = buildRoof(req, family, style, facades.floors, coreStair);
+  const roof = buildRoof(req, family, style, facades.floors, bulkhead);
 
   const layout: Layout = {
     ...(coreFrame ? { coreFrame } : {}),

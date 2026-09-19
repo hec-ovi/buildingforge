@@ -97,8 +97,8 @@ function planRequest(architecture: FamilyArchitecture, across: number, deep: num
 }
 
 it('stands the roof housing over the stair run on every family and plan size', async () => {
-  // Interior's stair A is 3 m across its 6.2 m run, and it runs along the core
-  // frame's v axis, so the cutout is deep along v and never turned across it.
+  // Interior's stair A is 3 m across its 6.2 m run: the cutout is deep along
+  // that run, whichever frame axis the confirmed placement runs it on.
   const plans: [FamilyArchitecture, number, number, number][] = [
     ['mirror-frame', 4, 3, 8], ['mirror-frame', 4, 3, 9], ['mirror-frame', 4, 3, 16], ['mirror-frame', 4, 3, 29],
     ['balcony-grid', 4, 3, 8], ['corporate-sectors', 5, 5, 12], ['faceted-bays', 4, 4, 12],
@@ -110,8 +110,11 @@ it('stands the roof housing over the stair run on every family and plan size', a
     const bulkhead = blueprint.roof.bulkhead;
     expect(bulkhead, plan).toBeTruthy();
     const { center, axis, width, depth: deepSide } = bulkhead!;
-    expect(deepSide, plan).toBeGreaterThanOrEqual(6.2);
-    expect(width, plan).toBeGreaterThanOrEqual(3);
+    expect(Math.max(width, deepSide), plan).toBeGreaterThanOrEqual(6.2);
+    expect(Math.min(width, deepSide), plan).toBeGreaterThanOrEqual(3);
+    // The door stands at the head of the run, not beside the flight.
+    expect(Math.abs(bulkhead!.doorNormal[0]! * axis[0]! + bulkhead!.doorNormal[1]! * axis[1]!), plan)
+      .toBeCloseTo(width >= deepSide ? 1 : 0, 7);
     const cross: P2 = [-axis[1]!, axis[0]!];
     // Interior reads the published housing back and lands stair A inside it.
     const { stair } = fitBuildingCore(blueprint);

@@ -338,7 +338,7 @@
             "enum": ["horizontal", "vertical"],
             "description": "marquee only: a band over the entrance, or a blade sign protruding edge-on from the facade"
           },
-          "text": { "type": "string", "description": "marquee only" },
+          "text": { "type": "string", "description": "marquee only; absent on a blank band the consumer letters at runtime" },
           "ratio": { "enum": ["1:1", "3:2", "16:9"], "description": "logo only" },
           "cellSize": {
             "type": "number",
@@ -568,7 +568,7 @@
           "default": null,
           "required": ["center", "axis", "width", "depth", "housingHeight", "doorNormal", "doorWidth", "doorHeight"],
           "additionalProperties": false,
-          "description": "stair-head cutout in the roof plane and the housing over it; its threshold is roof.elevation, its axis is the shared core frame, its deep side runs along that frame's v axis and takes the full stair run, its complete rectangle is reserved for the stair shaft and arrival landing, and its door faces the stair-a arrival side at the head of the run; null when the plate is too small for access plus its walk space",
+          "description": "stair-head cutout in the roof plane and the housing over it; its threshold is roof.elevation, its axis is the shared core frame, its deep side takes the full stair run, its complete rectangle is reserved for the stair shaft and arrival landing, and its door faces the stair-a arrival side at the head of the run; null when the plate is too small for access plus its walk space",
           "properties": {
             "center": { "$ref": "#/$defs/point2" },
             "axis": { "$ref": "#/$defs/point2", "description": "unit vector along width on the selected shared core frame" },

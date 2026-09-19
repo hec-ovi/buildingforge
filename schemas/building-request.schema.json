@@ -128,6 +128,16 @@
               }
             },
             {
+              "description": "the same band, blank: N letter cells the consumer letters at runtime",
+              "type": "object",
+              "required": ["mode", "cells"],
+              "additionalProperties": false,
+              "properties": {
+                "mode": { "const": "marquee" },
+                "cells": { "type": "integer", "minimum": 1, "maximum": 40 }
+              }
+            },
+            {
               "type": "object",
               "required": ["mode", "ratio"],
               "additionalProperties": false,

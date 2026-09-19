@@ -47,9 +47,14 @@ export interface Aperture {
 }
 
 export type Signage =
+  /** lettered band or blade: one letter cell per character */
   | { mode: 'marquee'; text: string }
+  /** the same band, blank, of this many letter cells: the consumer letters it */
+  | { mode: 'marquee'; cells: number }
   | { mode: 'logo'; ratio: '1:1' | '3:2' | '16:9' }
   | null;
+
+export type Marquee = Extract<NonNullable<Signage>, { mode: 'marquee' }>;
 
 export interface CurtainOverride {
   /** stable opening id from the generated facade */

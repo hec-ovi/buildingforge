@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import release from '../package.json' with { type: 'json' };
-import { generate } from '../src/index.ts';
+import { generate, type BuildingRequest } from '../src/index.ts';
+import type { Signage } from '../src/types.ts';
 import schema from '../schemas/building-request.schema.json' with { type: 'json' };
 import { fixture, glbIO, keys } from './support.ts';
 
@@ -186,4 +187,29 @@ it('exports an open frontage and fits caller-supplied sign and logo content', as
   expect(bp.signage.some(s => s.text === 'COFFEE')).toBe(true);
   const logo = await generate({ ...fixture('corpo-tower'), options: { signage: { mode: 'logo', ratio: '3:2' } } }, keys);
   expect(logo.blueprint.signage.some(s => s.mode === 'logo' && s.ratio === '3:2')).toBe(true);
+});
+
+it('publishes the marquee band blank when the consumer letters it at runtime', async () => {
+  // One plan of the shared library: a venue whose word the consumer writes on
+  // the band this plan publishes, so the plan itself carries no word.
+  const plan = (signage: Signage): BuildingRequest => ({
+    seed: 'plans:plain-coffee_shop-mid-4x3x3f', buildingId: 'plain-coffee_shop-mid-4x3x3f', theme: 'cyberpunk',
+    parcel: { footprint: [[0, 0], [32, 0], [32, 24], [0, 24]], accessPoint: [16, 0], maxHeight: 3 * 4.5 + 2 },
+    building: { type: 'coffee_shop', tier: 'mid', floors: 3 },
+    options: { signage },
+  });
+  const blank = await generate(plan({ mode: 'marquee', cells: 8 }), keys);
+  const lettered = await generate(plan({ mode: 'marquee', text: 'ABCDEFGH' }), keys);
+  expect(blank.blueprint.signage).toHaveLength(1);
+  const { text: blankText, ...band } = blank.blueprint.signage[0]!;
+  const { text: letteredText, ...written } = lettered.blueprint.signage[0]!;
+  expect(blankText).toBeUndefined();
+  expect(letteredText).toBe('ABCDEFGH');
+  expect(band).toEqual(written);
+  expect(band.cellSize! * 8).toBeCloseTo(band.width, 7);
+  // The band stands over the entrance, clear of its head.
+  const door = blank.blueprint.floors[0]!.openings.find(o => o.kind === 'door' && o.doorRole === 'main')!;
+  expect(band.orientation).toBe('horizontal');
+  expect(band.edge).toBe(door.edge);
+  expect(band.center[1] - band.height / 2).toBeGreaterThan(door.sill + door.height);
 });

@@ -6,15 +6,17 @@ import type { CoreStairPlacement } from './corePreflight.ts';
 
 /**
  * Complete stair footprint, enclosure walls and arrival space on the selected
- * frame. The flight is long and narrow and Interior runs it along the frame's
- * v axis, so the housing's deep side always takes the long run and its door
- * stands at the head, whichever way round the published shaft reads.
+ * frame: the housing takes the shaft on its own axes, so its deep side runs
+ * along the flight and its door stands at the head. The placement it is given
+ * is the one Interior confirms with the roof in hand, never the first guess.
  */
 export function fitRoofAccess(seed: string, outline: P2[], stair: CoreStairPlacement): Blueprint['roof']['bulkhead'] {
-  const width = Math.min(stair.width, stair.depth) + ROOF_ACCESS.enclosureAllowance;
-  const depth = Math.max(stair.width, stair.depth) + ROOF_ACCESS.enclosureAllowance;
+  const width = stair.width + ROOF_ACCESS.enclosureAllowance;
+  const depth = stair.depth + ROOF_ACCESS.enclosureAllowance;
   const { center, axis } = stair;
   const cross: P2 = [-axis[1], axis[0]];
+  // The flight arrives at the end of its run, so the door stands on that face.
+  const head: P2 = width >= depth ? [...axis] as P2 : cross;
   const hw = width / 2 + ROOF_ACCESS.clearance;
   const hd = depth / 2 + ROOF_ACCESS.clearance;
   const corners: P2[] = ([[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]] as P2[]).map(([u, v]): P2 => [
@@ -26,7 +28,7 @@ export function fitRoofAccess(seed: string, outline: P2[], stair: CoreStairPlace
   return {
     center: [...center], axis: [...axis], width, depth,
     housingHeight: quant(rng.range(...ROOF_ACCESS.housingHeight)),
-    doorNormal: cross,
+    doorNormal: head,
     doorWidth: ROOF_ACCESS.doorWidth,
     doorHeight: ROOF_ACCESS.doorHeight,
   };

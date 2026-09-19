@@ -1,5 +1,7 @@
 # Changelog
 
+0.58.11: a marquee request takes a cell count instead of a word, so a plan publishes the band over its entrance for the consumer to letter, and the roof housing is sized from the stair placement Interior confirms with the roof and the room envelopes in hand.
+
 0.58.10: a window the core plate would crowd is given up, so every plan keeps the published circulation depth between its openings and the core.
 
 0.58.9: the roof housing stands along the stair run on the core frame's v axis, so the flight reaches the roof on every family and plan size.
