@@ -33,11 +33,17 @@ export class WallField extends FacadeField {
     const world = ({ point: [u, y, depth] }: Vertex): V3 => [this.origin[0] + this.dir[0] * u + this.normal[0] * depth,
       y, this.origin[1] + this.dir[1] * u + this.normal[1] * depth];
     const vertices = polygon.map(world);
+    const indices: number[] = [];
+    let faceNormal: V3 | undefined;
     for (let i = 1; i + 1 < vertices.length; i++) {
       const a = vertices[0]!, b = vertices[i]!, c = vertices[i + 1]!;
       const normal = cross(sub(b, a), sub(c, a));
-      if (dot(normal, normal) > 1e-16) sink.triFacing(material, a, b, c, outward, [polygon[0]!.uv, polygon[i]!.uv, polygon[i + 1]!.uv]);
+      if (dot(normal, normal) <= 1e-16) continue;
+      const sign = dot(normal, outward) >= 0 ? 1 : -1;
+      faceNormal ??= normal.map(value => value * sign / Math.hypot(...normal)) as V3;
+      indices.push(...(sign > 0 ? [0, i, i + 1] : [i, 0, i + 1]));
     }
+    if (faceNormal) sink.indexed(material, vertices, vertices.map(() => faceNormal!), polygon.map(vertex => vertex.uv), indices, [indices.length]);
   }
 }
 

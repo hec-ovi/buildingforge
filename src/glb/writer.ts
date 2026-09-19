@@ -83,7 +83,7 @@ export async function writeGlb(layout: Layout, mb: MeshBuilder, options: Texture
     const nodes = new Map<string, ReturnType<Document['createNode']>>();
     const parents = new Set(parts.map((p) => p.parent).filter((n): n is string => !!n));
     for (const part of parts) {
-      if (part.prims.size === 0 && !parents.has(part.name)) continue;
+      if (part.prims.size === 0 && !part.keepNode && !part.pivot && !parents.has(part.name)) continue;
       const node = doc.createNode(part.name);
       if (part.pivot) node.setTranslation([part.pivot[0], part.pivot[1], part.pivot[2]]);
       if (part.prims.size > 0) {

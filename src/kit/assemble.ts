@@ -21,7 +21,7 @@ function transfer(source: MeshBuilder, target: MeshBuilder, names: Set<string>, 
     const pivot = part.pivot ? point(part.pivot, at) : undefined;
     const copy: Part = { name: part.name, prims: new Map(), keepNode: true, ...(pivot ? { pivot } : {}), ...(part.parent ? { parent: part.parent } : {}) };
     for (const [slot, prim] of part.prims) {
-      const moved: Prim = { positions: [], normals: [], uvs: [...prim.uvs], indices: [...prim.indices] };
+      const moved: Prim = { positions: [], normals: [], uvs: [...prim.uvs], indices: [...prim.indices], faces: prim.faces?.map(face => ({ ...face })) };
       for (let i = 0; i < prim.positions.length; i += 3) {
         const local: V3 = [prim.positions[i]!, prim.positions[i + 1]!, prim.positions[i + 2]!];
         const world = part.pivot ? spin(local, at.rotationY) : point(local, at);
@@ -62,9 +62,7 @@ export async function assembleFromPieces(raw: AssemblyRequest, options: TextureO
     transfer(source, building, new Set(source.parts.filter(p => p.pivot || p.keepNode).map(p => p.name)), entrance);
   }
   for (const anchor of plan.blueprint.anchors) {
-    const sink = building.part(`anchor:${anchor.id}`, { keepNode: true });
-    sink.box(recipe.materials.column ?? recipe.materials.wall!, anchor.position,
-      spin([0.25, 0, 0], frame.rotationY), [0, 0.25, 0], spin([0, 0, 0.25], frame.rotationY));
+    building.part(`anchor:${anchor.id}`, { keepNode: true, pivot: anchor.position });
   }
 
   const { glb, textures } = await writeAssemblyGlb({

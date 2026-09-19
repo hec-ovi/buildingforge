@@ -208,13 +208,16 @@ it('assembles one mesh per piece and keeps the nodes a consumer addresses', asyn
   expect(result.signAnchors.length).toBeGreaterThan(0);
   expect(json.materials.map((material: { name: string }) => material.name).sort()).toEqual(result.blueprint.materials);
   const doc = await glbIO().readBinary(result.glb);
-  for (const name of ['floor:0/slab', 'roof:deck', 'anchor:bridge-a']) {
+  const anchor = doc.getRoot().listNodes().find(node => node.getName() === 'anchor:bridge-a')!;
+  expect(anchor.getMesh()).toBeNull();
+  expect(anchor.listChildren()).toEqual([]);
+  expect(anchor.getTranslation()).toEqual(result.blueprint.anchors[0]!.position);
+  for (const name of ['floor:0/slab', 'roof:deck']) {
     const node = doc.getRoot().listNodes().find(node => node.getName() === name)!;
     const positions = node.getMesh()!.listPrimitives()[0]!.getAttribute('POSITION')!;
     const points = Array.from({ length: positions.getCount() }, (_, index) => positions.getElement(index, []));
     const centre = [0, 1, 2].map(axis => (Math.min(...points.map(p => p[axis]!)) + Math.max(...points.map(p => p[axis]!))) / 2);
-    const expected = name.startsWith('anchor:') ? result.blueprint.anchors[0]!.position
-      : [-2, name === 'roof:deck' ? result.blueprint.roof.elevation : 0, 32];
+    const expected = [-2, name === 'roof:deck' ? result.blueprint.roof.elevation : 0, 32];
     centre.forEach((value, axis) => expect(value).toBeCloseTo(expected[axis]!, 4));
   }
 });

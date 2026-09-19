@@ -43,6 +43,7 @@ export function buildPieceMesh(request: PieceRequest): BuiltPiece {
 export async function buildPiece(request: PieceRequest, options: TextureOptions = {}): Promise<PieceResult> {
   const built = buildPieceMesh(request);
   const { glb, textures } = await writePieceGlb(built.mb, built.manifest.id, request.theme ?? 'cyberpunk', built.manifest.seed, options);
+  built.manifest.geometry = measureRuntime(built.mb);
   return { glb, manifest: built.manifest, textures };
 }
 

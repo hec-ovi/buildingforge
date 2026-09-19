@@ -298,13 +298,10 @@ export const CORE_PLATE = {
   setback: [2, 4] as [number, number],
 };
 
-/** Wire anchor mount: a plate sized to the cut, the lug the wire hangs from on its face. */
+/** Reserved facade seat around a published wire attachment. */
 export const ANCHOR_MOUNT = {
   plate: [0.3, 0.6] as [number, number],
   plateMargin: 0.1,
-  thickness: 0.03,
-  lug: 0.08,
-  lugDepth: 0.06,
 };
 
 export const FIRE_ESCAPE = {

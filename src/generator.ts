@@ -3,6 +3,9 @@ import { isPaired } from './sections/index.ts';
 import { buildingFamily } from './families/registry.ts';
 import { GENERATION_POLICY } from './rules/generationPolicy.ts';
 import { CanonicalNativeMaterials } from './materials/canonicalNative.ts';
+import { MeshBindings } from './materials/meshBindings.ts';
+import { autoSource } from './materials/autoSource.ts';
+import { buildingMaterialVariants } from './layout/materialPlan.ts';
 import { applyWindowPolicy } from './layout/windowPolicy.ts';
 // Orchestration: validate -> style -> massing -> floor stack -> facades ->
 // features -> mesh -> GLB + blueprint.
@@ -155,15 +158,19 @@ async function buildShell(raw: unknown, options: GenerateOptions, canonicalNativ
     return sum + Math.hypot(next[0] - point[0], next[1] - point[1]);
   }, 0);
   const budget = geometryBudget(req, perimeter * stack.top);
+  const source = options.textures?.source ?? await autoSource(req.theme, options.textures?.dir);
+  const bindings = source ? new MeshBindings(source, req.seed, buildingMaterialVariants(req.theme, tier, exteriorStyle)) : undefined;
   let mb = buildMesh(layout, openingMesh);
   let step = 0;
   const shed = () => { layout.detail = simplifiedTo(++step); mb = buildMesh(layout); };
   // Faces are free to count, so the descent runs on them first and only welds
   // once the face count fits, then keeps going if the packed size still does not.
   while (simplify && step < SIMPLIFICATION.length && countTriangles(mb) > budget.triangles) shed();
+  bindings?.apply(mb);
   let measured = { ...measureRuntime(mb), budget };
   while (simplify && step < SIMPLIFICATION.length && overBudget(measured)) {
     shed();
+    bindings?.apply(mb);
     measured = { ...measureRuntime(mb), budget };
   }
   const identity = canonicalNative ? new CanonicalNativeMaterials(req) : undefined;

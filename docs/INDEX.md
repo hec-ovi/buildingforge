@@ -1,6 +1,6 @@
 # Box map
 
-Version 0.58.7.
+Version 0.58.8.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
@@ -35,7 +35,8 @@ Version 0.58.7.
 - `src/families/api.ts`: shared geometry helpers, including the shared blind for family-owned exterior coverings.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.
 - `src/mesh/frameProfile.ts`, `frameRing.ts`: one welded extruded ring per opening, built once per size.
-- `src/glb`, `src/materials`: GLB output, named pattern variants and world metre UV scaling from variant tiling or entry tiling.
+- `src/mesh/surfaceUvs.ts`, `src/materials/meshBindings.ts`: per face UVs measured on final geometry, fitted exact plates and named material variants.
+- `src/glb`, `src/materials`: GLB output and world metre UV scaling from variant tiling or entry tiling.
 - `src/glb/weld.ts`: attribute snapping, vertex welding, 16-bit indices and quantized normals.
 - `src/rules/geometryBudget.ts`, `simplification.ts`: the [per-shell allowance](../schemas/geometry-budget.json) and the order a shell sheds repeat detail to fit it.
 - `src/layout/corePlateOffers.ts`: the plates one request may be built on, so a lot that can hold a core gets a building.

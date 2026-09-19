@@ -39,7 +39,10 @@ function split(prim: Prim, plane: number, points: Point[], shift: V3): void {
     return index;
   };
   const indices: number[] = [];
+  const boundaries = new Map((prim.faces ?? []).map(face => [face.first, face]));
+  const faces: NonNullable<Prim['faces']> = [];
   for (let i = 0; i < prim.indices.length; i += 3) {
+    if (boundaries.has(i)) faces.push({ first: indices.length, count: 0 });
     let triangles = [prim.indices.slice(i, i + 3)];
     for (const point of points) {
       const next: number[][] = [];
@@ -64,8 +67,10 @@ function split(prim: Prim, plane: number, points: Point[], shift: V3): void {
       triangles = next;
     }
     for (const triangle of triangles) indices.push(...triangle);
+    if (faces.length) faces.at(-1)!.count += triangles.length * 3;
   }
   prim.indices = indices;
+  if (prim.faces) prim.faces = faces;
 }
 
 export function mateBands(mb: MeshBuilder, family: string, kind: PieceKind, band: Band, height: number): void {

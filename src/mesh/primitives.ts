@@ -26,6 +26,8 @@ export interface Prim {
   normals: number[];
   uvs: number[];
   indices: number[];
+  /** Authored receiving faces, before welding and final surface mapping. */
+  faces?: { first: number; count: number }[];
 }
 
 export interface Part {
@@ -100,7 +102,7 @@ export class PartSink {
 
   private prim(material: string): Prim {
     let g = this.p.prims.get(material);
-    if (!g) { g = { positions: [], normals: [], uvs: [], indices: [] }; this.p.prims.set(material, g); }
+    if (!g) { g = { positions: [], normals: [], uvs: [], indices: [], faces: [] }; this.p.prims.set(material, g); }
     return g;
   }
 
@@ -115,7 +117,7 @@ export class PartSink {
    * two faces of one surface is written once instead of once per face. A mapped
    * sink re-derives face normals, so it takes the triangle path instead.
    */
-  indexed(material: string, positions: V3[], normals: V3[], uvs: [number, number][], indices: number[]): void {
+  indexed(material: string, positions: V3[], normals: V3[], uvs: [number, number][], indices: number[], faceCounts?: number[]): void {
     if (this.mapPoint) {
       for (let i = 0; i < indices.length; i += 3) {
         const [a, b, c] = [indices[i] as number, indices[i + 1] as number, indices[i + 2] as number];
@@ -128,7 +130,13 @@ export class PartSink {
     for (const p of positions) g.positions.push(...this.local(p));
     for (const n of normals) g.normals.push(n[0], n[1], n[2]);
     for (const t of uvs) g.uvs.push(t[0], t[1]);
+    const first = g.indices.length;
     for (const i of indices) g.indices.push(base + i);
+    let offset = first;
+    for (const count of faceCounts ?? Array<number>(indices.length / 3).fill(3)) {
+      g.faces!.push({ first: offset, count });
+      offset += count;
+    }
   }
 
   /** Raw triangle, vertices CCW from the visible side. uv per vertex. */
@@ -139,6 +147,7 @@ export class PartSink {
     g.positions.push(...this.local(a), ...this.local(b), ...this.local(c));
     pushNormal(g, faceNormal(a, b, c), 3);
     g.uvs.push(...(uv[0] as [number, number]), ...(uv[1] as [number, number]), ...(uv[2] as [number, number]));
+    g.faces!.push({ first: g.indices.length, count: 3 });
     g.indices.push(base, base + 1, base + 2);
   }
 
@@ -160,6 +169,7 @@ export class PartSink {
     g.positions.push(...this.local(bl), ...this.local(br), ...this.local(tr), ...this.local(tl));
     pushNormal(g, faceNormal(bl, br, tr), 4);
     for (const t of uv) g.uvs.push(...t);
+    g.faces!.push({ first: g.indices.length, count: 6 });
     g.indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
   }
 

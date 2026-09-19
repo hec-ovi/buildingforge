@@ -9,5 +9,5 @@ Builds ribbon glazing and tall mullion banks around a narrow service spine.
 - Ground has pale 2.5 by 2 m panels and an entrance field, with no windows. Curved closed metal ribs project 2.1 m and carry warm strips. Free fits reserve 2.5 m around the shell; bound faces keep their exact coordinates and omit these projecting ribs.
 - Minimum shell: 24 by 14 m. Free parcel: 29 by 19 m. At least two floors, each at least 3 m. Caller heights remain unchanged; windows leave 0.5 m for slabs. Invalid inputs throw `RangeError`.
 - Decorations avoid doors and bridge cuts, stay within the parcel and restore `builder.floor`. `instances` requests existing `ornamental-tree` models in alternate side bays under the entry ribs. Their 2.1 by 6 by 2.1 m boxes retain crown clearance, omit the central entrance bay and remain inside the parcel. Bound faces emit no trees. No traversable balconies are added.
-- Materials: the `materials` map in `index.ts` lists final catalog slots. Mirror backing and dark rooms use opaque reflective black glazing.
+- Materials: the `materials` map in `index.ts` lists final catalog slots. Mirror backing and dark rooms use opaque reflective black glazing. The facade lining uses the tiled pale ivory panel with world metre UVs; exact room plates belong to scenery.
 - Check: `npm test -- src/families/mirror-shutters/tests/contract.test.ts` from `exterior/`.

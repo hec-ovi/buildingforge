@@ -7,7 +7,7 @@ export const family: BuildingFamily = {
   materials: {
     ground: 'cyberpunk/ivory-panel/mid#cool-grey',
     wall: 'cyberpunk/paired-window-black/mid#black',
-    'inner-wall': 'cyberpunk/paired-room-wall/mid#surface',
+    'inner-wall': 'cyberpunk/ivory-panel/mid#cool-grey',
     column: 'cyberpunk/exterior-brushed-bronze/mid#native',
     'wall-trim': 'cyberpunk/paired-cladding-metal/mid#surface',
     'window-frame': 'cyberpunk/exterior-brushed-bronze/mid#native',

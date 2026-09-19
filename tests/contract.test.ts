@@ -48,11 +48,16 @@ it('preserves floor programs, link reservations and anchors with storeys pinned 
   pinned.cut.polygon = pinned.cut.polygon.map(([x, y, z]) => [x, y + shift, z]);
   const { blueprint, glb } = await generate(request, keys);
   expect(blueprint.floors.filter(f => f.index >= 0).map(f => f.kind)).toEqual(request.building.floorKinds);
-  const nodes = (await glbIO().readBinary(glb)).getRoot().listNodes().map(n => n.getName());
+  const exportedNodes = (await glbIO().readBinary(glb)).getRoot().listNodes();
+  const nodes = exportedNodes.map(n => n.getName());
   for (const aperture of request.apertures!) {
     if (aperture.kind === 'wire-anchor') {
       expect(blueprint.anchors.some(a => a.id === aperture.id)).toBe(true);
       expect(nodes).toContain(`anchor:${aperture.id}`);
+      const node = exportedNodes.find(node => node.getName() === `anchor:${aperture.id}`)!;
+      expect(node.getMesh()).toBeNull();
+      expect(node.listChildren()).toEqual([]);
+      expect(node.getTranslation()).toEqual(blueprint.anchors.find(anchor => anchor.id === aperture.id)!.position);
       continue;
     }
     const floor = blueprint.floors.find(f => f.elevation === aperture.base)!;

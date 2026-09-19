@@ -14,7 +14,7 @@ export function meshGroundPrivacy(sink: PartSink, frame: Frame, field: Field, gl
   const at = (u: number, y: number): V3 => [frame.v[0] + frame.dir[0] * u + frame.n[0] * back, y,
     frame.v[1] + frame.dir[1] * u + frame.n[1] * back];
   sink.quadFacing(material, at(field.u0, field.y0), at(field.u1, field.y0), at(field.u1, field.y1), at(field.u0, field.y1),
-    [frame.n[0], 0, frame.n[1]], [[0, 1], [1, 1], [1, 0], [0, 0]]);
+    [frame.n[0], 0, frame.n[1]], [[field.u0, -field.y0], [field.u1, -field.y0], [field.u1, -field.y1], [field.u0, -field.y1]]);
 }
 
 export function meshExteriorLouvre(sink: PartSink, frame: Frame, field: Field, covering: NonNullable<Opening['exteriorCovering']>): void {

@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.58.7.
+Version: 0.58.8.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint, and authors each family as a set of repeated pieces a consumer assembles.
 
@@ -68,6 +68,8 @@ Family decoration owns screen and mechanical details, while the host retains req
 `roof.material` publishes the actual roof key and named variant on every new output, including canonical native identities. Keys use `theme/kind/tier`, with named variant requests. Cut corner exterior fields use graphite concrete, cast structural concrete and paint frame variants; their key and variant identities persist in every texture mode. `external` writes configurable URIs and embeds selected bundled finishes; absent catalog returns `keys` with a reason. `embed` requires all selected maps; `keys` leaves resolution to the caller. Built in sources enable bundled finishes; custom sources opt in. `dir` defaults to `URBE_MATERIALS_DIR`, then sibling `materials`; explicit `source` overrides disk access. World metre UVs use `variant.tiling ?? entry.tiling`, including cut facade concrete. Other authored section fields carry full 0..1 maps with `textureMapping: exact` material extras and clamped texture edges.
 
 Materials 0.17.4 supplies these patterns on fitted quads or panels. GLB material extras publish `materialVariant`, exposed as `material.userData.materialVariant` by Three.js.
+
+Every family fits exact plates once per receiving face within 0..1, preserving authored image crops. Tiled faces carry world metre UVs measured after mitres, curves and taper placement. The consumer applies the selected variant's tile size. All exported asks name their variant. Wire anchor nodes carry their published position without meshes or children. One exported geometry check covers all seven canonical fixtures, with tiled metre scales within 2 percent of 1 and exact UVs within 0..1.
 
 | Surface | Key | Variant | Repeat in metres |
 | --- | --- | --- | --- |

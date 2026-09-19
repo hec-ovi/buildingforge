@@ -72,8 +72,8 @@ export function sectionOpenings(request: BuildingRequest, plan: FloorAssembly, h
           ?? { cols: section.spans ? 1 : section.technique === 'paired-glass' ? Math.max(1, Math.min(4, Math.floor(width / 1.2)))
             : Math.max(1, Math.ceil(width / (request.options?.architecture === 'chamfered-corners' ? 4 : 1.5))), rows: 1 };
         if (sharedRooms) {
-          opening.material = plan.floor === 0 ? `${request.theme}/window-glass-office/${request.building.tier}` : family?.materials?.['window-glass'] ?? 'cyberpunk/paired-window-glass/mid';
-          if (plan.floor > 0 && scenicState(request.seed, plan.floor, section.id, section.technique === 'rounded-glass').state === 'dark') opening.material = family?.materials?.['window-black'] ?? 'cyberpunk/paired-window-black/mid';
+          opening.material = plan.floor === 0 ? `${request.theme}/window-glass-office/${request.building.tier}#clear` : family?.materials?.['window-glass'] ?? 'cyberpunk/paired-window-glass/mid#clear';
+          if (plan.floor > 0 && scenicState(request.seed, plan.floor, section.id, section.technique === 'rounded-glass').state === 'dark') opening.material = family?.materials?.['window-black'] ?? 'cyberpunk/paired-window-black/mid#black';
           if (plan.floor === 0) opening.windowTreatment = { privacy: 'shell-only', nodeId: `ground-privacy:${opening.id}` };
         }
       }

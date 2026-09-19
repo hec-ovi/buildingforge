@@ -22,5 +22,5 @@ export function meshLightFixture(sink: PartSink, light: Blueprint['lights'][numb
   const x = w * 0.35, y = h * 0.35, z = d * 0.72;
   sink.quadFacing(light.material ?? withDefaultVariant(mat('light-fixture'), 'strip'),
     at(-x, -y, z), at(x, -y, z), at(x, y, z), at(-x, y, z),
-    n, [[0, 1], [1, 1], [1, 0], [0, 0]]);
+    n, [[0, 2 * y], [2 * x, 2 * y], [2 * x, 0], [0, 0]]);
 }

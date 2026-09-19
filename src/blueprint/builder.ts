@@ -53,7 +53,8 @@ export function buildBlueprint(layout: Layout, mb: MeshBuilder): Blueprint {
       outline: f.outline,
       ...(f.topOutline ? { topOutline: f.topOutline } : {}),
       roomEnvelope: envelopes.forFloor(f.topOutline ? { ...f, outline: f.topOutline } : f, wallDepth),
-      openings: f.openings,
+      openings: f.openings.map(opening => opening.material
+        ? { ...opening, material: splitMaterialSlot(opening.material)[0] } : opening),
     })),
     balconyBands: layout.balconyBands,
     anchors: layout.anchors.map(({ id, position, normal }) => ({ id, position, normal })),

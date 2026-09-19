@@ -199,7 +199,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   meshFacadeArtifacts(mb, layout, mat);
   meshAcUnits(mb, layout, mat);
   meshFacadeServices(mb, layout);
-  for (const a of layout.anchors) meshAnchorMount(mb, a, mat('window-frame'));
+  for (const a of layout.anchors) meshAnchorMount(mb, a);
   meshFeatures(mb, layout, mat);
   meshFireEscape(mb, layout, above, mat);
 
@@ -400,7 +400,7 @@ function doorFrameDetails(
     const front = proud + 0.0045;
     sink.quadFacing(light, at(fr, [a, y0], front), at(fr, [b, y0], front),
       at(fr, [b, y1], front), at(fr, [a, y1], front), [fr.n[0], 0, fr.n[1]],
-      [[0, 1], [1, 1], [1, 0], [0, 0]]);
+      [[0, y1 - y0], [b - a, y1 - y0], [b - a, 0], [0, 0]]);
   };
   const center = (u0 + u1) / 2;
   const length = Math.min(0.9, (u1 - u0) * 0.32);
@@ -532,7 +532,7 @@ function windowUnit(
       o.damage, o.material ?? mat('window-glass'));
   } else {
     meshSpandrel(sink, fr, { u0: g0, u1: g1, y0: gb, y1: gt },
-      glassZ, glassZ - 0.006, o.material ?? mat('window-glass'), 'exact');
+      glassZ, glassZ - 0.006, o.material ?? mat('window-glass'));
   }
 
   if (o.curtain && !detail.has('coverings')) {
@@ -566,7 +566,7 @@ function rollerShade(
   sink.quadFacing(curtainMaterial,
     at(fr, [u0, bottom], front + 0.001), at(fr, [u1, bottom], front + 0.001),
     at(fr, [u1, y1], front + 0.001), at(fr, [u0, y1], front + 0.001),
-    n3(fr), [[0, fraction], [1, fraction], [1, 0], [0, 0]]);
+    n3(fr), [[0, y1 - bottom], [u1 - u0, y1 - bottom], [u1 - u0, 0], [0, 0]]);
 
   // Raised seams catch light as fabric folds without intersecting the pane.
   const seams = Math.max(1, Math.floor((u1 - u0) / 0.35));

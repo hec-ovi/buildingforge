@@ -37,6 +37,8 @@ The API re-exports `MeshBuilder.part(name, {keepNode?, parent?, pivot?, sloped?}
 
 `parapetHeight` optionally sets the extra roof edge height; zero retains a flush authored cap. Registered families own screen and mechanical decoration; the host retains explicit signage and entrance fixtures.
 
+The host measures tiled UVs on final receiving faces after placement and fits exact plates within 0..1. Named variants and authored image crops persist in every texture mode. Wire anchors publish empty nodes at their attachment positions.
+
 `groundFloorHeight` optionally selects a preferred total ground height; fixed connection bases retain priority. Host generation uses the registered family ID as `options.architecture`. Apertures reaching above ground fix the upper faces and require a rectangular parcel; other fixed shapes report `E_SCHEMA`. Basement-only cuts retain their original parcel faces while upper floors use the free family shape. Supplied cuts remain exact and ordinary openings that intersect their reservations are omitted. Multiple authored windows may share a horizontal span when their vertical intervals do not overlap.
 
 

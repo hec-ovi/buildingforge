@@ -4,6 +4,22 @@ import { generate } from '../src/index.ts';
 import { fileSource } from '../src/materials/fileSource.ts';
 import { buildResolver } from '../src/materials/theme.ts';
 import catalog from '../public/native-materials/themes/cyberpunk/theme.json' with { type: 'json' };
+import { familyFixtures } from './family-fixtures.ts';
+import { auditMaterialUvs } from './material-uv.ts';
+import { keys } from './support.ts';
+
+it('exports named variants with exact plates and metre UVs across all seven family fixtures', async () => {
+  const source = fileSource('cyberpunk')!;
+  expect(source).not.toBeNull();
+  const requests = familyFixtures();
+  expect(requests).toHaveLength(7);
+  for (const request of requests) {
+    const { glb } = await generate(request, keys);
+    const audit = await auditMaterialUvs(glb, source.index);
+    expect(audit.primitives, request.buildingId).toBeGreaterThan(0);
+    expect(audit.failures, request.buildingId).toEqual({});
+  }
+}, 30_000);
 
 it('packs original native image bytes beside external maps in one GLB', async () => {
   const request = JSON.parse(readFileSync(new URL('../fixtures/residential-mid.request.json', import.meta.url), 'utf8'));

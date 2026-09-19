@@ -10,6 +10,7 @@ import {
 } from '@gltf-transform/extensions';
 import { createMaterials, type TextureMode, type TextureOptions } from '../materials/apply.ts';
 import { autoSource } from '../materials/autoSource.ts';
+import { MeshBindings } from '../materials/meshBindings.ts';
 import { writeBinaryWithUris } from './../glb/pack.ts';
 import { quantizedNormals, weld, UINT16_LIMIT } from '../glb/weld.ts';
 import { groupByMaterial, keptParts } from '../glb/measure.ts';
@@ -67,7 +68,7 @@ function emitParts(writer: Writer, root: ReturnType<Document['createNode']>, mb:
   const parentOf = new Map<string, string | undefined>();
   const parents = new Set(mb.parts.map(p => p.parent).filter((n): n is string => !!n));
   for (const part of mb.parts) {
-    if (part.prims.size === 0 && !parents.has(part.name)) continue;
+    if (part.prims.size === 0 && !part.keepNode && !part.pivot && !parents.has(part.name)) continue;
     const node = nodes.get(part.name) ?? writer.doc.createNode(part.name);
     if (part.pivot) node.setTranslation([part.pivot[0], part.pivot[1], part.pivot[2]]);
     if (part.prims.size > 0) {
@@ -87,6 +88,8 @@ function emitParts(writer: Writer, root: ReturnType<Document['createNode']>, mb:
 }
 
 export async function writePieceGlb(mb: MeshBuilder, id: string, theme: string, seed: string, options: TextureOptions = {}): Promise<KitGlb> {
+  const source = options.source ?? await autoSource(theme, options.dir);
+  if (source) new MeshBindings(source, seed).apply(mb);
   const session = await open(`piece:${id}`, mb.materialSlots(), theme, seed, options);
   emitParts(session.writer, session.root, mb);
   return { glb: await session.finish(), textures: { mode: session.mode, ...(session.reason ? { reason: session.reason } : {}) } };
@@ -104,6 +107,12 @@ export interface AssemblyGlbInput {
 }
 
 export async function writeAssemblyGlb(input: AssemblyGlbInput, options: TextureOptions = {}): Promise<KitGlb> {
+  const source = options.source ?? await autoSource(input.theme, options.dir);
+  if (source) {
+    const bindings = new MeshBindings(source, input.seed);
+    bindings.apply(input.building);
+    for (const mb of input.kinds.values()) bindings.apply(mb);
+  }
   const slots = new Set(input.building.materialSlots());
   for (const mb of input.kinds.values()) for (const slot of mb.materialSlots()) slots.add(slot);
   const session = await open(input.name, [...slots].sort(), input.theme, input.seed, options);
