@@ -3,7 +3,7 @@ name: exterior
 description: Generate one seeded building exterior GLB and its floor/opening blueprint, or publish the six-family piece kit, through the Exterior library or CLI.
 ---
 
-# Exterior 0.58.11
+# Exterior 0.58.12
 
 Builds one deterministic building shell with replaceable slabs, 1 m-deep window scenery and its exact opening blueprint.
 
@@ -23,7 +23,7 @@ Call `generate(request, options?)` from `src/index.ts` in Node with TypeScript s
 | `options.architecture` | Optional. `auto` selects a compatible reviewed family by seed, programme, tier and dimensions. Explicit IDs and constraints are in the request schema and contract. |
 | `options.shape`, `exteriorStyle`, `glb` | `auto` (rectangular plates), seeded compatible style, `named`. |
 | `balconies`, `balconyStyle`, `openFront`, `fireEscape` | `auto`; detail is fitted where eligible. These and the following rows are inside `request.options`. |
-| `entranceLayout`, `doorMotion`, `windows` | `single`, `swing`, `auto`. Pocket doors need opaque chambers; `openFront:on` conflicts. |
+| `entranceLayout`, `doorMotion`, `windows` | `single`, `pocket`, `auto`. Entrances slide into the wall; `swing` asks for a hinge, and a frontage with no wall beside the door keeps one. `openFront:on` conflicts with an explicit `pocket`. |
 | `signage`, `adScreens`, `roofArtifacts` | `null`, `auto`, `auto`. A marquee takes `text` for a lettered band or `cells` for the same band left blank; a logo takes `ratio`. |
 | `facadeServices`, `hangingClothes`, `windowDamage` | `auto`, `auto`, `off`. |
 | `coreAdjacency` | Interior's published glazing circulation default (1.2 m). |

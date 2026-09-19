@@ -31,6 +31,6 @@ export function checkPocketDoor(floor: Floor, opening: Opening): void {
       || p.sill + p.height <= opening.sill + opening.height + POCKET.overlap
       || (leaf.travelU < 0
         ? Math.abs(p.offset + p.width - opening.offset) > 1e-6 || b + leaf.travelU >= opening.offset
-        : p.offset !== opening.offset + opening.width || a + leaf.travelU <= opening.offset + opening.width)) fail();
+        : Math.abs(p.offset - opening.offset - opening.width) > 1e-6 || a + leaf.travelU <= opening.offset + opening.width)) fail();
   }
 }

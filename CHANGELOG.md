@@ -1,5 +1,7 @@
 # Changelog
 
+0.58.12: every entrance slides into the wall, so each family plan publishes pocket motion with a chamber beside the passage and its own door set.
+
 0.58.11: a marquee request takes a cell count instead of a word, so a plan publishes the band over its entrance for the consumer to letter, and the roof housing is sized from the stair placement Interior confirms with the roof and the room envelopes in hand.
 
 0.58.10: a window the core plate would crowd is given up, so every plan keeps the published circulation depth between its openings and the core.

@@ -153,6 +153,42 @@ it('keeps the published circulation depth beside every window on every family pl
   }
 }, 30_000);
 
+it('slides every entrance into the wall on one plan per family', async () => {
+  const plans: [FamilyArchitecture, number, number, number][] = [
+    ['mirror-frame', 4, 3, 8], ['balcony-grid', 4, 3, 8], ['faceted-bays', 4, 3, 8],
+    ['white-grid', 4, 3, 8], ['mirror-shutters', 4, 3, 8], ['corporate-sectors', 5, 5, 12],
+  ];
+  for (const [architecture, across, deep, floors] of plans) {
+    const plan = `${architecture}-${across}x${deep}x${floors}f`;
+    const { blueprint } = await generate(planRequest(architecture, across, deep, floors), keys);
+    const ground = blueprint.floors.find(floor => floor.index === 0)!;
+    const doors = ground.openings.filter(opening => opening.kind === 'door');
+    expect(doors.length, plan).toBeGreaterThan(0);
+    for (const door of doors) {
+      const { motion, cassette, clearance } = door.door!;
+      expect(motion.kind, `${plan} ${door.id}`).toBe('pocket');
+      if (motion.kind !== 'pocket') continue;
+      expect(clearance, plan).toMatchObject({ offset: door.offset, width: door.width, height: door.height });
+      expect(motion.leaves, plan).toHaveLength(door.leaves!);
+      const leafWidth = door.width / motion.leaves.length;
+      for (const { travelU, pocket } of motion.leaves) {
+        // the leaf slides its own width clear of the passage, into the wall beside it
+        expect(Math.abs(travelU), plan).toBeGreaterThanOrEqual(leafWidth);
+        expect(pocket.offset + pocket.width <= door.offset + 1e-6
+          || pocket.offset >= door.offset + door.width - 1e-6, `${plan} pocket across the passage`).toBe(true);
+        expect(pocket.offset, plan).toBeGreaterThan(cassette!.offset);
+        expect(pocket.offset + pocket.width, plan).toBeLessThan(cassette!.offset + cassette!.width);
+      }
+      // the wall the leaves run into carries nothing else
+      for (const other of ground.openings) {
+        if (other === door || other.edge !== door.edge) continue;
+        expect(other.offset + other.width <= cassette!.offset + 1e-6
+          || other.offset >= cassette!.offset + cassette!.width - 1e-6, `${plan} ${other.id} in the pocket wall`).toBe(true);
+      }
+    }
+  }
+}, 30_000);
+
 it('rejects a fixed family on a nonrectangular parcel', async () => {
   const input = request('white-grid', true);
   input.parcel.footprint[3] = [2, 36];

@@ -9,6 +9,7 @@ import { Rng } from '../core/rng.ts';
 import { SIGNAGE, AD_SCREEN, FACADE, LIGHTING, FIRE_ESCAPE, OPENING, MODULE, MODULE_U } from '../rules/tables.ts';
 import { edgeLength, edgeDir, edgeNormal, quant, type P2 } from '../core/polygon.ts';
 import { crossed, edgeU, findClearRect, type Rect } from './obstructions.ts';
+import { openingEnvelope } from './openingEnvelope.ts';
 import { placeAcUnits } from './acUnits.ts';
 import type { Blueprint, BuildingRequest, Marquee, P3, Signage } from '../types.ts';
 import type { Family, Tier } from '../rules/families.ts';
@@ -341,8 +342,10 @@ function placeLights(
   for (const o of groundFloor.openings) {
     if (o.kind !== 'door' && o.kind !== 'openFront') continue;
     const y = cellCentre(Math.min(o.height + 0.4, groundFloor.height - 0.2), MODULE);
-    // one lantern in the centre of the panel either side of the door, on the panel row over its head
-    for (const u of [o.offset - MODULE_U / 2, o.offset + o.width + MODULE_U / 2]) {
+    // one lantern in the centre of the panel either side of the entrance, clear
+    // of the wall a sliding leaf runs into
+    const field = openingEnvelope(o);
+    for (const u of [field.offset - MODULE_U / 2, field.offset + field.width + MODULE_U / 2]) {
       mountLight('entrance', ground, o.edge, u, y, out, obstacles);
     }
   }

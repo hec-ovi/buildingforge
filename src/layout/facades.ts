@@ -645,8 +645,14 @@ function placeEntrance(
   const clear = clearHeight(groundHeight);
   const h = moduleWithin(entranceHeight(prop, style.entrancePick, clear), prop.entrance[0], Math.min(prop.entrance[1], clear));
 
-  if (req.options?.doorMotion === 'pocket') {
-    const set = entranceDoorSet(req.seed, family, tier, false);
+  // The reference entrance slides into the wall, so a pocket is the default and
+  // a hinge is what a caller asks for or what a facade with no wall beside the
+  // opening falls back to.
+  // An authored composition moves its entrance into a section field and fits
+  // the pocket there, so the scan below serves the ordinary facade.
+  const asked = req.options?.doorMotion;
+  if (asked !== 'swing' && req.options?.openFront !== 'on' && !req.options?.architecture) {
+    const set = entranceDoorSet(req.seed, family, tier, rules.entranceGlass);
     for (const edge of candidates) {
       if (edge >= outline.length) continue;
       const length = edgeLength(outline, edge);
@@ -666,16 +672,19 @@ function placeEntrance(
           take(taken, edge, envelope.offset, envelope.offset + envelope.width);
           const entrance: Opening = {
             id: 'entrance', kind: 'door', doorRole: 'main', edge, offset, width, height: quant(h), sill: 0,
-            leaves: fittedPocketLeaves(door), door, material: `${req.theme}/door/${tier}`,
+            leaves: fittedPocketLeaves(door), door,
+            material: `${req.theme}/${set === 'glazed-grid' ? 'door-glass' : 'door'}/${tier}`,
           };
           openings.push(entrance);
           return entrance;
         }
       }
     }
-    throw new ExteriorError('E_DOOR_FIT', 'no street face fits the required entrance passage and complete pocket cassette', {
-      buildingId: req.buildingId, motion: 'pocket', role: 'main', edges: candidates,
-    });
+    if (asked === 'pocket') {
+      throw new ExteriorError('E_DOOR_FIT', 'no street face fits the required entrance passage and complete pocket cassette', {
+        buildingId: req.buildingId, motion: 'pocket', role: 'main', edges: candidates,
+      });
+    }
   }
 
   for (const e of candidates) {

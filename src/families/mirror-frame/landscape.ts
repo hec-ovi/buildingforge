@@ -11,8 +11,10 @@ export function landscape(context: DecorationContext): ModelInstance[] {
     const field = new FacadeField(ground.outline, door.edge);
     const holes = context.layout.floors.flatMap(floor => reservations(context.layout, floor, door.edge));
     const rotation = Math.atan2(-field.dir[1], field.dir[0]);
+    // Beside the whole entrance assembly, so a sliding leaf keeps its wall.
+    const entrance = door.door?.cassette ?? door;
     for (const side of [-1, 1]) {
-      const u = side < 0 ? door.offset - 1.4 : door.offset + door.width + 1.4;
+      const u = side < 0 ? entrance.offset - 1.4 : entrance.offset + entrance.width + 1.4;
       const place = (kind: ModelInstance['kind'], centre: number, y: number, depth: number, size: ModelInstance['size']) => {
         const area = { left: centre - size[0] / 2, right: centre + size[0] / 2, bottom: y, top: y + size[1] };
         if (area.left < 0.1 || area.right > field.length - 0.1) return false;

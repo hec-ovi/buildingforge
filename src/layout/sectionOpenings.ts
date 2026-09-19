@@ -4,6 +4,8 @@ import { ExteriorError } from '../core/errors.ts';
 import type { BuildingRequest, Opening } from '../types.ts';
 import type { FloorLayout } from './model.ts';
 import { DOORS } from '../rules/tables.ts';
+import { edgeLength } from '../core/polygon.ts';
+import { fitPocketDoor, fittedPocketLeaves, pocketInsidePlate } from './pocketDoor.ts';
 import { scenicState } from './scenicState.ts';
 import { openingEnvelope } from './openingEnvelope.ts';
 
@@ -21,28 +23,40 @@ export function sectionOpenings(request: BuildingRequest, plan: FloorAssembly, h
   const custom = isFamilyArchitecture(request.options?.architecture);
   const sharedRooms = custom || isPaired(request.options?.architecture);
   const reserved = (edge: number, start: number, end: number) => reservations.some(r => r.edge === edge && start < r.end - 1e-8 && end > r.start + 1e-8);
+  // Whether this section carries glazing on this floor: a ground field an
+  // authored family keeps opaque is wall the entrance pocket may run into.
+  const glazes = (section: Section): boolean =>
+    !(['frame-pier', 'paired-solid', 'paired-pier', 'podium-panel'].includes(section.technique) && section.windows === undefined)
+    && !(plan.floor === 0 && (sharedRooms && section.windows === undefined || request.options?.architecture === 'garden-taper'));
   for (const entrance of openings) {
     if (entrance.kind === 'aperture') continue;
-    if (entrance.kind !== 'door' || entrance.doorRole !== 'main') throw new ExteriorError('E_SCHEMA', 'the selected architecture supports a single swing entrance');
+    if (entrance.kind !== 'door' || entrance.doorRole !== 'main') throw new ExteriorError('E_SCHEMA', 'the selected architecture supports a single entrance');
     const choices = plan.sections.filter(s => s.edge === entrance.edge && ['deep-bay', 'ribbon-bay', 'paired-glass'].includes(s.technique) && !s.spans)
       .sort((a, b) => Math.abs(a.offset + a.width / 2 - entrance.offset - entrance.width / 2) - Math.abs(b.offset + b.width / 2 - entrance.offset - entrance.width / 2));
-    const candidate = choices.map(section => {
+    const eligible = choices.map(section => {
       const field = sectionRoles(section, height).find(f => f.role === 'middle')!;
       const width = section.technique === 'paired-glass' ? Math.min(3, field.width) : field.width;
       const offset = section.offset + field.offset + (field.width - width) / 2;
       return { section, width, offset };
-    }).find(({ width, offset }) => width >= 2 && !reserved(entrance.edge, offset, offset + width));
-    if (!candidate) throw new ExteriorError('E_DOOR_FIT', 'the street entrance has no clear complete straight section');
-    entrance.width = candidate.width;
-    entrance.offset = candidate.offset;
-    entrance.leaves = 2;
-    entrance.door = { ...entrance.door!, motion: { kind: 'swing', maxTravel: 90, clearDepth: entrance.width / 2 } };
-    entrance.sectionId = candidate.section.id;
+    }).filter(({ width, offset }) => width >= 2 && !reserved(entrance.edge, offset, offset + width));
+    if (!eligible.length) throw new ExteriorError('E_DOOR_FIT', 'the street entrance has no clear complete straight section');
+    // The entrance slides into the wall beside its field, so the nearest section
+    // with wall for the pocket wins; a fully glazed frontage keeps a hinge.
+    const withPocket = eligible.map(candidate => ({ candidate, pocket: request.options?.doorMotion === 'swing' ? undefined
+      : fitPocketDoor(entrance.door!.set, candidate.offset, candidate.width, entrance.height,
+        (start, end, depth) => clearBeside(plan, openings, entrance, candidate.section.id, glazes, height, start, end)
+          && !reserved(entrance.edge, start, end)
+          && pocketInsidePlate(plan.outline, entrance.edge, start, end, depth)) }));
+    const chosen = withPocket.find(({ pocket }) => pocket) ?? withPocket[0]!;
+    entrance.width = chosen.candidate.width;
+    entrance.offset = chosen.candidate.offset;
+    entrance.sectionId = chosen.candidate.section.id;
+    entrance.door = chosen.pocket ?? { ...entrance.door!, motion: { kind: 'swing', maxTravel: 90, clearDepth: entrance.width / 2 } };
+    entrance.leaves = fittedPocketLeaves(entrance.door) ?? 2;
   }
   for (const section of plan.sections) {
-    if (['frame-pier', 'paired-solid', 'paired-pier', 'podium-panel'].includes(section.technique) && section.windows === undefined) continue;
+    if (!glazes(section)) continue;
     if (openings.some(o => o.kind === 'door' && o.sectionId === section.id)) continue;
-    if (plan.floor === 0 && (sharedRooms && section.windows === undefined || request.options?.architecture === 'garden-taper')) continue;
     for (const [fieldIndex, whole] of fields(section, height).entries()) for (const [sectionSpan, span] of sectionSpans(section).entries()) {
       const middle = spanField(whole, span);
       if (!middle || reserved(span.edge, middle.offset, middle.offset + middle.width)) continue;
@@ -81,6 +95,29 @@ export function sectionOpenings(request: BuildingRequest, plan: FloorAssembly, h
     }
   }
   return openings;
+}
+
+/** Wall the pocket can run into: inside the face, clear of every opening and of any field that will be glazed. */
+function clearBeside(
+  plan: FloorAssembly, openings: Opening[], entrance: Opening, sectionId: string,
+  glazes: (section: Section) => boolean, height: number, start: number, end: number,
+): boolean {
+  if (start < 0 || end > edgeLength(plan.outline, entrance.edge)) return false;
+  const overlaps = (offset: number, width: number) => offset < end - 1e-8 && offset + width > start + 1e-8;
+  if (openings.some(other => {
+    if (other === entrance || other.edge !== entrance.edge) return false;
+    const field = openingEnvelope(other);
+    return overlaps(field.offset, field.width);
+  })) return false;
+  for (const section of plan.sections) {
+    if (section.id === sectionId || !glazes(section)) continue;
+    for (const whole of fields(section, height)) for (const span of sectionSpans(section)) {
+      if (span.edge !== entrance.edge) continue;
+      const middle = spanField(whole, span);
+      if (middle && overlaps(middle.offset, middle.width)) return false;
+    }
+  }
+  return true;
 }
 
 /** Section fields contain every generated opening; infrastructure remains independent. */

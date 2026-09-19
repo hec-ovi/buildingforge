@@ -22,9 +22,8 @@ export function fitPocketDoor(
   set: DoorSet, offset: number, width: number, height: number,
   available: (start: number, end: number, depth: number) => boolean,
 ): DoorAssembly | undefined {
-  const solid = set === 'glazed-grid' || set === 'illuminated' ? 'layered' : set;
-  const rule = DOORS.sets[solid];
-  const frameWidth = mm(rule.frameWidth * (solid === 'layered' ? 2.35 : 1));
+  const rule = DOORS.sets[set];
+  const frameWidth = mm(rule.frameWidth * (set === 'layered' ? 2.35 : 1));
   const frontDepth = mm(rule.recessDepth - POCKET.finishDepth - POCKET.clearance);
   const chamberBack = mm(rule.recessDepth + POCKET.leafThickness + POCKET.clearance);
   const backDepth = mm(chamberBack + POCKET.skin);
@@ -49,7 +48,7 @@ export function fitPocketDoor(
       ...leaves.map(({ pocket }) => pocket.offset + pocket.width + POCKET.skin)));
     if (!available(start, end, backDepth)) continue;
     return {
-      set: solid, frameWidth, frameDepth: rule.frameDepth, recessDepth: rule.recessDepth, thresholdHeight: 0,
+      set, frameWidth, frameDepth: rule.frameDepth, recessDepth: rule.recessDepth, thresholdHeight: 0,
       motion: { kind: 'pocket', maxTravel: travel, clearDepth: 0, leaves },
       clearance: { offset, sill: 0, width, height, backDepth },
       cassette: { offset: start, sill: 0, width: mm(end - start), height: mm(height + frameWidth), backDepth },
