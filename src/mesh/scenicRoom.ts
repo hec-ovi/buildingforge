@@ -1,6 +1,7 @@
 import type { PartSink, V3 } from './primitives.ts';
 import { scenicFixtures, type RoomFrame, type ScenicEmitter } from './scenicFixtures.ts';
 import { materialSlot } from '../materials/slot.ts';
+import { scenicReceiver, type ReceiverPlane } from './scenicReceiver.ts';
 
 export const SCENIC_DEPTH = 1;
 export interface ScenicRoomInput {
@@ -8,6 +9,7 @@ export interface ScenicRoomInput {
   lights: 'strips' | 'spots'; state: 'lit' | 'dim' | 'dark'; warm: boolean;
   /** A simplified shell publishes the emitters without drawing the fixtures. */
   fixtures?: boolean;
+  receiverPlanes?: readonly ReceiverPlane[];
 }
 
 /** A rectangular shallow box with one rear image and ceiling fixtures. */
@@ -18,7 +20,8 @@ export function scenicRoom(sink: PartSink, frame: RoomFrame, room: ScenicRoomInp
   const key = (kind: string) => materialSlot(`cyberpunk/paired-${kind}${kind.startsWith('room-') && state !== 'lit' ? '-' + state : ''}/mid`, 'surface');
   const uv: [number, number][] = [[0, 1], [1, 1], [1, 0], [0, 0]];
   const normal: V3 = [frame.normal[0], 0, frame.normal[1]];
-  const quad = (material: string, a: V3, b: V3, c: V3, d: V3, n: V3) => sink.quadFacing(material, a, b, c, d, n, uv);
+  const quad = (material: string, a: V3, b: V3, c: V3, d: V3, n: V3) =>
+    scenicReceiver(sink, material, [a, b, c, d], n, uv, room.receiverPlanes);
   quad(key('room-floor'), point(0, bottom, back), point(width, bottom, back), point(width, bottom, front), point(0, bottom, front), [0, 1, 0]);
   quad(key('room-ceiling'), point(0, top, back), point(width, top, back), point(width, top, front), point(0, top, front), [0, -1, 0]);
   quad(key('room-wall'), point(0, bottom, front), point(0, bottom, back), point(0, top, back), point(0, top, front), [frame.dir[0], 0, frame.dir[1]]);

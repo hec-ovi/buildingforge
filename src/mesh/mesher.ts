@@ -160,7 +160,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
       const glazedCorner = f.assembly?.sections.some(section => !!section.spans && sectionSpans(section).some(span => span.edge === e));
       meshWallLining(sink, f.outline, e, pieces, depth, mat(glazedCorner ? 'window-frame' : 'inner-wall'), wallThickness,
         layout.request.options?.architecture === 'chamfered-corners' ? mat('window-frame') : undefined,
-        windowReturnProfile(layout, f, e, wallThickness));
+        windowReturnProfile(f, e, wallThickness));
       if (panel) meshPanelField(sink, {
         outline: f.outline, edge: e, elevation: f.elevation, height: f.height,
         width: panel.width, panelHeight: panel.height, jointWidth: panel.jointWidth,

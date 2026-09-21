@@ -9,6 +9,7 @@ session
 /docs/*
 !/docs/INDEX.md
 !/docs/ISSUES.md
+!/docs/PAIRED-VERIFICATION.md
 inbox/
 .research/
 

@@ -1,6 +1,6 @@
 # Box map
 
-Version 0.58.12.
+Version 0.58.13.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
@@ -11,6 +11,7 @@ Version 0.58.12.
 | [Facade services](../src/facade-services/CONTRACT.md) | Fits attached services around reservations | Caller geometry and materials | [Input](../src/facade-services/schema/input.schema.json), [output](../src/facade-services/schema/output.schema.json) |
 | [Preview](../src/ui/CONTRACT.md) | Displays a generated building and inspection controls | Exterior, Materials, Three.js | Request controls, GLB and blueprint |
 
+- [Paired verification](PAIRED-VERIFICATION.md): seven reviewed families, dimension variants and permanent facade ownership checks.
 - [Call guide](../SKILL.md): library and CLI usage.
 - [Issues](ISSUES.md): interface proposals and unresolved constraints.
 - `src/core`, `src/rules`: validation, polygon arithmetic and [canonical floor/window policy](../schemas/floor-constants.json).
@@ -30,7 +31,7 @@ Version 0.58.12.
 - `src/kit/assemble.ts`: instanced pieces with building slabs, roof, entrance and wire anchors.
 - `src/families/corporate-sectors`: two complete special faces with balcony bands and broad cladding over a window grid, one screen face and one uncovered window/service face; candidates require 35 x 35 m and twelve floors, including space for facade projections.
 - `src/mesh/scenicRoom.ts`, `scenicCurve.ts`, `scenicSlope.ts`: rectangular window scenes with a 1 m depth, one rear image, ceiling lights and fitted placement on curved or tapered facades.
-- `src/mesh/scenicLining.ts`, `wallBoundary.ts`: single window returns ending at the glazing plane for authored scenery.
+- `src/mesh/scenicLining.ts`, `scenicReceiver.ts`, `wallBoundary.ts`: permanent full-depth window returns; removable room surfaces start behind the finished lining, including tapered backing.
 - `src/mesh/profiledBlind.ts`: a covering as fitted panels between head and bottom rail, with the blade pitch in the blind map.
 - `src/families/api.ts`: shared geometry helpers, including the shared blind for family-owned exterior coverings.
 - `src/blueprint`: versioned blueprint and per-floor room rectangles.

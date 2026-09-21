@@ -1,6 +1,6 @@
 import type { FamilyFloor, FamilyInput, FamilyPlan, FamilySection, Point } from '../api.ts';
 import { BLOCK, BuildingFrame, END_ALLOWANCE, GALLERY, GALLERY_DEPTH, PIER, ROOM_PAIR } from './dimensions.ts';
-import { CORNER_RADIUS, glazedCorner } from './corner.ts';
+import { CORNER_RADIUS, CORNER_SLICES, cornerPoints, glazedCorner } from './corner.ts';
 
 type Run = { kind: 'pier' | 'glass' | 'gallery'; width: number };
 
@@ -8,12 +8,12 @@ type Run = { kind: 'pier' | 'glass' | 'gallery'; width: number };
 export function plan(input: FamilyInput): FamilyPlan {
   const frame = new BuildingFrame(input);
   const rectangle = input.fixedFaces ? input.rectangle.map(p => [...p] as Point) : frame.rectangle();
+  const ground = podium(rectangle, Boolean(input.fixedFaces));
   const upper = facade(rectangle, Boolean(input.fixedFaces));
   const floors: FamilyFloor[] = input.floorHeights.map((_, floor) => ({
     floor, group: floor === 0 ? 0 : 1,
-    outline: floor === 0 ? rectangle.map(p => [...p] as Point) : upper.outline.map(p => [...p] as Point),
-    sections: floor === 0 ? rectangle.map((p, edge) => section(`bg:entry:${edge}`, edge, 0,
-      Math.hypot(rectangle[(edge + 1) % 4]![0] - p[0], rectangle[(edge + 1) % 4]![1] - p[1]), 'paired-glass', []))
+    outline: floor === 0 ? ground.outline : upper.outline.map(p => [...p] as Point),
+    sections: floor === 0 ? ground.sections
       : upper.sections.map(s => ({ ...s, border: { ...s.border }, ...(s.spans ? { spans: s.spans.map(span => ({ ...span })) } : {}) })),
     balconySections: [],
   }));
@@ -22,6 +22,20 @@ export function plan(input: FamilyInput): FamilyPlan {
     groups: [{ id: 0, fromFloor: 0, toFloor: 0, width: frame.width, depth: frame.depth },
       { id: 1, fromFloor: 1, toFloor: floors.length - 1, width: frame.width, depth: frame.depth }], floors,
   };
+}
+
+/** Keep the broad ground-floor faces, carrying the upper corner's curve down to grade. */
+function podium(rectangle: Point[], fixed: boolean): { outline: Point[]; sections: FamilySection[] } {
+  const outline = fixed ? rectangle.map(p => [...p] as Point)
+    : [[...rectangle[0]!] as Point, [...rectangle[1]!] as Point, ...cornerPoints(rectangle), [...rectangle[3]!] as Point];
+  const straightEdges = fixed ? [0, 1, 2, 3] : [0, 1, 2 + CORNER_SLICES, 3 + CORNER_SLICES];
+  const sections = outline.map((p, edge) => {
+    const next = outline[(edge + 1) % outline.length]!;
+    const face = straightEdges.indexOf(edge);
+    return section(face >= 0 ? `bg:entry:${face}` : `bg:ground:curve:${edge - 2}`, edge, 0,
+      Math.hypot(next[0] - p[0], next[1] - p[1]), face >= 0 ? 'paired-glass' : 'paired-solid', []);
+  });
+  return { outline, sections };
 }
 
 function runs(length: number): Run[] {

@@ -12,11 +12,16 @@ References: `photomode_14092026_194149`, `194158`, `194233`, `194241`, `194252`,
 
 Each 17 m repeat has 10 m paired glazing, a 1 m dividing pier, a 5 m loggia and a 1 m shared pier. A terminal loggia keeps a 3 m end pier: its 2 m recess plus a 1 m structural corner strip. The other end keeps a 1 m pier. Adjacent notches remain separate, and every outline is a simple polygon. Free sides fit `17n + 3` metres with 0.25 m exterior reserve; 20.5 m is the minimum available side. Loggias retain a real floor, ceiling and side returns. Their rails are 1.105 m high, with metal posts and glass infill; four housed ceiling strips point into the gallery. The 0.3 m slab fronts use cast concrete.
 
-The far glazed end turns through a 5 m radius quarter circle, with twelve geometric slices grouped into four continuous glass fields. Its two adjacent straight glass fields are 6 m wide. The loggia order on the right face reverses so the rounded corner joins glass on both sides. Ground stays rectangular.
+The far glazed end turns through a 5 m radius quarter circle, with twelve geometric slices grouped into four continuous glass fields. Its two adjacent straight glass fields are 6 m wide. The loggia order on the right face reverses so the rounded corner joins glass on both sides. The solid ground-floor corner follows the same radius and slices directly below the glazing, continuing the curve down to grade.
 
 Front rail glass sits 0.025 m behind its metal posts. The roof edge is a 0.3 m concrete parapet.
 
-Ground is rectangular, has no windows and leaves an entrance field on each face. Ground and piers use jointed coated metal; window rims use cast concrete. Skins follow actual window, door and aperture holes. Caller floor heights are retained; normal clear height is 4 m on the shared 4.5 m pitch. Upper floors form one repeatable group. No bridge, tree or advertisement is authored.
+Window reveals belong to the permanent shell through its complete wall depth.
+Removing `scenery:*` for a paired interior leaves jambs, heads and sills closed,
+including the curved spans. Scenic receiver surfaces begin behind those reveals,
+so furnished and unfurnished windows each draw one surface at the join.
+
+Ground has no windows and leaves an entrance field on each of its four straight faces; its rounded corner is solid cladding. Ground and piers use jointed coated metal; window rims use cast concrete. Skins follow actual window, door and aperture holes. Caller floor heights are retained; normal clear height is 4 m on the shared 4.5 m pitch. Upper floors form one repeatable group. No bridge, tree or advertisement is authored.
 
 `fixedFaces` preserves the supplied rectangle, corner order and edge numbers on every floor. Complete room groups remain 17 m; extra width is absorbed by end piers. Two 5 m glazed end fields wrap its preserved square corner. Gallery rails stay inside those faces, with shallow decks. Decorations are omitted where a door or infrastructure aperture reserves the section. Upper section IDs beginning `bg:gallery:` identify gallery windows. `balconySections` is empty because these loggias are exterior ornament.
 

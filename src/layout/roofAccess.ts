@@ -16,7 +16,8 @@ export function fitRoofAccess(seed: string, outline: P2[], stair: CoreStairPlace
   const { center, axis } = stair;
   const cross: P2 = [-axis[1], axis[0]];
   // The flight arrives at the end of its run, so the door stands on that face.
-  const head: P2 = width >= depth ? [...axis] as P2 : cross;
+  // Row stairs arrive at high U; compact stairs return to the corridor at low V.
+  const head: P2 = width >= depth ? [...axis] as P2 : [-cross[0], -cross[1]];
   const hw = width / 2 + ROOF_ACCESS.clearance;
   const hd = depth / 2 + ROOF_ACCESS.clearance;
   const corners: P2[] = ([[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]] as P2[]).map(([u, v]): P2 => [

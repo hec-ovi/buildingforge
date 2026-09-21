@@ -1,6 +1,7 @@
 import { buildingFamily } from '../families/registry.ts';
 import { curvedRoomFrame, meshScenicCurve, roomBasis } from './scenicCurve.ts';
 import { scenicSlope } from './scenicSlope.ts';
+import { slopePoint } from './floorSlope.ts';
 import { Rng } from '../core/rng.ts';
 import { scenicState } from '../layout/scenicState.ts';
 import { isPaired } from '../sections/index.ts';
@@ -10,12 +11,15 @@ import { FacadeField } from './facadeField.ts';
 import { ProfiledBlind } from './profiledBlind.ts';
 import { meshGroundPrivacy } from './windowTreatments.ts';
 import { scenicRoom, SCENIC_DEPTH } from './scenicRoom.ts';
+import { measureWallDepth } from './wallDepth.ts';
+import type { ReceiverPlane } from './scenicReceiver.ts';
 
 const frameMaterial = 'cyberpunk/paired-frame/mid#surface';
 
 export function meshPairedWindows(mb: MeshBuilder, layout: Layout): void {
   const family = buildingFamily(layout.assembly?.architecture);
   if (!family && !isPaired(layout.assembly?.architecture)) return;
+  const wallDepth = measureWallDepth(layout, mb);
   const blind = new ProfiledBlind();
   for (const floor of layout.floors) {
     if (!floor.assembly) continue;
@@ -54,6 +58,16 @@ export function meshPairedWindows(mb: MeshBuilder, layout: Layout): void {
       opening.scenery = { nodeId, depth: SCENIC_DEPTH, lightLayout: lights, state };
       const fitScenery = scenicSlope(floor, field.point(g.offset, 0, glass), field.normal);
       const sink = scenery!.mapped(fitScenery);
+      const receiverPlanes: ReceiverPlane[] = (section.spans ?? [{ edge: opening.edge }]).map(span => {
+        const face = new FacadeField(floor.outline, span.edge);
+        return { distance(point) {
+          // The wing lining follows the tapered wall, while scenic depth remains
+          // a world metre. Compare their placed surfaces at this exact height.
+          const inner = slopePoint(floor, face.point(0, point[1], -wallDepth));
+          const scenic = fitScenery(point);
+          return -(scenic[0] - inner[0]) * face.normal[0] - (scenic[2] - inner[2]) * face.normal[1];
+        } };
+      });
       const panes = curved ? 1 : opening.panes?.cols ?? 4;
       const covered = !layout.detail.has('coverings');
       for (let pane = 0; covered && pane < panes && top - bottom > 0.5 && g.width > 0.2 && (!curved || opening.sectionSpan === 0); pane++) {
@@ -70,11 +84,11 @@ export function meshPairedWindows(mb: MeshBuilder, layout: Layout): void {
       }
       if (curved) {
         if (opening.sectionSpan !== 0) continue;
-        meshScenicCurve(sink, floor, opening, [section], g.glassDepth, { lights, state, warm });
+        meshScenicCurve(sink, floor, opening, [section], g.glassDepth, { lights, state, warm, receiverPlanes });
       } else {
         const origin = field.point(g.offset, 0, glass);
         const roomFrame = roomBasis(origin, field.dir, field.normal);
-        opening.scenery.lights = scenicRoom(sink, roomFrame, { width: g.width, bottom, top, front: 0, depth: SCENIC_DEPTH, lights, state, warm, fixtures: !layout.detail.has('fixtures') });
+        opening.scenery.lights = scenicRoom(sink, roomFrame, { width: g.width, bottom, top, front: 0, depth: SCENIC_DEPTH, lights, state, warm, receiverPlanes, fixtures: !layout.detail.has('fixtures') });
       }
       for (const light of opening.scenery.lights ?? []) light.position = fitScenery(light.position);
     }

@@ -1,12 +1,8 @@
-import { isFamilyArchitecture } from '../families/registry.ts';
-import { isPaired } from '../sections/index.ts';
-import { scenicState } from '../layout/scenicState.ts';
-import type { FloorLayout, Layout } from '../layout/model.ts';
+import type { FloorLayout } from '../layout/model.ts';
 import type { P2 } from '../types.ts';
 
-/** Scenic windows divide shell-owned exterior reveals from removable interior returns. */
-export function windowReturnProfile(layout: Layout, floor: FloorLayout, edge: number, wallDepth: number): (a: P2, b: P2) => { front: number; depth: number } | undefined {
-  const shared = isPaired(layout.assembly?.architecture) || isFamilyArchitecture(layout.assembly?.architecture);
+/** Window returns belong to the permanent shell, including behind removable scenery. */
+export function windowReturnProfile(floor: FloorLayout, edge: number, wallDepth: number): (a: P2, b: P2) => { front: number; depth: number } | undefined {
   const windows = floor.openings.filter(opening => opening.edge === edge && opening.kind === 'window' && opening.glazing);
   return (a, b) => {
     const u = (a[0] + b[0]) / 2, y = (a[1] + b[1]) / 2;
@@ -19,9 +15,7 @@ export function windowReturnProfile(layout: Layout, floor: FloorLayout, edge: nu
         && y > bottom - 1e-7 && y < top + 1e-7;
       if (horizontal || vertical) {
         const section = floor.assembly?.sections.find(s => s.id === opening.sectionId);
-        const scenic = shared && floor.index > 0 && section
-          && scenicState(layout.request.seed, floor.index, section.id, section.technique === 'rounded-glass').state !== 'dark';
-        return { front: -(section?.border.surfaceDepth ?? 0), depth: scenic ? Math.min(wallDepth, opening.glazing!.glassDepth) : wallDepth };
+        return { front: -(section?.border.surfaceDepth ?? 0), depth: wallDepth };
       }
     }
     return undefined;

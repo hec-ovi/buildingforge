@@ -5,6 +5,7 @@ import type { PartSink, V3 } from './primitives.ts';
 import { FacadeField } from './facadeField.ts';
 import { scenicRoom, SCENIC_DEPTH, type ScenicRoomInput } from './scenicRoom.ts';
 import type { RoomFrame } from './scenicFixtures.ts';
+import { scenicReceiver } from './scenicReceiver.ts';
 
 export function roomBasis(origin: V3, dir: [number, number], normal: [number, number]): RoomFrame {
   return { dir, normal, point: (u, y, depth) => [origin[0] + dir[0] * u + normal[0] * depth, y,
@@ -26,7 +27,7 @@ export function curvedRoomFrame(floor: FloorLayout, sections: Section[], depth: 
 }
 
 export function meshScenicCurve(sink: PartSink, floor: FloorLayout, opening: Opening, sections: Section[], glassDepth: number,
-  details: Pick<ScenicRoomInput, 'lights' | 'state' | 'warm'>): void {
+  details: Pick<ScenicRoomInput, 'lights' | 'state' | 'warm' | 'receiverPlanes'>): void {
   const curve = curvedRoomFrame(floor, sections, -glassDepth);
   const { frame, origin, width, spans } = curve;
   const bottom = floor.elevation + opening.sill, top = bottom + opening.height;
@@ -37,9 +38,9 @@ export function meshScenicCurve(sink: PartSink, floor: FloorLayout, opening: Ope
     const pu = (p[0] - origin[0]) * frame.dir[0] + (p[2] - origin[2]) * frame.dir[1];
     const qu = (q[0] - origin[0]) * frame.dir[0] + (q[2] - origin[2]) * frame.dir[1];
     for (const [height, material, up] of [[bottom, 'floor', 1], [top, 'ceiling', -1]] as const) {
-      sink.quadFacing(`cyberpunk/paired-room-${material}${details.state === 'lit' ? '' : '-' + details.state}/mid#surface`,
-        [p[0], height, p[2]], [q[0], height, q[2]], frame.point(qu, height, 0), frame.point(pu, height, 0),
-        [0, up, 0], [[0, 0], [1, 0], [1, 1], [0, 1]]);
+      scenicReceiver(sink, `cyberpunk/paired-room-${material}${details.state === 'lit' ? '' : '-' + details.state}/mid#surface`,
+        [[p[0], height, p[2]], [q[0], height, q[2]], frame.point(qu, height, 0), frame.point(pu, height, 0)],
+        [0, up, 0], [[0, 0], [1, 0], [1, 1], [0, 1]], details.receiverPlanes);
     }
   }
 }

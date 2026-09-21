@@ -116,6 +116,8 @@ it('stands the roof housing over the stair run on every family and plan size', a
     expect(Math.abs(bulkhead!.doorNormal[0]! * axis[0]! + bulkhead!.doorNormal[1]! * axis[1]!), plan)
       .toBeCloseTo(width >= deepSide ? 1 : 0, 7);
     const cross: P2 = [-axis[1]!, axis[0]!];
+    expect(bulkhead!.doorNormal[0]! * cross[0] + bulkhead!.doorNormal[1]! * cross[1], plan)
+      .toBeCloseTo(width >= deepSide ? 0 : -1, 7);
     // Interior reads the published housing back and lands stair A inside it.
     const { stair } = fitBuildingCore(blueprint);
     const offset = [stair.center[0]! - center[0]!, stair.center[1]! - center[1]!];

@@ -39,6 +39,17 @@ describe('balcony-grid family contract', () => {
       expect(result.floors[1]!.sections.filter(s => s.id.startsWith('bg:gallery:') && s.technique === 'paired-glass')
         .every(s => s.width === 5)).toBe(true);
       expect(result.floors[1]!.sections.filter(s => s.id.startsWith('bg:corner:curve:'))).toHaveLength(4);
+      const ground = result.floors[0]!, upper = result.floors[1]!;
+      const curve = upper.sections.filter(s => s.id.startsWith('bg:corner:curve:')).flatMap(s => s.spans!);
+      const groundCurve = ground.sections.filter(s => s.id.startsWith('bg:ground:curve:'));
+      expect(groundCurve).toHaveLength(12);
+      expect(groundCurve.every(s => s.technique === 'paired-solid' && s.windows?.length === 0)).toBe(true);
+      for (const [index, span] of curve.entries()) {
+        const point = ground.outline[groundCurve[index]!.edge]!;
+        expect(point[0]).toBeCloseTo(upper.outline[span.edge]![0], 8);
+        expect(point[1]).toBeCloseTo(upper.outline[span.edge]![1], 8);
+      }
+      expect(ground.sections.filter(s => s.id.startsWith('bg:entry:'))).toHaveLength(4);
     }
     expect(family.plan(real).extent).toEqual({ width: 54, depth: 20 });
   }
