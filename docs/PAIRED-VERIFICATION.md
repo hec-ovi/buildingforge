@@ -1,6 +1,6 @@
 # Paired exterior verification
 
-Exterior 0.58.13 keeps one permanent inner facade on all seven reviewed architectures.
+Exterior 0.58.14 keeps one permanent inner facade on all seven reviewed architectures.
 Removing `scenery:<floor>` removes the rear room image, fixtures and coverings while
 preserving finished window jambs, heads and sills through the full published wall depth.
 The existing measured `roomEnvelope` remains the construction limit for Interior
@@ -53,3 +53,21 @@ mirror-shutters and white-grid; corporate uses 40 × 40 m / 12 floors.
 `geometry-budget.test.ts` and `glb-textures.test.ts` cover closed frames, exact supplied
 cuts, tapered wing geometry, mesh budgets and material exports. The balcony family
 regression also requires the rounded corner to continue through the podium.
+
+## Rotated terrace and stair clearance
+
+The rotated 37.5 × 20.5 m balcony parcel exposed an invalid terrace triangulation:
+the upper concave outline touches the podium outline, which cannot be represented
+as an ordinary interior hole. Earcut generated a terrace triangle across the
+occupied plate, adding concrete and slab faces over the stair after the replaceable
+floor was removed.
+
+`capDifference.ts` subtracts the upper outline in the cap's own tile axes before
+triangulation. Touching and crossing boundaries split into disjoint trapezoids. The
+real balcony terrace retains its 60 m² area at every tested orientation; the stair
+point at [3.4766, 4.5, 19.8046] has only the named replaceable floor surface.
+`tests/terrace-caps.test.ts` measures triangle overlap against the complete upper
+outline at 0°, 37° and 143°, plus area and overlap for touching, coincident, concave,
+reversed and crossing cutouts at four rotations with translated coordinates.
+The Engine's real Rapier traversal additionally checks the 37° rotated building
+with the unchanged player controller.

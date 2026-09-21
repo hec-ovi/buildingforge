@@ -1,6 +1,6 @@
 # Box map
 
-Version 0.58.13.
+Version 0.58.14.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |
@@ -21,6 +21,7 @@ Version 0.58.13.
 - `src/mesh/floorSlope.ts`: fits outer wing geometry and emitters to upper outlines while retaining the planted spine.
 - `src/mesh/wallField.ts`: clips shell faces, lining and opening returns to shared corner miters while retaining opening coordinates.
 - `src/mesh`: closed frame and glazing sections.
+- `src/mesh/capDifference.ts`: disjoint horizontal cap subtraction for touching, concave and rotated terrace boundaries.
 - `src/mesh/slabOutline.ts`, `slabSpans.ts`: floor edges follow flat and sloped facade profiles, close storey transitions and retain floor-level access corridors.
 - `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
 - `src/families/corporate-sectors/displays.ts`, `src/families/mirror-shutters/skin.ts`: entrance displays and clipped ribbon and service finishes, using [decoration input/output](../src/families/api.ts).

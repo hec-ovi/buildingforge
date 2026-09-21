@@ -3,6 +3,7 @@
 // so ring orientation can never invert a face.
 
 import earcut from 'earcut';
+import { capDifference } from './capDifference.ts';
 import { coreAxis } from '../layout/plate.ts';
 import type { P2 } from '../core/polygon.ts';
 import type { PartSink, V3 } from './primitives.ts';
@@ -37,14 +38,20 @@ export function capDown(sink: PartSink, material: string, f: CapFrame, ring: P2[
 }
 
 function cap(sink: PartSink, material: string, f: CapFrame, ring: P2[], y: number, hole: P2[] | undefined, up: boolean): void {
+  if (hole) {
+    // Work on the cap's local tile axes to preserve the same tessellation when
+    // a parcel rotates, and avoid large absolute world-coordinate arithmetic.
+    const local = (points: P2[]) => points.map(([x, z]): P2 => capUv(f, x, z));
+    const world = ([u, v]: P2): P2 => [
+      (u + f.origin[0]) * f.axis[0] - (v + f.origin[1]) * f.axis[1],
+      (u + f.origin[0]) * f.axis[1] + (v + f.origin[1]) * f.axis[0],
+    ];
+    for (const piece of capDifference(local(ring), local(hole))) cap(sink, material, f, piece.map(world), y, undefined, up);
+    return;
+  }
   const flat: number[] = [];
   for (const [x, z] of ring) flat.push(x, z);
-  const holeIndices: number[] = [];
-  if (hole) {
-    holeIndices.push(ring.length);
-    for (const [x, z] of hole) flat.push(x, z);
-  }
-  const tris = earcut(flat, holeIndices.length ? holeIndices : undefined, 2);
+  const tris = earcut(flat, undefined, 2);
   for (let i = 0; i + 2 < tris.length; i += 3) {
     const ia = tris[i] as number, ib = tris[i + 1] as number, ic = tris[i + 2] as number;
     const a: V3 = [flat[ia * 2] as number, y, flat[ia * 2 + 1] as number];
@@ -52,6 +59,7 @@ function cap(sink: PartSink, material: string, f: CapFrame, ring: P2[], y: numbe
     const c: V3 = [flat[ic * 2] as number, y, flat[ic * 2 + 1] as number];
     // Normal of (a,b,c) on the XZ plane: cross(b-a, c-a).y decides which way it faces.
     const ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
+    if (Math.abs(ny) < 1e-12) continue;
     const flip = (ny > 0) !== up;
     const [p, q, r] = flip ? [a, c, b] : [a, b, c];
     sink.tri(material, p, q, r, [capUv(f, p[0], p[2]), capUv(f, q[0], q[2]), capUv(f, r[0], r[2])]);
