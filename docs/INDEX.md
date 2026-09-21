@@ -1,6 +1,6 @@
 # Box map
 
-Version 0.58.14.
+Version 0.58.15.
 
 | Box | Purpose | Dependencies | Input / output |
 | --- | --- | --- | --- |

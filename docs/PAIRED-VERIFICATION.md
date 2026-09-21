@@ -1,6 +1,6 @@
 # Paired exterior verification
 
-Exterior 0.58.14 keeps one permanent inner facade on all seven reviewed architectures.
+Exterior 0.58.15 keeps one permanent inner facade on all seven reviewed architectures.
 Removing `scenery:<floor>` removes the rear room image, fixtures and coverings while
 preserving finished window jambs, heads and sills through the full published wall depth.
 The existing measured `roomEnvelope` remains the construction limit for Interior
@@ -71,3 +71,14 @@ outline at 0°, 37° and 143°, plus area and overlap for touching, coincident, 
 reversed and crossing cutouts at four rotations with translated coordinates.
 The Engine's real Rapier traversal additionally checks the 37° rotated building
 with the unchanged player controller.
+
+## Landmark connection compatibility
+
+A 133.5 × 53.5 m, 22-floor garden request with basement tunnel `l41a` and
+above-ground wire anchor `l28b` cannot retain the anchor's fixed parcel plane while
+tapering its wings. This is a connection compatibility constraint, not a size or
+floor-count failure. `E_SCHEMA` names the exact connection, face and base height.
+The retained `garden-fixed-anchor` request generates automatically as mirror-frame
+with all 22 upper floors, its basement, the original anchor position and the tunnel.
+The regression is in `tests/garden-taper.test.ts`. Consumers selecting landmark
+recipes must use a compatible fixed-face family when such connections exist.

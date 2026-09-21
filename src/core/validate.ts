@@ -134,8 +134,12 @@ export function validateRequest(raw: unknown): BuildingRequest {
   if (floorKinds && floorKinds.length !== floors) {
     throw new ExteriorError('E_FLOORKINDS_MISMATCH', `floorKinds has ${floorKinds.length} entries for ${floors} floors`);
   }
-  const fixedFacade = !isFamilyArchitecture(options?.architecture) && apertures.some(a => !isPaired(options?.architecture) || a.base + a.height > 0 || a.kind === 'wire-anchor');
-  if (options?.architecture && options.architecture !== 'auto' && (fixedFacade || options.doorMotion === 'pocket' || options.openFront === 'on'
+  const fixedAperture = !isFamilyArchitecture(options?.architecture)
+    ? apertures.find(a => !isPaired(options?.architecture) || a.base + a.height > 0 || a.kind === 'wire-anchor') : undefined;
+  if (options?.architecture && options.architecture !== 'auto' && fixedAperture) {
+    fail('options.architecture', `${options.architecture} cannot preserve ${fixedAperture.kind} ${fixedAperture.id} on fixed parcel face ${fixedAperture.face} at base ${fixedAperture.base} m; use auto or a registered fixed-face family`);
+  }
+  if (options?.architecture && options.architecture !== 'auto' && (options.doorMotion === 'pocket' || options.openFront === 'on'
     || options.entranceLayout === 'repeated' || options.windows === 'none'
     || options.architecture === 'terrace-blocks' && (options.balconies === 'off' || options.balconyStyle === 'bay')
     || options.architecture !== 'terrace-blocks' && options.balconies === 'on' || options.shape && options.shape !== 'auto' && options.shape !== 'box'

@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest';
 import { generate, type BuildingRequest } from '../src/index.ts';
-import { glbIO, keys, normalsOf } from './support.ts';
+import { fixture, glbIO, keys, normalsOf } from './support.ts';
 
 const request: BuildingRequest = {
   seed: 'garden-reference', buildingId: 'garden', theme: 'cyberpunk',
@@ -71,4 +71,20 @@ it('fits the planted front along the long base', async () => {
   expect(floor.outline[0]![0]).toBeCloseTo(floor.outline[1]![0]);
   const podium = blueprint.floors[0]!;
   expect(Math.hypot(podium.outline[1]![0] - podium.outline[0]![0], podium.outline[1]![1] - podium.outline[0]![1])).toBe(61);
+});
+
+it('names incompatible fixed anchors and keeps all landmark connections when architecture is automatic', async () => {
+  const input = fixture('garden-fixed-anchor');
+  await expect(generate(input, keys)).rejects.toMatchObject({ code: 'E_SCHEMA',
+    message: expect.stringContaining('garden-taper cannot preserve wire-anchor l28b on fixed parcel face 1 at base 7.5 m') });
+  const { blueprint } = await generate({ ...input, options: { ...input.options, architecture: 'auto' } }, keys);
+  expect(blueprint.assembly!.architecture).toBe('mirror-frame');
+  expect(blueprint.floors.filter(floor => floor.index >= 0)).toHaveLength(22);
+  const anchor = blueprint.anchors.find(anchor => anchor.id === 'l28b')!;
+  expect(anchor.position).toEqual([322, 7.55, 461.30924330595883]);
+  expect(anchor.normal[0]).toBeCloseTo(1);
+  expect(anchor.normal[1]).toBeCloseTo(0);
+  const basement = blueprint.floors.find(floor => floor.index === -1)!;
+  expect(basement.outline).toEqual(input.parcel.footprint);
+  expect(basement.openings.find(opening => opening.id === 'l41a')).toMatchObject({ kind: 'aperture', edge: 0 });
 });
