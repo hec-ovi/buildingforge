@@ -1,5 +1,7 @@
 # Changelog
 
+0.59.1: industrial roofs publish a distinct graphite concrete key, preserving their existing maps and physical response while keeping the roof variant unambiguous beside weathered wall concrete. All six lower-income forms verify their roof binding against the published material table and exported GLB.
+
 0.59.0: poor and mid districts can select six new full-building forms: courtyard housing, serviced residential towers, grouped residential slabs, framed industrial towers, solid industrial towers and low-rise shutter storage. Their real openings, floor bands and service attachments share the building grid. Courtyard buildings reserve an exterior circulation setback and publish connected switchback stairs with usable doors at every floor. The existing accepted families and piece recipes retain their geometry. Canonical fixtures, full-generation variations and stair-clearance tests are documented in [lower-income verification](docs/LOWER-INCOME-VERIFICATION.md).
 
 0.58.12: every entrance slides into the wall, so each family plan publishes pocket motion with a chamber beside the passage and its own door set.

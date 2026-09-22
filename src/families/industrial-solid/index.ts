@@ -8,9 +8,9 @@ export const family: BuildingFamily = {
     ground: 'cyberpunk/concrete-monolith/mid#weathered',
     wall: 'cyberpunk/concrete-monolith/mid#weathered',
     'inner-wall': 'cyberpunk/concrete-monolith/mid#weathered',
-    column: 'cyberpunk/concrete-monolith/mid#graphite',
+    column: 'cyberpunk/concrete-monolith-graphite/mid#graphite',
     'wall-trim': 'cyberpunk/paired-frame-metal/mid#surface',
     'window-frame': 'cyberpunk/paired-frame-metal/mid#surface',
-    roof: 'cyberpunk/concrete-monolith/mid#graphite',
+    roof: 'cyberpunk/concrete-monolith-graphite/mid#graphite',
   },
 };

@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.59.0.
+Version: 0.59.1.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint, and authors each family as a set of repeated pieces a consumer assembles.
 

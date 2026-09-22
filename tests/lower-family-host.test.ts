@@ -22,7 +22,16 @@ describe('lower-income reference families in the full generator', () => {
     expect(blueprint.floors).toHaveLength(architecture === 'service-storage' ? 2 : 6);
     expect(blueprint.floors[0]!.openings.some(opening => opening.kind === 'door' && opening.doorRole === 'main')).toBe(true);
     expect(blueprint.floors.every(floor => floor.roomEnvelope!.width > 3 && floor.roomEnvelope!.depth > 3)).toBe(true);
-    expect(blueprint.facade.materialPlan.field.key).toBe('cyberpunk/concrete-monolith/mid');
+    expect(blueprint.facade.materialPlan.field.key).toBe(architecture === 'industrial-framed'
+      ? 'cyberpunk/concrete-monolith-graphite/mid' : 'cyberpunk/concrete-monolith/mid');
+    // Distant-shell catalogs consume this exact binding, so the shared table
+    // must not silently replace the roof variant with a wall's variant.
+    const roof = blueprint.roof.material!;
+    expect(blueprint.materials).toContain(roof.key);
+    expect(blueprint.materialVariants[roof.key]).toBe(roof.variantId);
+    expect(glbJson(glb).materials.filter((material: { name: string }) => material.name === roof.key)
+      .map((material: { extras: { materialVariant: string } }) => material.extras.materialVariant))
+      .toContain(roof.variantId);
     const names = glbJson(glb).nodes.map((node: { name: string }) => node.name) as string[];
     const windows = blueprint.floors.flatMap(floor => floor.openings.filter(opening => opening.kind === 'window'));
     expect(windows.length).toBeGreaterThan(0);
