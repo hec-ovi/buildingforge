@@ -8,21 +8,29 @@ import type { ArchitectureSelection, BuildingRequest } from '../types.ts';
 /** Seeded architecture order, filtered by the complete family plate and fixed-face contract. */
 export function architectureSelections(request: BuildingRequest): ArchitectureSelection[] {
   const ordinary = (reason: ArchitectureSelection['reason']): ArchitectureSelection => ({ requested: 'auto', selected: 'ordinary', reason });
-  if (request.building.floors < policy.minimumFloors || !policy.families.includes(FAMILY[request.building.type])) return [ordinary('programme')];
+  const programme = FAMILY[request.building.type];
+  const lower = policy.lowerTiers.includes(request.building.tier);
+  const lowerChoices = lower ? policy.lowerArchitectures.filter(choice => choice.families.includes(programme)
+    && request.building.floors >= choice.minimumFloors && request.building.floors <= choice.maximumFloors) : [];
+  const legacyEligible = request.building.floors >= policy.minimumFloors && policy.families.includes(programme);
+  if (!legacyEligible && lowerChoices.length === 0) return [ordinary('programme')];
   const o = request.options;
   if (o?.balconies === 'on' || o?.doorMotion === 'pocket' || o?.openFront === 'on' || o?.entranceLayout === 'repeated'
     || o?.windows === 'none' || o?.windowDamage === 'sparse' || o?.facadeServices === 'on'
     || o?.shape && !['auto', 'box'].includes(o.shape)
     || request.parcel.buildingGrid && Math.abs(request.parcel.buildingGrid.spacing - 0.5) > 1e-9) return [ordinary('explicit-options')];
   const choices: ArchitectureSelection[] = [];
-  if (policy.luxuryTiers.includes(request.building.tier) && request.parcel.footprint.length === 4) {
+  const candidates = lowerChoices.length ? lowerChoices : legacyEligible && policy.luxuryTiers.includes(request.building.tier) ? policy.luxuryArchitectures : [];
+  if (candidates.length && request.parcel.footprint.length === 4) {
     const fixed = (request.apertures ?? []).some(a => a.base >= 0);
-    const ranked = policy.luxuryArchitectures.map(({ id, weight }) => ({
+    const ranked = candidates.map(({ id, weight }) => ({
       id: id as Architecture, score: -Math.log(Math.max(Number.MIN_VALUE, new Rng(request.seed, `architecture:${id}`).range(0, 1))) / weight,
     })).sort((a, b) => a.score - b.score);
     const assembler = new SectionAssembler();
     for (const { id } of ranked) {
       if (fixed && !isFamilyArchitecture(id)) continue;
+      // Courtyard stairs occupy its reserved setback; fixed infrastructure faces cannot give that space up.
+      if (fixed && id === 'residential-courtyard') continue;
       try {
         assembler.assemble({ architecture: id, rectangle: request.parcel.footprint as [[number, number], [number, number], [number, number], [number, number]],
           floorHeights: Array(request.building.floors).fill(4.5), seed: request.seed, fixedFaces: fixed });
@@ -33,6 +41,6 @@ export function architectureSelections(request: BuildingRequest): ArchitectureSe
     }
   }
   if (request.apertures?.length) return [...choices, ordinary('fixed-faces')];
-  if (new Rng(request.seed, 'architecture-selection').chance(policy.roundedCornerChance)) choices.push({ requested: 'auto', selected: 'rounded-corner', reason: 'accepted-reference' });
+  if (legacyEligible && new Rng(request.seed, 'architecture-selection').chance(policy.roundedCornerChance)) choices.push({ requested: 'auto', selected: 'rounded-corner', reason: 'accepted-reference' });
   return [...choices, ordinary('seeded-ordinary')];
 }

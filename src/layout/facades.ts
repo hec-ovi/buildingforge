@@ -149,7 +149,7 @@ export function buildFacades(
           placeRepeatedEntrances(family, outline, entrance, openings, takenByEdge);
         }
       }
-      if (family === 'industrial') placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
+      if (family === 'industrial' && !massing.assembly) placeLoadingDoors(seed, req.theme, tier, outline, streetEdge, level.height, openings, takenByEdge);
     }
 
     if (massing.assembly) {

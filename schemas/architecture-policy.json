@@ -3,6 +3,15 @@
   "minimumFloors": 3,
   "families": ["residential", "hotel", "office", "corpo"],
   "luxuryTiers": ["rich", "high_rich"],
+  "lowerTiers": ["poor", "mid"],
+  "lowerArchitectures": [
+    { "id": "residential-courtyard", "weight": 2, "families": ["residential", "hotel"], "minimumFloors": 3, "maximumFloors": 12 },
+    { "id": "residential-serviced", "weight": 2, "families": ["residential", "hotel"], "minimumFloors": 3, "maximumFloors": 100 },
+    { "id": "residential-megablock", "weight": 1, "families": ["residential", "hotel"], "minimumFloors": 3, "maximumFloors": 100 },
+    { "id": "industrial-framed", "weight": 1, "families": ["industrial"], "minimumFloors": 3, "maximumFloors": 100 },
+    { "id": "industrial-solid", "weight": 1, "families": ["industrial"], "minimumFloors": 3, "maximumFloors": 100 },
+    { "id": "service-storage", "weight": 2, "families": ["industrial", "commerce"], "minimumFloors": 1, "maximumFloors": 3 }
+  ],
   "luxuryArchitectures": [
     { "id": "corporate-sectors", "weight": 2 },
     { "id": "faceted-bays", "weight": 1 },

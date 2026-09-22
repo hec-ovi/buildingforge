@@ -12,10 +12,11 @@ Version 0.58.15.
 | [Preview](../src/ui/CONTRACT.md) | Displays a generated building and inspection controls | Exterior, Materials, Three.js | Request controls, GLB and blueprint |
 
 - [Paired verification](PAIRED-VERIFICATION.md): seven reviewed families, dimension variants and permanent facade ownership checks.
+- [Lower-income verification](LOWER-INCOME-VERIFICATION.md): six additional residential, industrial and storage families, full generator variations and connected stair geometry.
 - [Call guide](../SKILL.md): library and CLI usage.
 - [Issues](ISSUES.md): interface proposals and unresolved constraints.
 - `src/core`, `src/rules`: validation, polygon arithmetic and [canonical floor/window policy](../schemas/floor-constants.json).
-- `src/layout`: [weighted automatic architecture selection](../schemas/architecture-policy.json), including fitted luxury families, floor stacks, volume fitting and section-driven openings.
+- `src/layout`: [weighted automatic architecture selection](../schemas/architecture-policy.json), including fitted luxury and lower-income families, floor stacks, volume fitting and section-driven openings.
 - `src/sections/paired.ts`: rounded and rectangular facades assembled from complete two-room sections.
 - `src/sections/garden.ts`: pale podium, fixed planted spine and tapered outer wings with base-relative height limits.
 - `src/mesh/floorSlope.ts`: fits outer wing geometry and emitters to upper outlines while retaining the planted spine.
@@ -23,7 +24,7 @@ Version 0.58.15.
 - `src/mesh`: closed frame and glazing sections.
 - `src/mesh/capDifference.ts`: disjoint horizontal cap subtraction for touching, concave and rotated terrace boundaries.
 - `src/mesh/slabOutline.ts`, `slabSpans.ts`: floor edges follow flat and sloped facade profiles, close storey transitions and retain floor-level access corridors.
-- `src/families/registry.ts`: six explicit family IDs, their plans, material roles and decoration.
+- `src/families/registry.ts`: twelve explicit family IDs, their plans, material roles and decoration.
 - `src/families/corporate-sectors/displays.ts`, `src/families/mirror-shutters/skin.ts`: entrance displays and clipped ribbon and service finishes, using [decoration input/output](../src/families/api.ts).
 - `src/kit/recipes`: one authored piece set per family on the 8 m bay module, with every band 4.5 m including crown details; the joint pier and floor ribbon meet at each boundary.
 - `src/kit/author.ts`, `backing.ts`, `seams.ts`: authored surfaces, clear openings through the inner plane and shared seam vertices.

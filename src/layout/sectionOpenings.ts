@@ -35,8 +35,17 @@ export function sectionOpenings(request: BuildingRequest, plan: FloorAssembly, h
       .sort((a, b) => Math.abs(a.offset + a.width / 2 - entrance.offset - entrance.width / 2) - Math.abs(b.offset + b.width / 2 - entrance.offset - entrance.width / 2));
     const eligible = choices.map(section => {
       const field = sectionRoles(section, height).find(f => f.role === 'middle')!;
-      const width = section.technique === 'paired-glass' ? Math.min(3, field.width) : field.width;
-      const offset = section.offset + field.offset + (field.width - width) / 2;
+      const lowerFamily = /^(residential-|industrial-|service-)/.test(request.options?.architecture ?? '');
+      if (!lowerFamily) {
+        const width = section.technique === 'paired-glass' ? Math.min(3, field.width) : field.width;
+        return { section, width, offset: section.offset + field.offset + (field.width - width) / 2 };
+      }
+      // Door chambers use millimetre dimensions. Arbitrary complete bay widths
+      // may be recurring fractions; fit the door wholly inside those boundaries.
+      const start = Math.ceil((section.offset + field.offset - 1e-9) * 1000) / 1000;
+      const end = Math.floor((section.offset + field.offset + field.width + 1e-9) * 1000) / 1000;
+      const width = Math.round((section.technique === 'paired-glass' ? Math.min(3, end - start) : end - start) * 1000) / 1000;
+      const offset = Math.round((start + (end - start - width) / 2) * 1000) / 1000;
       return { section, width, offset };
     }).filter(({ width, offset }) => width >= 2 && !reserved(entrance.edge, offset, offset + width));
     if (!eligible.length) throw new ExteriorError('E_DOOR_FIT', 'the street entrance has no clear complete straight section');

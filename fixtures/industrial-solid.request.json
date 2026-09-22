@@ -1,0 +1,44 @@
+{
+  "seed": "reference-low-industrial-solid",
+  "buildingId": "industrial-solid",
+  "theme": "cyberpunk",
+  "parcel": {
+    "footprint": [
+      [
+        0,
+        0
+      ],
+      [
+        48,
+        0
+      ],
+      [
+        48,
+        36
+      ],
+      [
+        0,
+        36
+      ]
+    ],
+    "accessPoint": [
+      24,
+      -1
+    ],
+    "maxHeight": 39.0
+  },
+  "building": {
+    "type": "factory",
+    "tier": "poor",
+    "floors": 8
+  },
+  "options": {
+    "architecture": "industrial-solid",
+    "glb": "named",
+    "balconies": "off",
+    "facadeServices": "off",
+    "roofArtifacts": "off",
+    "adScreens": "off",
+    "signage": null
+  }
+}

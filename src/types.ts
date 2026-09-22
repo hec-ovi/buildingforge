@@ -421,7 +421,11 @@ export interface Blueprint {
   };
   facadeArtifacts: FacadeArtifact[];
   facadeServices: FacadeServicesOutput;
-  fireEscape: { edge: number; fromFloor: number; toFloor: number; offset: number; width: number } | null;
+  fireEscape: { edge: number; fromFloor: number; toFloor: number; offset: number; width: number;
+    /** Traversable switchback route; all door IDs refer to real floor openings. */
+    connected?: { depth: number; stairWidth: number; landingDepth: number; doorIds: string[];
+      flights: { fromFloor: number; toFloor: number; bottom: number; top: number; steps: number }[] };
+  } | null;
   roof: {
     material?: { key: string; variantId: string };
     elevation: number;

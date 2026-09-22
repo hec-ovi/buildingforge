@@ -1,4 +1,5 @@
 import { architectureSelections } from './layout/architectureSelection.ts';
+import { planConnectedFireEscape } from './layout/connectedFireEscape.ts';
 import { isPaired } from './sections/index.ts';
 import { buildingFamily } from './families/registry.ts';
 import { GENERATION_POLICY } from './rules/generationPolicy.ts';
@@ -115,6 +116,7 @@ async function buildShell(raw: unknown, options: GenerateOptions, canonicalNativ
   let plan = planFacades(balconyInset);
   if (balconyInset > 0 && !plan.balconyBands.some((band) => band.depth > 0) && !req.apertures?.length) plan = planFacades(0);
   const { massing, streetEdges, facades, balconyBands } = plan;
+  const connectedFireEscape = planConnectedFireEscape(req, facades.floors);
   validateAdjacencyOpenings(coreAdjacency(req), facades.floors);
   const corePlate = inspectCorePlate(
     facades.floors, facadeInset, facades.floors.filter((floor) => floor.index >= 0).length, massing.rectangular);
@@ -127,9 +129,16 @@ async function buildShell(raw: unknown, options: GenerateOptions, canonicalNativ
   const relief = buildRelief(style, facades.floors, facades.carved);
   if (massing.assembly) relief.byEdge = [];
   const obstacles = faceObstacles(facades.floors, facades.carved, facades.anchors, relief, stack.top);
+  if (connectedFireEscape?.connected) {
+    const occupied = obstacles.get(connectedFireEscape.edge) ?? [];
+    occupied.push({ u0: connectedFireEscape.offset, u1: connectedFireEscape.offset + connectedFireEscape.width,
+      y0: 0, y1: stack.top, what: 'connected fire escape route', kind: 'opening', depth: connectedFireEscape.connected.depth });
+    obstacles.set(connectedFireEscape.edge, occupied);
+  }
   const anchors = mountAnchors(facades.anchors, massing.groundOutline, obstacles);
   const features = buildFacadeFeatures(
     req, family, tier, style, massing, stack.top, facades.floors, streetEdges, obstacles);
+  if (connectedFireEscape) features.fireEscape = connectedFireEscape;
   const facadeServices = buildFacadeServiceDetails({
     request: req, family, tier, style, floors: facades.floors, relief, anchors, balconyBands,
     facadeArtifacts: features.facadeArtifacts, signage: features.signage, screens: features.screens,

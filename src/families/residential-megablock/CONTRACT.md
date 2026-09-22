@@ -1,0 +1,25 @@
+# Residential megablock
+
+Exports `family: BuildingFamily` from [index.ts](index.ts), using the shared [family API](../api.ts). Owns a broad residential slab with repeated paired windows, substantial horizontal spandrels, four-storey structural groups, and narrow graphite service divisions. It imports no sibling family implementation.
+
+## Inputs and fitting
+
+`plan({rectangle, floorHeights, seed, fixedFaces?})` accepts four finite CCW rectangle corners in world XZ metres. The shorter parcel side must be at least 16 m and the longer at least 20 m. Storeys must be finite and at least 2.6 m high; at least one storey is required. Malformed, clockwise, nonrectangular, and undersized input raises `RangeError`.
+
+Free fitting reserves at least 0.36 m on every side, snaps width and depth down to 0.5 m, and centres the resulting slab. Floor zero forms its own group; upper groups cover four consecutive floors. Each successive upper group steps inward by 0.4 m, capped at 1.2 m. Fixed faces retain all four input corners and edge numbering exactly on every floor; facade relief moves inward so decoration stays inside the parcel. The preferred ground storey is 4.2 m; the host's supplied heights remain authoritative. The roof cap is flush.
+
+Apartment bays have a nominal 4.4 m pitch. Complete bays share the available span between 0.55 m end piers; intermediate piers are 0.22 m, with a 0.68 m graphite service division every third bay. A stable seeded phase selects those divisions. The section list exactly partitions each edge. Upper bays contain two explicit windows with a 0.34 m solid centre division and actual two-by-two panes. Their sill is 0.78 m, with 0.5 m heads or 0.72 m heads at group boundaries. Ground bays have `windows: []` and retain the paired-glass technique for host entrance fitting. There are no ornamental balcony-door declarations.
+
+## Decoration and materials
+
+`decorate({builder, layout, material})` builds the permanent panel skin, wrapped floor spandrels, piers and broad recessed group-head strips from the same sections and elevations. The maximum outward depth in a free fit is 0.22 m. Skin faces share the host's outer return plane; the host supplies their structural backing and full-depth opening returns. Hidden panel end caps and wrapped-band corner caps are omitted. Optional paired risers occupy only uninterrupted service piers; both ends enter solid wall, and two fitted brackets support each run. The host's `fittings` simplification retains one complete supported riser and omits the second run. Architectural sections, windows, frames, piers and bands remain unchanged. More extensive AC, duct, clothesline and cable placement remains with the existing host facade-services system.
+
+Every piece is tagged with its owning floor. The previous `builder.floor` is restored even on failure. All skin, bands, piers and service mounting fields respect windows, doors, pocket cassettes, door clearances, transoms and supplied aperture reservations. Connection polygons reserve their enclosing rectangle, providing conservative clearance for irregular cuts. Shared host geometry retains the inner wall faces, full-depth window returns, fitted frames, glass, scenery and seeded room lighting. Backing depth is 0.36 m. Fixed window surface depth is 0.22 m so frames sit behind the parcel face.
+
+Wall, column and roof surfaces use the image-backed catalog slot `cyberpunk/concrete-monolith/mid#weathered`. Other final slots are `cyberpunk/exterior-graphite-concrete/mid#native`, `cyberpunk/exterior-cast-concrete/mid#native`, `cyberpunk/exterior-graphite-coating/mid#native`, and `cyberpunk/exterior-galvanized-steel/mid#native`. Concrete faces use world-metre UVs. Broad bands and apartment panels define the visible divisions; no decorative tile grid or random vivid finishes are added.
+
+## Reference and verification
+
+The September 2 handoff `buildings/large-residential-blocks.md` and `large-residential-blocks.png` establish grouped broad slabs, repeated human-scale openings and restrained attachment density. `dystopian-residential-exteriors.md`, `procedural-facade-services-and-clothes.md`, and `residential-pipes-ducts-ac-and-clothes.png` establish subdued worn concrete, dark metal and supported services. The shared palette and interior/exterior alignment documents require physical opening geometry and coherent floor boundaries. These references informed the family; they are not literal dimensions recovered from the images.
+
+[Public contract tests](tests/contract.test.ts) cover deterministic plan and decoration, complete sections, actual pane grids, both parcel orientations, rotated fixed faces, finite geometry, parcel containment, builder ownership restoration, entrance/aperture clearance and final material variants. [Full-generation regression](tests/generation.test.ts) keeps the 48 × 36 m, eight-storey reference fixture within its geometry budget while preserving its authored windows. Run `npx vitest run src/families/residential-megablock/tests` from `exterior/`.

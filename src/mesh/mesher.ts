@@ -5,6 +5,7 @@ import { applyFloorSlopes } from './floorSlope.ts';
 import { meshRibbonLouvres } from './ribbonLouvres.ts';
 import { meshPairedWindows } from './pairedWindows.ts';
 import { isPaired } from '../sections/index.ts';
+import { meshConnectedFireEscape } from './connectedFireEscape.ts';
 import { familyBackingDepth, measureWallDepth } from './wallDepth.ts';
 import { sectionSpans } from '../sections/index.ts';
 import { meshCurvedWindow } from './curvedWindow.ts';
@@ -947,6 +948,7 @@ function plate(
 function meshFireEscape(mb: MeshBuilder, layout: Layout, above: FloorLayout[], mat: (k: string) => string): void {
   const fe = layout.fireEscape;
   if (!fe) return;
+  if (fe.connected) { meshConnectedFireEscape(mb, layout, mat); return; }
   const sink = mb.part('fire-escape');
   const ground = above[0]!;
   const fr = frame(ground.outline, fe.edge);

@@ -10,6 +10,12 @@ Purpose: fit one architectural family and add its attached decoration.
 | [Balcony grid](balcony-grid/CONTRACT.md) | Recessed loggias and one curved glazed corner |
 | [Mirror shutters](mirror-shutters/CONTRACT.md) | Ribbon glazing, bronze banks and narrow service spine |
 | [Mirror frame](mirror-frame/CONTRACT.md) | Graphite piers and deep glazed slots |
+| [Residential courtyard](residential-courtyard/CONTRACT.md) | Worn apartment bays, shutters, grilles and a reserved street-connected stair frontage |
+| [Residential serviced](residential-serviced/CONTRACT.md) | Rounded residential corner, continuous spandrels, supported condensers and fitted risers |
+| [Residential megablock](residential-megablock/CONTRACT.md) | Long residential slab with grouped floors, heavy horizontal bands and vertical divisions |
+| [Industrial framed](industrial-framed/CONTRACT.md) | Tall outer frames and braces around recessed multi-floor glazing |
+| [Industrial solid](industrial-solid/CONTRACT.md) | Broad stacked concrete sections, angular supports and narrow real slot glazing |
+| [Service storage](service-storage/CONTRACT.md) | Low concrete body, explicitly sealed broad shutter panels and a separate usable entrance |
 
 Each child folder exports `family: BuildingFamily` from `index.ts`. Its contract links its inputs and outputs to [api.ts](api.ts), and documents the reference dimensions and error cases. No family imports a sibling family's implementation.
 
@@ -43,3 +49,7 @@ The host measures tiled UVs on final receiving faces after placement and fits ex
 
 
 Impossible fits raise `RangeError`. Each family is checked through its public `plan` and `decorate` exports.
+
+Lower-income families participate in automatic selection for `poor` and `mid` tiers through [architecture-policy.json](../../schemas/architecture-policy.json). Residential programmes select the three residential forms; factories select towers from three floors and storage through three floors; low-rise commerce can select storage. Luxury selection retains the accepted family list. New forms use whole generated plans; the six existing piece recipes remain unchanged.
+
+`residential-courtyard` reserves a four-metre front setback in its free plan. This is space outside its complete rectangular floor outline, so the room envelope never includes it. The host fits a switchback stair and real service doors before the shared Interior core is allocated. `Blueprint.fireEscape.connected` publishes floor-door IDs, exact flight elevations, risers per half-flight, landing depth and stair width. All floor doors open at their own floor elevations, the lowest landing has an open street approach, and each upper landing is guarded. Fixed parcel faces that cannot reserve the stair envelope do not receive an unattached stair; automatic selection uses a different lower-income form there.

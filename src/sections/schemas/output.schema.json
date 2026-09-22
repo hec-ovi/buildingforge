@@ -23,7 +23,13 @@
         "white-grid",
         "balcony-grid",
         "mirror-shutters",
-        "mirror-frame"
+        "mirror-frame",
+        "residential-courtyard",
+        "residential-serviced",
+        "residential-megablock",
+        "industrial-framed",
+        "industrial-solid",
+        "service-storage"
       ]
     },
     "grid": {

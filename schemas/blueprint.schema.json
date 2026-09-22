@@ -11,7 +11,7 @@
       "type": "object", "additionalProperties": false, "required": ["requested", "selected", "reason"],
       "properties": {
         "requested": { "const": "auto" },
-        "selected": { "enum": ["rounded-corner", "chamfered-corners", "terrace-blocks", "paired-rounded", "paired-rectangular", "garden-taper", "corporate-sectors", "faceted-bays", "white-grid", "balcony-grid", "mirror-shutters", "mirror-frame", "ordinary"] },
+        "selected": { "enum": ["rounded-corner", "chamfered-corners", "terrace-blocks", "paired-rounded", "paired-rectangular", "garden-taper", "corporate-sectors", "faceted-bays", "white-grid", "balcony-grid", "mirror-shutters", "mirror-frame", "residential-courtyard", "residential-serviced", "residential-megablock", "industrial-framed", "industrial-solid", "service-storage", "ordinary"] },
         "reason": { "enum": ["accepted-reference", "seeded-ordinary", "fixed-faces", "programme", "explicit-options", "section-fit"] },
         "candidateError": { "type": "object", "additionalProperties": false, "required": ["code", "message"], "properties": { "code": { "type": "string" }, "message": { "type": "string" } } }
       }
@@ -544,7 +544,28 @@
         "fromFloor": { "type": "integer" },
         "toFloor": { "type": "integer" },
         "offset": { "type": "number", "minimum": 0, "description": "u of the platform stack's left edge along that edge" },
-        "width": { "type": "number", "minimum": 0, "description": "platform length along the edge" }
+        "width": { "type": "number", "minimum": 0, "description": "platform length along the edge" },
+        "connected": {
+          "type": "object", "additionalProperties": false,
+          "required": ["depth", "stairWidth", "landingDepth", "doorIds", "flights"],
+          "properties": {
+            "depth": { "type": "number", "exclusiveMinimum": 0 },
+            "stairWidth": { "type": "number", "minimum": 1.1 },
+            "landingDepth": { "type": "number", "minimum": 1.2 },
+            "doorIds": { "type": "array", "items": { "type": "string" } },
+            "flights": {
+              "type": "array", "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["fromFloor", "toFloor", "bottom", "top", "steps"],
+                "properties": {
+                  "fromFloor": { "type": "integer" }, "toFloor": { "type": "integer" },
+                  "bottom": { "type": "number" }, "top": { "type": "number" },
+                  "steps": { "type": "integer", "minimum": 2 }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "roof": {
