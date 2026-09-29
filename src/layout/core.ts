@@ -236,7 +236,9 @@ function bounds(outline: readonly P2[]): { u0: number; u1: number; v0: number; v
 }
 
 function snap(value: number): number {
-  return Math.round(value / CONSTANTS.snap) * CONSTANTS.snap;
+  // Inverse rotation must not move a mathematical half-grid tie to the
+  // opposite row through machine-sized round-off (as in snapUp/snapDown).
+  return Math.round(value / CONSTANTS.snap + 1e-9) * CONSTANTS.snap;
 }
 
 function snapDown(value: number): number {

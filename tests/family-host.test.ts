@@ -1,9 +1,12 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { generate, type BuildingRequest } from '../src/index.ts';
 import { ringInsidePolygon, type P2 } from '../src/core/polygon.ts';
 import { buildingFamily, FAMILY_IDS, type FamilyArchitecture } from '../src/families/registry.ts';
 import { crossingWindows } from '../src/layout/circulationBand.ts';
+import * as circulation from '../src/layout/circulationBand.ts';
 import { coreAdjacency } from '../src/layout/coreAdjacency.ts';
+import { corePlateOffers } from '../src/layout/corePlateOffers.ts';
+import * as coreOpenings from '../src/layout/coreOpeningPlan.ts';
 import { fitBuildingCore } from '../src/layout/corePreflight.ts';
 import { splitMaterialSlot } from '../src/materials/slot.ts';
 import { keys, glbJson } from './support.ts';
@@ -133,27 +136,63 @@ it('stands the roof housing over the stair run on every family and plan size', a
 }, 30_000);
 
 it('keeps the published circulation depth beside every window on every family plan', async () => {
-  // Interior measured the two faceted-bays plans short beside these windows;
-  // the family gives them up rather than the core standing closer.
-  const plans: [FamilyArchitecture, number, number, number, string[]][] = [
-    ['faceted-bays', 4, 3, 3, ['w:1:fb:2:0:19:0:slit:0:0']],
-    ['faceted-bays', 4, 3, 36, ['w:1:fb:2:0:19:0:slit:0:0', 'w:2:fb:2:1:22:0:cheek:0:0']],
-    ['mirror-frame', 4, 3, 8, []], ['balcony-grid', 4, 3, 8, []], ['corporate-sectors', 5, 5, 12, []],
-    ['mirror-shutters', 4, 3, 8, []], ['white-grid', 4, 3, 8, []],
+  // A roof-aware core may move far enough to retain a previously crowded slit.
+  // Check the geometry of its final placement and any omissions actually made,
+  // rather than requiring window IDs deleted by an older core arrangement.
+  const plans: [FamilyArchitecture, number, number, number][] = [
+    ['faceted-bays', 4, 3, 3], ['faceted-bays', 4, 3, 36],
+    ['mirror-frame', 4, 3, 8], ['balcony-grid', 4, 3, 8], ['corporate-sectors', 5, 5, 12],
+    ['mirror-shutters', 4, 3, 8], ['white-grid', 4, 3, 8],
   ];
-  for (const [architecture, across, deep, floors, givenUp] of plans) {
+  const omissions = vi.spyOn(circulation, 'withoutWindows');
+  const originalPlan = coreOpenings.planCoreOpenings;
+  let acceptedOmissions: typeof omissions.mock.calls = [];
+  const plansCalled = vi.spyOn(coreOpenings, 'planCoreOpenings').mockImplementation((...args) => {
+    const from = omissions.mock.calls.length;
+    const result = originalPlan(...args);
+    // Failed plate offers may drop a window that a later, different core can
+    // retain. Only omissions belonging to the accepted plan are authoritative.
+    acceptedOmissions = omissions.mock.calls.slice(from);
+    return result;
+  });
+  try { for (const [architecture, across, deep, floors] of plans) {
+    omissions.mockClear();
+    acceptedOmissions = [];
     const plan = `${architecture}-${across}x${deep}x${floors}f`;
     const request = planRequest(architecture, across, deep, floors);
     const { blueprint } = await generate(request, keys);
     const policy = blueprint.facade.coreAdjacency!;
-    expect(policy.glazing.clearDepth, plan).toBe(coreAdjacency(request).glazing.clearDepth);
+    expect(corePlateOffers(request).map(offer => coreAdjacency(offer)), plan).toContainEqual(policy);
     const { stair } = fitBuildingCore(blueprint);
     expect(crossingWindows(blueprint.floors, stair, blueprint.facade.wallDepth, policy), plan).toEqual(new Set());
     const published = new Set(blueprint.floors.flatMap(floor => floor.openings.map(opening => opening.id)));
-    for (const id of givenUp) expect(published.has(id), `${plan} ${id}`).toBe(false);
-    expect(blueprint.floors.flatMap(floor => floor.openings).length, plan).toBeGreaterThan(0);
-  }
+    for (const [source, givenUp] of acceptedOmissions) {
+      for (const id of givenUp) {
+        expect(source.flatMap(f => f.openings).find(o => o.id === id)?.kind, `${plan} ${id}`).toBe('window');
+        expect(published.has(id), `${plan} ${id}`).toBe(false);
+      }
+      for (const door of source.flatMap(f => f.openings).filter(o => o.kind !== 'window')) {
+        expect(published.has(door.id), `${plan} keeps access ${door.id}`).toBe(true);
+      }
+    }
+    expect(blueprint.floors.flatMap(floor => floor.openings).filter(o => o.kind === 'window').length, plan).toBeGreaterThan(0);
+  } } finally { plansCalled.mockRestore(); omissions.mockRestore(); }
 }, 30_000);
+
+it('omits an actually crowded window while allowing the same aperture after the core moves clear', () => {
+  const floors = [{ index: 1, outline: [[0, 0], [12, 0], [12, 12], [0, 12]] as P2[], openings: [
+    { id: 'near', kind: 'window' as const, edge: 0, offset: 3, width: 4, sill: .5, height: 3 },
+    { id: 'far', kind: 'window' as const, edge: 2, offset: 3, width: 4, sill: .5, height: 3 },
+    { id: 'access', kind: 'door' as const, edge: 3, offset: 4, width: 1.2, sill: 0, height: 2.5 },
+  ] }];
+  const stair = { center: [5, 3] as P2, axis: [1, 0] as P2, width: 3, depth: 4 };
+  const policy = coreAdjacency(planRequest('faceted-bays', 4, 3, 3));
+  const crowded = crossingWindows(floors, stair, .5, policy);
+  expect(crowded).toEqual(new Set(['near']));
+  expect(circulation.withoutWindows(floors, crowded)[0]!.openings.map(o => o.id)).toEqual(['far', 'access']);
+  expect(crossingWindows(floors, { ...stair, center: [5, 5] }, .5, policy)).toEqual(new Set());
+  expect(floors[0]!.openings.map(o => o.id)).toEqual(['near', 'far', 'access']);
+});
 
 it('slides every entrance into the wall on one plan per family', async () => {
   const plans: [FamilyArchitecture, number, number, number][] = [
