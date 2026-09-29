@@ -166,7 +166,12 @@ async function buildShell(raw: unknown, options: GenerateOptions, canonicalNativ
     const next = ring[(index + 1) % ring.length]!;
     return sum + Math.hypot(next[0] - point[0], next[1] - point[1]);
   }, 0);
-  const budget = geometryBudget(req, perimeter * stack.top);
+  // A shorter explicit pitch retains the same authored bay count and topology.
+  // Keep its prior area allowance, under the same envelope and pinned bases;
+  // actual floors, openings and mesh heights still use the requested stack.
+  const budgetHeight = req.options?.preferredFloorHeight === undefined ? stack.top
+    : Math.max(stack.top, buildFloorStack({ ...req, options: { ...req.options, preferredFloorHeight: undefined } }, family, tier, style).top);
+  const budget = geometryBudget(req, perimeter * budgetHeight);
   const source = options.textures?.source ?? await autoSource(req.theme, options.textures?.dir);
   const bindings = source ? new MeshBindings(source, req.seed, buildingMaterialVariants(req.theme, tier, exteriorStyle)) : undefined;
   let mb = buildMesh(layout, openingMesh);

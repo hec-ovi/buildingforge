@@ -90,6 +90,8 @@ export interface BuildingRequest {
   options?: {
     architecture?: Architecture | 'auto';
     minimumClearHeight?: number;
+    /** Preferred total upper-storey pitch; clear-height, envelope and fixed-base constraints take precedence. */
+    preferredFloorHeight?: number;
     shape?: 'auto' | 'box' | 'rounded-box' | 'octagon' | 'cylinder' | 'pyramid' | 'setback';
     exteriorStyle?: ExteriorStyleId;
     glb?: 'named' | 'merged';

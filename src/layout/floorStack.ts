@@ -25,6 +25,7 @@ const quantDown = (v: number): number => Math.floor(v * 20 + 1e-9) / 20;
 export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier, style: Style): Stack {
   const rules = RULES[family];
   const minimum = minimumFloorHeight(family, req.options?.minimumClearHeight);
+  const nominal = req.options?.preferredFloorHeight ?? style.floorHeight;
   const floors = req.building.floors;
   const basements = req.building.basements ?? 0;
   const maxHeight = req.parcel.maxHeight;
@@ -42,8 +43,8 @@ export function buildFloorStack(req: BuildingRequest, family: Family, tier: Tier
   }
 
   const elevAbove = basesPos.length === 0
-    ? nominalStack(floors, style, minimum, maxHeight, reqH.get(0) ?? 0, groundNeed)
-    : solveSplit(floors, basesPos, minimum, rules.maxFloorHeight, style.floorHeight, maxHeight, reqH,
+    ? nominalStack(floors, { ...style, floorHeight: nominal }, minimum, maxHeight, reqH.get(0) ?? 0, groundNeed)
+    : solveSplit(floors, basesPos, minimum, rules.maxFloorHeight, nominal, maxHeight, reqH,
       Math.min(groundNeed, rules.maxFloorHeight));
 
   const elevBelow = basementElevations(basements, basesNeg, basementHeight, reqH, minimum);

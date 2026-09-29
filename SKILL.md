@@ -20,6 +20,7 @@ Call `generate(request, options?)` from `src/index.ts` in Node with TypeScript s
 | `building.basements`, `floorKinds` | Zero basements; program labels synthesized when absent. |
 | `apertures` | Empty; supplied faces, cuts and absolute base heights are fixed reservations. |
 | `options.minimumClearHeight` | 4 m clear by default for all floors; an explicit override uses the same family bounds. Slab/ceiling allowance is an additional 0.5 m. |
+| `options.preferredFloorHeight` | Family default pitch. A total upper-storey pitch between the active minimum (clear height plus allowance) and the family maximum; ground, basements, pinned bases and the envelope still govern. |
 | `options.architecture` | Optional. `auto` selects a compatible reviewed family by seed, programme, tier and dimensions. Explicit IDs and constraints are in the request schema and contract. |
 | `options.shape`, `exteriorStyle`, `glb` | `auto` (rectangular plates), seeded compatible style, `named`. |
 | `balconies`, `balconyStyle`, `openFront`, `fireEscape` | `auto`; detail is fitted where eligible. These and the following rows are inside `request.options`. |

@@ -118,7 +118,11 @@ export function validateRequest(raw: unknown): BuildingRequest {
     throw new ExteriorError('E_FOOTPRINT_INVALID', 'footprint self-intersects');
   }
   const family = FAMILY[type];
-  minimumFloorHeight(family, options?.minimumClearHeight);
+  const activeMinimum = minimumFloorHeight(family, options?.minimumClearHeight);
+  if (options?.preferredFloorHeight !== undefined
+    && (options.preferredFloorHeight < activeMinimum - 1e-9 || options.preferredFloorHeight > RULES[family].maxFloorHeight + 1e-9)) {
+    fail('options.preferredFloorHeight', `must be between the active minimum ${activeMinimum} and family maximum ${RULES[family].maxFloorHeight} metres`);
+  }
   if (options?.architecture === 'garden-taper') {
     const minimum = minimumFloorHeight(family, options.minimumClearHeight);
     if (maxHeight < Math.max(4.5, minimum) + (floors - 1) * minimum - 1e-8) {
@@ -204,6 +208,10 @@ function validateOptions(raw: unknown): BuildingRequest['options'] {
   if (o.minimumClearHeight !== undefined) {
     out.minimumClearHeight = num(o.minimumClearHeight, 'options.minimumClearHeight');
     if (out.minimumClearHeight <= 0) fail('options.minimumClearHeight', 'must be positive');
+  }
+  if (o.preferredFloorHeight !== undefined) {
+    out.preferredFloorHeight = num(o.preferredFloorHeight, 'options.preferredFloorHeight');
+    if (out.preferredFloorHeight <= 0) fail('options.preferredFloorHeight', 'must be positive');
   }
   if (o.coreAdjacency !== undefined) out.coreAdjacency = validateCoreAdjacency(o.coreAdjacency);
   out.exteriorStyle = oneOf(o.exteriorStyle, EXTERIOR_STYLE_IDS, 'options.exteriorStyle') as never;

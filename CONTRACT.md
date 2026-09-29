@@ -13,6 +13,8 @@ Generates one deterministic building exterior GLB and the matching floor/opening
 - CLI: `npm run generate -- request.json outDir [--seed S] [--embed|--keys-only] [--materials DIR] [--materials-base URI]`. Writes `<buildingId>.glb` and `<buildingId>.blueprint.json`; prints the resolved seed. Missing/unknown CLI arguments exit 2; generation errors exit 1. Filesystem/JSON failures use Node's process error reporting.
 - Defaults and a copyable example: [SKILL.md](SKILL.md).
 
+`options.preferredFloorHeight` selects the preferred total upper-storey pitch in metres, including the slab/ceiling allowance. For example, `minimumClearHeight: 3, preferredFloorHeight: 3.5` produces 3.5 m repeated floors where the envelope and fixed connection elevations permit. The preference must be at least the active minimum clear height plus the published allowance (and family minimum), and no greater than the family maximum. Existing module snapping and constrained floor allocation still apply. Authored ground-floor preferences, basement policy and crown composition remain intact; omitting this option preserves the existing family defaults. This is a generation option, not a scale transform on a finished facade or its details.
+
 ## Geometry and ownership
 
 Metres, +Y up, XZ ground, right-handed; CCW rings without a repeated endpoint. Every exported primitive is welded and indexed: attributes snap to a 1e-5 grid and identical position/normal/UV triples collapse to one vertex, with 16-bit indices below 65,536 vertices and 32-bit above. Positions and UVs are floats; normals are normalized signed shorts, so the GLB declares `KHR_mesh_quantization` in `extensionsRequired` and a reader must register it. Faces are flat shaded, so a hard edge keeps one vertex per face and a welded shell measures about 1.4 to 1.9 vertices per triangle. Coincident faces stay under 0.1 percent and are the two-sided floor slabs.
@@ -46,6 +48,8 @@ The `paired-rounded` and `paired-rectangular` architectures use 5 m room widths 
 Paired-family dark windows use opaque reflective black glass and omit scenic rooms. Optional facade light `material`, `color`, `lumens` and `range` fields bind authored podium light surfaces and their emitters.
 
 Garden cassette fronts carry 2 m panel divisions with 24 mm joints. Wing glass sits 0.26 m behind the facade; planted spine glass remains 1.52 m inward.
+
+For an explicit `preferredFloorHeight`, the facade-area budget retains at least the area of the default-preference stack under the same envelope and connection pins. Shorter storeys still contain the same authored bays, frames and cassettes. Only this allowance uses the reference stack: exported floors, openings and mesh geometry use the requested heights. Budget constants, measured triangle/byte checks and omitted-option behavior are unchanged.
 
 ## Piece kit
 
