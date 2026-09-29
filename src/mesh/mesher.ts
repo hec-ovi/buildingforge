@@ -47,6 +47,7 @@ import { selectedMaterialKey, facadeSurfacePattern } from '../layout/materialPla
 import { meshGroundPrivacy, meshExteriorLouvre } from './windowTreatments.ts';
 import { meshWindowWeathering } from './windowWeathering.ts';
 import { slabOutline } from './slabOutline.ts';
+import { recessFloorThresholds } from './floorThresholds.ts';
 
 const REVEAL = 0.12;
 const APERTURE_REVEAL = 0.15;
@@ -214,6 +215,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   if (decoration?.instances?.length) layout.modelInstances = decoration.instances;
   layout.lights.forEach((light, i) => meshLightFixture(mb.part(`light:${i}`), light, mat));
   applyFloorSlopes(mb, layout.floors);
+  recessFloorThresholds(mb, layout);
   return mb;
 }
 
