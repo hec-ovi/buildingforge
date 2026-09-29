@@ -39,9 +39,9 @@ export interface MaterialPlan {
   imageUris: Map<Texture, string>;
 }
 
-/** Fabric shades are one fitted plane that must read from both sides of the glazing. */
+/** Curtains and thin fern laminae are single surfaces visible from both sides. */
 function doubleSidedForKey(key: string): boolean {
-  return key.split('/')[1] === 'curtain';
+  return ['curtain', 'hiromi-fern'].includes(key.split('/')[1]!);
 }
 
 /** Untextured materials named by the canonical key: what a keys-only consumer resolves itself. */

@@ -24,5 +24,10 @@
     "rounded-corner": 1.5,
     "chamfered-corners": 1.5,
     "terrace-blocks": 1.5
+  },
+  "premiumRoofTerrace": {
+    "$comment": "Additive allowance for the furnished rich/high-rich balcony-grid roof when roof artifacts are enabled: explicit fern clumps, fine wire furniture and fitted outdoor rooms. Measured separately from the facade multiplier; ordinary/off roofs retain their original budgets.",
+    "triangles": 35000,
+    "bytes": 3145728
   }
 }

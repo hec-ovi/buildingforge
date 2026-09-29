@@ -396,8 +396,8 @@
           "lumens": { "type": "number", "minimum": 0 },
           "range": { "type": "number", "exclusiveMinimum": 0 },
           "kind": { "enum": ["entrance", "accent"] },
-          "edge": { "type": "integer", "minimum": 0, "description": "carrying ground-outline edge" },
-          "position": { "$ref": "#/$defs/point3", "description": "centre of the rear mounting face on the facade plane" },
+          "edge": { "type": "integer", "minimum": 0, "description": "carrying ground-outline edge; a roof terrace lamp stands on the roof and names edge 0" },
+          "position": { "$ref": "#/$defs/point3", "description": "centre of the rear mounting face on the facade plane, or on its roof terrace mount" },
           "normal": { "$ref": "#/$defs/point2", "description": "unit outward direction of the luminous face" },
           "size": { "$ref": "#/$defs/point3", "description": "fixture width, height and outward depth" },
           "standoff": { "type": "number", "minimum": 0, "description": "distance from wall plane to rear mounting face; equals crossed facade relief depth for a flush mount" }

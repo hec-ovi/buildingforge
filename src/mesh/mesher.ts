@@ -18,6 +18,8 @@ import { meshPanelField, PANEL_JOINT_DEPTH } from './panelField.ts';
 import { capUp, capDown, capFrame, type CapFrame } from './caps.ts';
 import { meshAnchorMount } from './anchorMount.ts';
 import { meshRoofArtifacts } from './mastAssembly.ts';
+import { meshRoofTerrace } from './roofTerrace.ts';
+import { hasRoofTerrace } from '../layout/roofTerrace.ts';
 import { meshFacadeRelief } from './facadeRelief.ts';
 import { meshAcUnits } from './acUnit.ts';
 import { meshLightFixture } from './lightFixture.ts';
@@ -185,7 +187,8 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   const cutout = layout.roof.bulkhead ? bulkheadRect(layout.roof.bulkhead) : undefined;
   capUp(roofSink, mat('roof'), caps, layout.roof.outline, top, cutout);
   capDown(roofSink, mat('floor-slab'), caps, layout.roof.outline, top, cutout);
-  if (layout.roof.bulkhead) meshBulkhead(mb, layout.roof.bulkhead, top, caps, mat);
+  if (layout.roof.bulkhead) meshBulkhead(mb, layout.roof.bulkhead, top, caps,
+    kind => kind === 'wall' && hasRoofTerrace(layout.request) ? mat('inner-wall') : mat(kind));
   capDown(mb.part('base'), mat('floor-slab'), caps, lowest.outline, lowest.elevation);
   if (layout.roof.parapetHeight > 0 && layout.assembly?.architecture !== 'garden-taper') {
     const parapet = mb.part('parapet');
@@ -201,6 +204,7 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
 
   meshFacadeRelief(mb, layout, above, top, mat);
   meshRoofArtifacts(mb, layout, top, mat);
+  meshRoofTerrace(mb, layout);
   meshFacadeArtifacts(mb, layout, mat);
   meshAcUnits(mb, layout, mat);
   meshFacadeServices(mb, layout);

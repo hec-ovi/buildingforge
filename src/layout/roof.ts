@@ -5,6 +5,7 @@ import { ROOF_ACCESS, ROOF_ARTIFACTS } from '../rules/tables.ts';
 import type { Blueprint, BuildingRequest, RoofArtifact } from '../types.ts';
 import { buildMastAssembly } from './mastAssembly.ts';
 import type { FloorLayout, Style } from './model.ts';
+import { hasRoofTerrace, roofTerracePlan } from './roofTerrace.ts';
 
 interface RoofReservation { cx: number; cz: number; hw: number; hd: number }
 
@@ -16,6 +17,10 @@ export function buildRoof(
   const topFloor = floors[floors.length - 1]!;
   const outline = topFloor.topOutline ?? topFloor.outline;
   const elevation = topFloor.elevation + topFloor.height;
+  if (hasRoofTerrace(request)) {
+    const terrace = roofTerracePlan(outline, bulkhead);
+    if (terrace) return { elevation, outline, parapetHeight: style.parapetHeight, bulkhead, artifacts: terrace.equipment };
+  }
   const artifacts: RoofArtifact[] = [];
   if ((request.options?.roofArtifacts ?? 'auto') !== 'off') {
     const rng = new Rng(request.seed, 'roof');

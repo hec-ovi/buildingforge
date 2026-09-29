@@ -5,6 +5,7 @@
 import POLICY from '../../schemas/geometry-budget.json' with { type: 'json' };
 import type { BuildingRequest } from '../types.ts';
 import type { DetailStep } from './simplification.ts';
+import { hasRoofTerrace } from '../layout/roofTerrace.ts';
 
 export interface GeometryBudget {
   triangles: number;
@@ -47,9 +48,10 @@ export function geometryBudget(request: BuildingRequest, facadeArea = 0): Geomet
   const triangles = Math.max(POLICY.ordinary.triangles * size,
     Math.round(facadeArea * POLICY.facadeRate.trianglesPerSquareMetre));
   const scale = (typeof authored === 'number' ? authored : 1) * triangles / POLICY.ordinary.triangles;
+  const terrace = hasRoofTerrace(request) ? POLICY.premiumRoofTerrace : { triangles: 0, bytes: 0 };
   return {
-    triangles: Math.round(POLICY.ordinary.triangles * scale),
-    bytes: Math.round(POLICY.ordinary.bytes * scale),
+    triangles: Math.round(POLICY.ordinary.triangles * scale) + terrace.triangles,
+    bytes: Math.round(POLICY.ordinary.bytes * scale) + terrace.bytes,
   };
 }
 

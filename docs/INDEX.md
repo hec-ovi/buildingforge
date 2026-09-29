@@ -48,6 +48,7 @@ Version 0.58.15.
 - `src/layout/pocketDoor.ts`, `pocketInvariants.ts`: the sliding entrance, its chambers in the wall beside the passage, and the checks on the published motion.
 - `src/mesh/pocketDoor.ts`: pocket leaves and the fixed rear lining that closes the cassette channel in a deep wall.
 - `src/mesh/floorThresholds.ts`: the 20 mm slab recess under floor-level doors, so Interior's threshold finish never shares a plane with the shell.
+- `src/layout/roofTerrace.ts`, `src/mesh/roofTerrace.ts`, `terraceKit.ts`, `terraceRooms.ts`, `terraceFoliage.ts`: the furnished rich balcony-grid roof, planned around the stair-door spine.
 - `src/layout/validateLayout.ts`: final geometry and opening guards.
 - [Preview layout](../src/ui/views/preview.json): control definitions rendered by the shared Form component.
 - `vite.config.ts`: preview serving and source watching, excluding generated output trees.

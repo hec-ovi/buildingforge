@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { generate } from '../src/index.ts';
 import { fixture, keys } from './support.ts';
+import { geometryBudget } from '../src/rules/geometryBudget.ts';
 
 it('publishes the ordinary allowance and raises it for a tall tower and an authored family', async () => {
   const ordinary = await generate(fixture('residential-mid'), keys);
@@ -32,4 +33,20 @@ it('keeps the chosen family whatever the shell costs', async () => {
   expect(blueprint.architectureSelection!.candidateError).toBeUndefined();
   expect(blueprint.geometry!.triangles).toBeLessThanOrEqual(blueprint.geometry!.budget.triangles);
   expect(blueprint.floors.every(floor => floor.openings.length > 0)).toBe(true);
+});
+
+it('reserves the explicit furnished-terrace allowance only for enabled premium balcony roofs', () => {
+  const request = fixture('residential-mid');
+  request.options = { ...request.options, architecture: 'balcony-grid', roofArtifacts: 'off' };
+  request.building.tier = 'high_rich';
+  const plain = geometryBudget(request);
+  request.options.roofArtifacts = 'auto';
+  const terrace = geometryBudget(request);
+  expect(terrace.triangles - plain.triangles).toBe(35_000);
+  expect(terrace.bytes - plain.bytes).toBe(3 * 1024 * 1024);
+  request.building.tier = 'mid';
+  expect(geometryBudget(request)).toEqual(plain);
+  request.building.tier = 'high_rich';
+  request.options.architecture = 'mirror-frame';
+  expect(geometryBudget(request)).toEqual(plain);
 });
