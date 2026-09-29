@@ -31,7 +31,7 @@ import { meshCoveringHousing } from './coveringHousing.ts';
 import { meshUtilityBox } from './utilityBox.ts';
 import { meshDoorHardware } from './doorHardware.ts';
 import { meshDoorPanels, meshDoorRibs } from './doorPanels.ts';
-import { meshPocketDoor } from './pocketDoor.ts';
+import { meshPocketDoor, meshPocketDoorLining } from './pocketDoor.ts';
 import { openingEnvelope } from '../layout/openingEnvelope.ts';
 import { meshDoorSurround } from './doorSurround.ts';
 import { edgeDir, edgeNormal, edgeLength, type P2 } from '../core/polygon.ts';
@@ -123,6 +123,9 @@ export function buildMesh(layout: Layout, mb = buildOpeningMesh(layout)): MeshBu
   // Walls with holes, then per-opening geometry.
   for (const f of floors) {
     mb.floor = f.index;
+    for (const opening of f.openings) {
+      meshPocketDoorLining(mb, frame(f.outline, opening.edge), f, opening, wallThickness, mat('window-frame'));
+    }
     for (let e = 0; e < f.outline.length; e++) {
       const fr = frame(f.outline, e);
       const holes: Hole[] = [];

@@ -56,6 +56,29 @@ export function meshPocketDoor(
   }
 }
 
+/** The wall is cut for the entire cassette, not just its clear passage. A deep
+ * facade must therefore continue the cassette's fixed side skins and head to
+ * its room-facing plane. Otherwise the rear casing floats behind an open slot.
+ * This is authored after measuring the shell, outside every moving leaf volume. */
+export function meshPocketDoorLining(
+  builder: MeshBuilder, basis: FrameBasis, floor: Floor, opening: Opening, wallDepth: number, material: string,
+): void {
+  const door = opening.door;
+  if (door?.motion.kind !== 'pocket' || !door.cassette || !door.clearance) return;
+  const cassette = door.cassette, passage = door.clearance;
+  if (wallDepth <= cassette.backDepth + 1e-8) return;
+  const base = `door:${opening.id}`;
+  const sink = builder.part(`${base}/rear-lining`, { parent: base });
+  const a = cassette.offset, b = a + cassette.width;
+  const u0 = passage.offset, u1 = u0 + passage.width;
+  const bottom = floor.elevation + cassette.sill, top = bottom + cassette.height;
+  const head = floor.elevation + passage.sill + passage.height;
+  for (const [lo, hi] of [[a, u0], [u1, b]]) {
+    faceBox(sink, basis, lo!, hi!, bottom, top, cassette.backDepth, wallDepth, material);
+  }
+  faceBox(sink, basis, u0, u1, head, top, cassette.backDepth, wallDepth, material);
+}
+
 function point(basis: FrameBasis, u: number, y: number, inward: number): V3 {
   return [basis.v[0] + basis.dir[0] * u - basis.n[0] * inward, y,
     basis.v[1] + basis.dir[1] * u - basis.n[1] * inward];
