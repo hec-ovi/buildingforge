@@ -806,7 +806,7 @@ function meshBulkhead(
       const uvs = [piece.bl, piece.br, piece.tr, piece.tl].map(([u, y]) => [u, top - y] as [number, number]);
       sink.quadFacing(wall, at(fr, piece.bl), at(fr, piece.br), at(fr, piece.tr), at(fr, piece.tl), n3(fr), uvs);
       // The same band on the room side: a one-sided wall reads as no wall from within.
-      sink.quadFacing(wall, at(fr, piece.bl, -t), at(fr, piece.br, -t), at(fr, piece.tr, -t), at(fr, piece.tl, -t), inward, uvs);
+      sink.quadFacing(mat('inner-wall'), at(fr, piece.bl, -t), at(fr, piece.br, -t), at(fr, piece.tr, -t), at(fr, piece.tl, -t), inward, uvs);
     }
     if (!door) continue;
     const jamb: P2[] = [[door.u0, top], [door.u1, top], [door.u1, door.head], [door.u0, door.head]];
@@ -819,7 +819,7 @@ function meshBulkhead(
     doorLeaves(mb, base, fr, door.u0, door.u1, top, door.head, { leaves: 1 } as Opening, assembly, mat);
   }
   capUp(sink, mat('roof'), caps, ring, yTop);
-  capDown(sink, mat('floor-slab'), caps, ring, yTop);
+  capDown(sink, mat('inner-wall'), caps, ring, yTop);
 }
 
 function meshFeatures(mb: MeshBuilder, layout: Layout, mat: (k: string) => string): void {

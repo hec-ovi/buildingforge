@@ -43,7 +43,8 @@ it('preserves the accepted premium families with their authored skin, rooms and 
     for (const role of ['field', 'border', 'trim'] as const) expect(blueprint.facade.materialPlan[role].variantId).toEqual(expect.stringMatching(/\S/));
     expect(Object.values(blueprint.materialVariants).every(variant => !variant.includes('#'))).toBe(true);
     const windows = blueprint.floors.flatMap(f => f.openings.filter(o => o.kind === 'window'));
-    expect(windows.some(o => o.material === 'cyberpunk/paired-window-black/mid' && !o.scenery)).toBe(true);
+    const darkWindow = family.materials?.['window-black']?.split('#')[0] ?? 'cyberpunk/paired-window-black/mid';
+    expect(windows.some(o => o.material === darkWindow && !o.scenery)).toBe(true);
     expect(windows.some(o => o.scenery?.lights?.length)).toBe(true);
     const json = glbJson(glb);
     const patterns: Record<string, string> = { 'cyberpunk/paired-blind/mid': 'blades' };

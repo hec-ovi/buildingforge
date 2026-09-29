@@ -29,6 +29,6 @@ RangeError: non-finite or nonrectangular input, clockwise corners, fewer than tw
 
 ## Dependencies and checks
 
-[Family API](../CONTRACT.md), [Exterior](../../../CONTRACT.md). Shared host rooms supply formed blinds, room imagery, clear or dark glass and ceiling light states. Call decoration after scenic rooms to publish gallery emitters into their existing light records. Materials use existing paired metal, paired glass and cast concrete slots; no new assets.
+[Family API](../CONTRACT.md), [Exterior](../../../CONTRACT.md). Shared host rooms supply formed blinds, room imagery and ceiling light states. This family retains clear transmissive panes even for unlit scenic rooms, so removing scenery for a generated interior never leaves opaque black panes. The mineral roof and lining variants keep collidable material kinds. Call decoration after scenic rooms to publish gallery emitters into their existing light records. Facade materials use the paired metal, paired glass and cast concrete slots; room linings use `wall/rich#meridian-mineral` and the roof `roof/mid#meridian-mineral`.
 
 Run `npm test -- src/families/balcony-grid/balcony-grid.test.ts` from `exterior`.
