@@ -15,7 +15,7 @@ export function architectureSelections(request: BuildingRequest): ArchitectureSe
   const legacyEligible = request.building.floors >= policy.minimumFloors && policy.families.includes(programme);
   if (!legacyEligible && lowerChoices.length === 0) return [ordinary('programme')];
   const o = request.options;
-  if (o?.balconies === 'on' || o?.doorMotion === 'pocket' || o?.openFront === 'on' || o?.entranceLayout === 'repeated'
+  if (o?.balconies === 'on' || o?.openFront === 'on' || o?.entranceLayout === 'repeated'
     || o?.windows === 'none' || o?.windowDamage === 'sparse' || o?.facadeServices === 'on'
     || o?.shape && !['auto', 'box'].includes(o.shape)
     || request.parcel.buildingGrid && Math.abs(request.parcel.buildingGrid.spacing - 0.5) > 1e-9) return [ordinary('explicit-options')];

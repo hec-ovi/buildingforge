@@ -51,12 +51,21 @@ export function sectionOpenings(request: BuildingRequest, plan: FloorAssembly, h
     if (!eligible.length) throw new ExteriorError('E_DOOR_FIT', 'the street entrance has no clear complete straight section');
     // The entrance slides into the wall beside its field, so the nearest section
     // with wall for the pocket wins; a fully glazed frontage keeps a hinge.
-    const withPocket = eligible.map(candidate => ({ candidate, pocket: request.options?.doorMotion === 'swing' ? undefined
+    const withPocket = eligible.map(candidate => {
+      const pocket = request.options?.doorMotion === 'swing' ? undefined
       : fitPocketDoor(entrance.door!.set, candidate.offset, candidate.width, entrance.height,
         (start, end, depth) => clearBeside(plan, openings, entrance, candidate.section.id, glazes, height, start, end)
           && !reserved(entrance.edge, start, end)
-          && pocketInsidePlate(plan.outline, entrance.edge, start, end, depth)) }));
-    const chosen = withPocket.find(({ pocket }) => pocket) ?? withPocket[0]!;
+          && pocketInsidePlate(plan.outline, entrance.edge, start, end, depth));
+      return { candidate, pocket: pocket && pocket.cassette!.height <= height + 1e-6 ? pocket : undefined };
+    });
+    const fitted = withPocket.find(({ pocket }) => pocket);
+    if (request.options?.doorMotion === 'pocket' && !fitted) {
+      throw new ExteriorError('E_DOOR_FIT', 'the named architecture has no opaque wall for the required complete pocket cassette', {
+        buildingId: request.buildingId, architecture: request.options.architecture, role: 'main',
+      });
+    }
+    const chosen = fitted ?? withPocket[0]!;
     entrance.width = chosen.candidate.width;
     entrance.offset = chosen.candidate.offset;
     entrance.sectionId = chosen.candidate.section.id;

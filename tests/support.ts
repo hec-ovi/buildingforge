@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { NodeIO } from '@gltf-transform/core';
 import {
   KHRMaterialsEmissiveStrength, KHRMaterialsIOR, KHRMaterialsTransmission, KHRMeshQuantization, KHRTextureTransform,
@@ -10,6 +10,10 @@ export const glbIO = (): NodeIO => new NodeIO().registerExtensions(
   [KHRTextureTransform, KHRMaterialsTransmission, KHRMaterialsIOR, KHRMaterialsEmissiveStrength, KHRMeshQuantization]);
 
 export const keys = { textures: { mode: 'keys' as const } };
+/** True when a sibling box's checkout sits beside Exterior. The Exterior compose
+ * service mounts only Interior's schemas and dist, so a check that drives another
+ * box's own source runs where the whole workspace is present and skips elsewhere. */
+export const sibling = (path: string): boolean => existsSync(new URL(`../../${path}`, import.meta.url));
 export const fixture = (name: string): BuildingRequest => JSON.parse(readFileSync(
   new URL(`../fixtures/${name}.request.json`, import.meta.url), 'utf8'));
 /** Vertex normals as a loader reads them: the export stores them normalized. */

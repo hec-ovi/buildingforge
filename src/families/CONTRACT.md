@@ -53,3 +53,10 @@ Impossible fits raise `RangeError`. Each family is checked through its public `p
 Lower-income families participate in automatic selection for `poor` and `mid` tiers through [architecture-policy.json](../../schemas/architecture-policy.json). Residential programmes select the three residential forms; factories select towers from three floors and storage through three floors; low-rise commerce can select storage. Luxury selection retains the accepted family list. New forms use whole generated plans; the six existing piece recipes remain unchanged.
 
 `residential-courtyard` reserves a four-metre front setback in its free plan. This is space outside its complete rectangular floor outline, so the room envelope never includes it. The host fits a switchback stair and real service doors before the shared Interior core is allocated. `Blueprint.fireEscape.connected` publishes floor-door IDs, exact flight elevations, risers per half-flight, landing depth and stair width. All floor doors open at their own floor elevations, the lowest landing has an open street approach, and each upper landing is guarded. Fixed parcel faces that cannot reserve the stair envelope do not receive an unattached stair; automatic selection uses a different lower-income form there.
+
+Named families accept explicit `doorMotion: 'pocket'`. The host fits the complete
+cassette inside an opaque, unreserved, contained section span and checks its height;
+if none fits it reports `E_DOOR_FIT` and preserves the requested architecture instead
+of silently choosing a hinge. Family skin and decoration must reserve cassette,
+clearance and moving chamber volumes. Automatic selection retains reference-family
+candidates for an explicit pocket request and tests their complete fit normally.

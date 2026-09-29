@@ -139,12 +139,12 @@ export function validateRequest(raw: unknown): BuildingRequest {
   if (options?.architecture && options.architecture !== 'auto' && fixedAperture) {
     fail('options.architecture', `${options.architecture} cannot preserve ${fixedAperture.kind} ${fixedAperture.id} on fixed parcel face ${fixedAperture.face} at base ${fixedAperture.base} m; use auto or a registered fixed-face family`);
   }
-  if (options?.architecture && options.architecture !== 'auto' && (options.doorMotion === 'pocket' || options.openFront === 'on'
+  if (options?.architecture && options.architecture !== 'auto' && (options.openFront === 'on'
     || options.entranceLayout === 'repeated' || options.windows === 'none'
     || options.architecture === 'terrace-blocks' && (options.balconies === 'off' || options.balconyStyle === 'bay')
     || options.architecture !== 'terrace-blocks' && options.balconies === 'on' || options.shape && options.shape !== 'auto' && options.shape !== 'box'
     || buildingGrid && Math.abs(buildingGrid.spacing - 0.5) > 1e-9)) {
-    fail('options.architecture', 'section compositions require supported faces, a single swing entrance, windows, their authored balcony selection and the 0.5 m construction grid');
+    fail('options.architecture', 'section compositions require supported faces, a single fitted entrance, windows, their authored balcony selection and the 0.5 m construction grid');
   }
   validateAperturesSemantics(apertures, footprint, maxHeight, basements, RULES[family].maxFloorHeight);
 
