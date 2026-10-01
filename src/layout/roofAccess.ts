@@ -18,13 +18,16 @@ export function fitRoofAccess(seed: string, outline: P2[], stair: CoreStairPlace
   // The flight arrives at the end of its run, so the door stands on that face.
   // Row stairs arrive at high U; compact stairs return to the corridor at low V.
   const head: P2 = width >= depth ? [...axis] as P2 : [-cross[0], -cross[1]];
-  const hw = width / 2 + ROOF_ACCESS.clearance;
-  const hd = depth / 2 + ROOF_ACCESS.clearance;
-  const corners: P2[] = ([[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]] as P2[]).map(([u, v]): P2 => [
-    center[0] + axis[0] * u + cross[0] * v,
-    center[1] + axis[1] * u + cross[1] * v,
-  ]);
-  if (!ringInsidePolygon(outline, corners)) return null;
+  const ring = (clearance: number): P2[] => {
+    const hw = width / 2 + clearance, hd = depth / 2 + clearance;
+    return ([[-hw, -hd], [hw, -hd], [hw, hd], [-hw, hd]] as P2[]).map(([u, v]): P2 => [
+      center[0] + axis[0] * u + cross[0] * v,
+      center[1] + axis[1] * u + cross[1] * v,
+    ]);
+  };
+  // A stair standing against the facade rises through the roof as part of that face: its
+  // housing keeps the walk-around clearance where the roof has it and otherwise stands flush.
+  if (!ringInsidePolygon(outline, ring(ROOF_ACCESS.clearance)) && !ringInsidePolygon(outline, ring(0))) return null;
   const rng = new Rng(seed, 'roof-access');
   return {
     center: [...center], axis: [...axis], width, depth,
