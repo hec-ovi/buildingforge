@@ -30,6 +30,7 @@ export function planCoreOpenings(layout: OpeningLayout, coreFrame: Blueprint['co
   const fit = (floors: FloorLayout[], wallDepth: number, roof?: Blueprint['roof']): CoreStairPlacement =>
     fitBuildingCore({
       buildingId: layout.request.buildingId, floors, ...(coreFrame ? { coreFrame } : {}),
+      architecture: layout.request.options?.architecture, buildingType: layout.request.building.type, tier: layout.request.building.tier,
       facade: { style: layout.style.facade.kind, wallDepth, coreAdjacency: policy },
       ...(roof ? { roof } : {}),
     }).stair;

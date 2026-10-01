@@ -191,7 +191,8 @@ async function buildShell(raw: unknown, options: GenerateOptions, canonicalNativ
   identity?.apply(mb);
   const blueprint = buildBlueprint(layout, mb);
   identity?.blueprint(blueprint);
-  const core = fitBuildingCore(blueprint);
+  const core = fitBuildingCore({ ...blueprint, architecture: req.options?.architecture === 'auto' ? undefined : req.options?.architecture,
+    buildingType: req.building.type, tier: req.building.tier });
   blueprint.core = { mode: core.mode, maxElevators: core.maxElevators };
   // The blueprint publishes the face count, which both GLB modes share; the
   // packed size belongs to the export the caller asked for.

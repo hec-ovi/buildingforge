@@ -19,6 +19,9 @@ export function constructionCoreFrame(axis: P2, rectangular: boolean): Blueprint
 }
 
 type CoreInput = Pick<Blueprint, 'buildingId' | 'floors' | 'coreFrame'> & {
+  architecture?: string;
+  buildingType?: string;
+  tier?: string;
   facade: Pick<Blueprint['facade'], 'style' | 'wallDepth' | 'coreAdjacency'>;
   roof?: Blueprint['roof'];
 };
@@ -27,6 +30,7 @@ type CoreInput = Pick<Blueprint, 'buildingId' | 'floors' | 'coreFrame'> & {
 export function fitBuildingCore(blueprint: CoreInput): CoreFit {
   const input: InteriorBlueprint = {
     buildingId: blueprint.buildingId,
+    ...(blueprint.architecture ? { assembly: { architecture: blueprint.architecture } } : {}),
     ...(blueprint.coreFrame ? { coreFrame: blueprint.coreFrame } : {}),
     facade: { ...blueprint.facade },
     ...(blueprint.roof ? { roof: { bulkhead: blueprint.roof.bulkhead, elevation: blueprint.roof.elevation } } : {}),
@@ -37,7 +41,7 @@ export function fitBuildingCore(blueprint: CoreInput): CoreFit {
   };
   let result: CoreFeasibility;
   try {
-    result = coreFeasibility(input);
+    result = coreFeasibility(input, blueprint.buildingType ?? 'residential', blueprint.tier as never);
   } catch (error) {
     throw new ExteriorError('E_INVARIANT', 'Interior rejected the generated core constraints', {
       cause: error instanceof Error ? error.message : String(error),
