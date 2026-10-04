@@ -1,9 +1,9 @@
-import type { DecorationContext, FloorLayout } from '../api.ts';
+import { adScreensAsked, type DecorationContext, type FloorLayout } from '../api.ts';
 import type { Surface } from './surface.ts';
 
 /** Recessed portrait displays flank the entrance inside its opaque podium. */
 export function podiumDisplays(context: DecorationContext, floor: FloorLayout, edge: number, surface: Surface): void {
-  if (context.layout.request.options?.adScreens === 'off') return;
+  if (!adScreensAsked(context.layout.request)) return;
   const door = floor.openings.find(o => o.edge === edge && o.kind === 'door' && o.doorRole === 'main');
   if (!door) return;
   const y0 = floor.elevation + 0.75, y1 = Math.min(floor.elevation + floor.height - 0.75, y0 + 2);

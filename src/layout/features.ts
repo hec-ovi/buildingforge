@@ -292,7 +292,7 @@ function placeScreens(
   out: Blueprint['screens'], obstacles: Map<number, Rect[]>,
 ): void {
   const streetEdge = faces[0] as number;
-  const opt = req.options?.adScreens ?? 'auto';
+  const opt = req.options?.adScreens ?? AD_SCREEN.default;
   if (opt === 'off') return;
   const floorsTall = top / 3.5;
   const eligible = AD_SCREEN.families.includes(family) && AD_SCREEN.tiers.includes(tier) && floorsTall >= 6;

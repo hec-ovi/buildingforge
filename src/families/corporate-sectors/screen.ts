@@ -1,9 +1,11 @@
-import type { DecorationContext } from '../api.ts';
+import { adScreensAsked, type DecorationContext } from '../api.ts';
 import { Surface } from './surface.ts';
 import { SCREEN_FACE } from './faces.ts';
 
+/** The portrait screen on face 2, where the request asks for picture screens; without it the screen section is panelled wall. */
 export function decorateScreen(context: DecorationContext): void {
   const { layout, builder, material } = context;
+  if (!adScreensAsked(layout.request)) return;
   const upper = layout.floors.filter(f => f.index >= 4);
   if (!upper.length) return;
   const first = upper[0]!, last = upper[upper.length - 1]!;

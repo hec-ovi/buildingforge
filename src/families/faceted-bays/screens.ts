@@ -1,9 +1,9 @@
-import type { DecorationContext, FloorLayout, PartSink } from '../api.ts';
+import { adScreensAsked, type DecorationContext, type FloorLayout, type PartSink } from '../api.ts';
 import { Surface } from './surface.ts';
 
 /** Each portrait keeps its full picture and occupies a solid service-panel field. */
 export function screens(context: DecorationContext, floor: FloorLayout, surface: Surface, sink: PartSink): void {
-  if (context.layout.request.options?.adScreens === 'off') return;
+  if (!adScreensAsked(context.layout.request)) return;
   const sections = floor.assembly?.sections.filter(s => s.edge === surface.edge && s.id.startsWith('fb:0:0:') && s.id.endsWith(':panel')) ?? [];
   for (const section of sections) {
     const group = context.layout.assembly?.groups.find(g => g.id === floor.assembly!.group);

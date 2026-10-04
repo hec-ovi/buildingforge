@@ -150,7 +150,7 @@
           ],
           "default": null
         },
-        "adScreens": { "enum": ["auto", "on", "off"], "default": "auto" },
+        "adScreens": { "enum": ["auto", "on", "off"], "default": "off" },
         "roofArtifacts": { "enum": ["auto", "off"], "default": "auto" },
         "facadeServices": {
           "enum": ["auto", "on", "off"],

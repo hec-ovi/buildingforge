@@ -452,6 +452,8 @@ export const CURTAINS_VISION: { sunFacing: CurtainDist; shaded: CurtainDist } = 
 };
 
 export const AD_SCREEN = {
+  /** Picture screens stand only where a request asks for them: `auto` keeps the eligibility below, `on` forces one. */
+  default: 'off' as 'auto' | 'on' | 'off',
   families: ['corpo', 'office', 'hotel', 'commerce'] as string[],
   tiers: ['mid', 'rich', 'high_rich'] as string[],
   widthFraction: [0.35, 0.6] as [number, number],

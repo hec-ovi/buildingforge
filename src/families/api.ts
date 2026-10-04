@@ -1,6 +1,8 @@
 import type { Assembly, FloorAssembly, Section } from '../sections/types.ts';
 import type { Layout } from '../layout/model.ts';
 import type { MeshBuilder } from '../mesh/primitives.ts';
+import type { BuildingRequest } from '../types.ts';
+import { AD_SCREEN } from '../rules/tables.ts';
 
 export type { Point, Section, Assembly } from '../sections/types.ts';
 export type { Layout, FloorLayout } from '../layout/model.ts';
@@ -40,6 +42,10 @@ export interface ModelInstance {
   rotation?: number;
 }
 export interface FamilyDecoration { instances?: ModelInstance[] }
+/** A family hangs its own picture screens only where the request asks for them (`adScreens` `auto` or `on`). */
+export function adScreensAsked(request: Pick<BuildingRequest, 'options'>): boolean {
+  return (request.options?.adScreens ?? AD_SCREEN.default) !== 'off';
+}
 export interface BuildingFamily {
   id: string;
   /** Preferred total ground-storey height; fixed connection bases remain authoritative. */
