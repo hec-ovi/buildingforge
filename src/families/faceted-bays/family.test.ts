@@ -5,10 +5,11 @@ import { family } from './index.ts';
 
 const input = (): FamilyInput => JSON.parse(readFileSync(new URL('./fixture.json', import.meta.url), 'utf8'));
 
-function host(plan: FamilyPlan, source: FamilyInput): Layout {
+/** A host layout for the plan; its request asks for picture screens unless the caller passes its own options. */
+function host(plan: FamilyPlan, source: FamilyInput, options: Record<string, unknown> = { adScreens: 'on' }): Layout {
   let elevation = 0;
   return {
-    request: { seed: source.seed, parcel: { footprint: source.rectangle }, options: {} },
+    request: { seed: source.seed, parcel: { footprint: source.rectangle }, options },
     assembly: plan,
     carved: [],
     floors: plan.floors.map(p => {
@@ -73,6 +74,32 @@ describe('faceted-bays public family', () => {
     expect(() => family.plan({ ...input(), rectangle: [[0, 0], [15, 0], [15, 15], [0, 15]] })).toThrow(RangeError);
     expect(() => family.plan({ ...input(), floorHeights: [4.5, 2.2] })).toThrow(RangeError);
   }
+  });
+
+  it('sets no portrait screen into the panel field unless the request asks, and keeps the field panelled', () => {
+    for (const options of [{}, { adScreens: 'off' }]) {
+      const source = input(), plan = family.plan(source), layout = host(plan, source, options);
+      const builder = new MeshBuilder();
+      family.decorate!({ builder, layout, material: role => family.materials![role]! });
+      expect(builder.parts.some(p => p.prims.has(family.materials!.screen!))).toBe(false);
+      // The panel field the screens stood in is the wall's own ivory panels.
+      const panel = (f: Layout['floors'][number]) => f.assembly?.sections.find(s => s.id.startsWith('fb:0:0:') && s.id.endsWith(':panel'));
+      const floor = layout.floors.find(f => f.index > 0 && panel(f))!, field = panel(floor)!;
+      const skin = builder.parts.find(p => p.name === `faceted-bays:${floor.index}/skin`)!.prims.get(family.materials!.wall!)!;
+      const a = floor.outline[field.edge]!, b = floor.outline[(field.edge + 1) % floor.outline.length]!, length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      // The field's middle, moved off the 1.5 m panel joints so it lands on a panel.
+      const middle = field.offset + field.width / 2, joint = middle % 1.5;
+      const u = joint > 0.2 && joint < 1.3 ? middle : middle + 0.75, y = floor.elevation + floor.height / 2 + 0.1;
+      const along = (i: number) => ((skin.positions[i]! - a[0]) * (b[0] - a[0]) + (skin.positions[i + 2]! - a[1]) * (b[1] - a[1])) / length;
+      let covered = false;
+      for (let i = 0; i < skin.indices.length && !covered; i += 3) {
+        const corners = [0, 1, 2].map(k => skin.indices[i + k]! * 3);
+        const us = corners.map(along), ys = corners.map(c => skin.positions[c + 1]!);
+        covered = Math.min(...us) <= u && Math.max(...us) >= u && Math.min(...ys) <= y && Math.max(...ys) >= y
+          && Math.max(...corners.map(c => Math.abs((skin.positions[c]! - a[0]) * (b[1] - a[1]) - (skin.positions[c + 2]! - a[1]) * (b[0] - a[0])) / length)) < 0.5;
+      }
+      expect(covered).toBe(true);
+    }
   });
 
   it('emits finite attached geometry and portrait screens inside the parcel, clear of doors and bridge cuts', () => {

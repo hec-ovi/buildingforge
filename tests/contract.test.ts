@@ -3,7 +3,8 @@ import release from '../package.json' with { type: 'json' };
 import { generate, type BuildingRequest } from '../src/index.ts';
 import type { Signage } from '../src/types.ts';
 import schema from '../schemas/building-request.schema.json' with { type: 'json' };
-import { fixture, glbIO, keys } from './support.ts';
+import { fixture, glbIO, glbJson, keys } from './support.ts';
+import { familyFixtures } from './family-fixtures.ts';
 
 it('returns reproducible versioned floors, materials and a replaceable GLB shell', async () => {
   const request = fixture('corpo-tower');
@@ -108,6 +109,24 @@ it('keeps optional detail disabled and preserves a usable entrance without windo
     bp.facadeServices.clotheslines, bp.facadeServices.damagedWindows].every(a => a.length === 0)).toBe(true);
   expect(bp.fireEscape).toBeNull();
 });
+
+it('hangs no picture screen on a facade unless the request asks for one', async () => {
+  expect(schema.properties.options.properties.adScreens.default).toBe('off');
+  const screens = (glb: Uint8Array) => (glbJson(glb).materials as { name: string }[])
+    .map(material => material.name).filter(name => /\/(ad-screen|corporate-screen)\//.test(name));
+  // The generic ad plate, and the screens two families set and hang themselves.
+  const families = familyFixtures().filter(request => ['faceted-bays', 'corporate-sectors'].includes(request.buildingId));
+  for (const asked of [fixture('corpo-tower'), ...families]) {
+    const { adScreens: _asked, ...options } = asked.options!;
+    const shown = await generate(asked, keys);
+    expect(shown.blueprint.screens.length + screens(shown.glb).length, asked.buildingId).toBeGreaterThan(0);
+    for (const quiet of [options, { ...options, adScreens: 'off' as const }]) {
+      const { blueprint, glb } = await generate({ ...asked, options: quiet }, keys);
+      expect(blueprint.screens, asked.buildingId).toEqual([]);
+      expect(screens(glb), asked.buildingId).toEqual([]);
+    }
+  }
+}, 120_000);
 
 it('fits balcony bands to their doors', async () => {
   const request = fixture('residential-mid');

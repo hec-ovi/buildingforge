@@ -88,7 +88,8 @@ function exportedSource(apertures: BuildingRequest['apertures'] = []) {
   }, { textures: { mode: 'keys', source: null } });
 }
 
-function layout(plan: FamilyPlan, source = input): Layout {
+/** A host layout for the plan; its request asks for picture screens unless the caller passes its own options. */
+function layout(plan: FamilyPlan, source = input, options: BuildingRequest['options'] = { adScreens: 'on' }): Layout {
   let elevation = 0;
   const floors = plan.floors.map(f => {
     const value = { index: f.floor, kind: 'office', elevation, height: source.floorHeights[f.floor]!, outline: f.outline, assembly: f,
@@ -97,7 +98,7 @@ function layout(plan: FamilyPlan, source = input): Layout {
     return value;
   });
   floors[0]!.openings.push({ id: 'entry', kind: 'door' as never, edge: 0, offset: plan.extent.width / 2 - 1.5, width: 3, sill: 0, height: 2.8 });
-  return { assembly: { ...plan, architecture: family.id }, floors, carved: [], lights: [], request: { seed: source.seed, parcel: { footprint: source.rectangle } } } as unknown as Layout;
+  return { assembly: { ...plan, architecture: family.id }, floors, carved: [], lights: [], request: { seed: source.seed, parcel: { footprint: source.rectangle }, options } } as unknown as Layout;
 }
 
 describe('corporate sectors public family', () => {
@@ -208,6 +209,22 @@ describe('corporate sectors public family', () => {
     expect(minimum.extent).toEqual({ width: 28, depth: 28 });
     expect(minimum.groups.map(g => [g.fromFloor, g.toFloor])).toEqual([[0, 3], [4, 7], [8, 11]]);
   }
+  });
+
+  it('hangs no portrait screen or entrance display unless the request asks, and keeps the screen face panelled', () => {
+    for (const options of [{}, { adScreens: 'off' }] as BuildingRequest['options'][]) {
+      const scene = layout(family.plan(input), input, options);
+      const builder = new MeshBuilder();
+      family.decorate!({ builder, layout: scene, material: role => family.materials![role]! });
+      expect(builder.parts.filter(p => p.name === 'corporate:portrait-screen' || p.name.startsWith('corporate:podium-display:'))).toEqual([]);
+      expect(builder.parts.some(p => p.prims.has(family.materials!.screen!))).toBe(false);
+      // Face 2's screen section is the wall's own cladding on every upper floor.
+      for (const floor of scene.floors.filter(f => f.index >= 4)) {
+        const a = floor.outline[2]!, b = floor.outline[3]!;
+        const cladding = builder.parts.filter(p => p.name === `corporate:${floor.index}:2:cladding`);
+        expect(frontAt(cladding, (a[0] + b[0]) / 2, floor.elevation + floor.height / 2)).toBeLessThan(Infinity);
+      }
+    }
   });
 
   it('decorates inside the parcel with aligned panel grids, clear bridge holes and cyan emitters', () => {
