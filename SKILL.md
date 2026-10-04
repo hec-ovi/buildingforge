@@ -25,7 +25,7 @@ Call `generate(request, options?)` from `src/index.ts` in Node with TypeScript s
 | `options.shape`, `exteriorStyle`, `glb` | `auto` (rectangular plates), seeded compatible style, `named`. |
 | `balconies`, `balconyStyle`, `openFront`, `fireEscape` | `auto`; detail is fitted where eligible. These and the following rows are inside `request.options`. |
 | `entranceLayout`, `doorMotion`, `windows` | `single`, `pocket`, `auto`. Entrances slide into the wall; `swing` asks for a hinge, and a frontage with no wall beside the door keeps one. `openFront:on` conflicts with an explicit `pocket`. |
-| `signage`, `adScreens`, `roofArtifacts` | `null`, `auto`, `auto`. A marquee takes `text` for a lettered band or `cells` for the same band left blank; a logo takes `ratio`. |
+| `signage`, `adScreens`, `roofArtifacts` | `null`, `off`, `auto`. A marquee takes `text` for a lettered band or `cells` for the same band left blank; a logo takes `ratio`. Picture screens (the generic ad plate and the family screens) stand only with `adScreens` `auto` (eligible buildings) or `on`. |
 | `facadeServices`, `hangingClothes`, `windowDamage` | `auto`, `auto`, `off`. |
 | `coreAdjacency` | Interior's published glazing circulation default (1.2 m). |
 | `curtains.profile`, `sunAzimuthDeg`, `overrides` | `day`, 180, empty. Override `openPercent:30` yields `closurePercent:70`. |

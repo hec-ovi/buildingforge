@@ -1,6 +1,6 @@
 # CONTRACT: exterior
 
-Version: 0.61.0.
+Version: 0.62.0.
 
 Generates one deterministic building exterior GLB and the matching floor/opening blueprint, and authors each family as a set of repeated pieces a consumer assembles.
 
@@ -70,6 +70,8 @@ Section `border.surfaceDepth` gives the inward plane of a recessed facade panel.
 Family decoration owns screen and mechanical details, while the host retains requested signage and entrance fixtures. Family `parapetHeight` can retain a flush roof cap. Decoration runs after shared rooms and before light meshes. Optional `modelInstances` publishes existing vegetation requests for the consuming engine; each has a kind, world root position, allowed size and optional rotation. A rich or high-rich `balcony-grid` whose `roofArtifacts` is not `off` furnishes its roof instead of seeding roof artifacts when the stair-door spine fits: `roof.artifacts` then lists only its three screened HVAC units, the terrace meshes under `roof-terrace:*` nodes and its sixteen lamps join `blueprint.lights` as `accent` records (see [balcony grid](src/families/balcony-grid/CONTRACT.md)). Room surfaces, formed coverings and seeded black reflective windows use the shared system. Ground height normally follows the common 4.5 m pitch; white-grid requests a 5 m podium, subject to fixed bridge bases.
 
 A marquee request carries the word or the room for one: `{mode:'marquee', text}` letters one cell per character, `{mode:'marquee', cells:N}` publishes the same band of N cells with no text, for a consumer that letters it at runtime. Both take the same seeded cell pitch, the same band over the entrance or blade beside it, and the same blank backplate; `blueprint.signage` carries `cellSize`, `letterHeight` and the glyph case either way, and omits `text` on a blank band. A band of more cells than the facade holds keeps `E_SIGNAGE_TEXT_TOO_LONG`.
+
+Picture screens stand only where a request asks for them. `options.adScreens` defaults to `off`: no ad plate in `blueprint.screens` or the GLB, no portrait set into a `faceted-bays` panel field, and no corporate portrait or entrance display on `corporate-sectors`, each facade whole and panelled where a screen would have stood. `auto` hangs the ad plate on eligible buildings and the family screens as before; `on` asks for them wherever they fit. Signage is unaffected. Kit plans publish their `sign:screen` fields as anchors, never geometry.
 
 ## Materials
 
