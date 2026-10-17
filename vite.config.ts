@@ -28,5 +28,7 @@ function serveMaterials() {
 
 export default defineConfig({
   server: { port: 5174, watch: { ignored: ['**/out', '**/out/**'] } },
+  // Interior's dist imports ajv from outside this package; resolve it from Exterior's own modules.
+  resolve: { dedupe: ['ajv'] },
   plugins: [serveMaterials()],
 });
